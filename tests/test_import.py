@@ -1,4 +1,4 @@
 def test_import():
-    import my_project
+    import project
 
-    assert my_project.__version__
+    assert project.__version__

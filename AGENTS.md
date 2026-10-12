@@ -1,8 +1,17 @@
 # Instructions for Coding Agents
 
+The purpose of this repository is to teach people Apache Spark. It comes with Sphinx-based documentation and an exam application deployed on Databricks.
+
+## Contents
+
+- `src/project`: This folder contains the source code related to the project.
+- ``
+
+## Critical Rules
+
 Never ever read the `.env` file in the repository!!!
 
-## Ownership
+### Ownership
 
 The commit messages shouldn't include any details on ownership at all.
 

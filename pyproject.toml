@@ -1,7 +1,7 @@
 [project]
-name = "my_project"
+name = "project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Learn Spark from Zero"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
@@ -11,7 +11,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatchling.build.targets.wheel]
-packages = ["src/my_project"]
+packages = ["src/project"]
 
 [dependency-groups]
 docs = [
@@ -35,7 +35,7 @@ dev = [
 ]
 
 [tool.hatchling.build]
-artifacts = ["src/my_project/_config/*.yaml"]
+artifacts = ["src/project/_config/*.yaml"]
 
 [tool.ruff]
 src = ["src"]
@@ -48,7 +48,7 @@ select = ["E", "F", "I", "UP"]
 python_version = "3.12"
 strict = true
 mypy_path = "src"
-packages = ["my_project"]
+packages = ["project"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
