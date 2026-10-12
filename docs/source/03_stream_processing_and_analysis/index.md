@@ -11,7 +11,8 @@ millisecond latency.
 Like the previous chapter, each page is a Jupyter notebook that runs against
 Databricks serverless compute through the session set up in
 {doc}`Setting Up Databricks Connect <../00_getting_started/01_setting_up_databricks_connect>`.
-Serverless compute runs streaming queries with the `availableNow` trigger,
+On serverless compute Databricks recommends the `availableNow` trigger
+([Serverless compute limitations](https://docs.databricks.com/aws/en/compute/serverless/limitations#streaming-limitations)),
 so each query processes the data that has arrived and then stops. The
 notebooks simulate arriving data by adding files and rows between runs, and
 create their own Unity Catalog volume and tables in `workspace.default`,

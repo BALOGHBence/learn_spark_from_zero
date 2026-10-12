@@ -13,3 +13,5 @@ Learn Spark from Zero
    02_developing_applications_with_apache_spark/index
    03_stream_processing_and_analysis/index
    04_monitoring_and_optimizing_spark_workloads_on_databricks/index
+   05_exam_readiness/index
+   99_maintaining_this_course/index

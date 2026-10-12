@@ -2,10 +2,16 @@
 
 The purpose of this repository is to teach people Apache Spark. It comes with Sphinx-based documentation and an exam application deployed on Databricks.
 
+The contents are created to help the reader to pass the `Databricks Certified Associate Developer for Apache Spark` exam.
+
 ## Contents
 
 - `src/project`: This folder contains the source code related to the project.
-- ``
+- `docs/source`: The source for the Sphinx documentation.
+
+## General Rules
+
+When teaching me, use only current Databricks product names and behaviors, and do not invent objectives that don't exist. Ground everything you teach in official Databricks sources — docs.databricks.com and Databricks Academy — not third-party blogs, tutorials, or forum posts. If you can browse the web, search docs.databricks.com and cite the doc page URL for each key claim. If you cannot confirm a claim in the official docs — or cannot browse at all — tell me so explicitly rather than guessing, and point me to where in the docs I should verify it myself. If you cannot accept PDF uploads, tell me and I will paste the guide's "Sections and Objectives" as text instead.
 
 ## Critical Rules
 

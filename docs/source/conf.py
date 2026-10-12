@@ -73,6 +73,9 @@ html_theme_options = {
 
 nb_execution_allow_errors = True
 nb_execution_mode = "off"
+# Error outputs from Databricks Connect mix ANSI colour codes with JVM stack
+# traces, which the default IPython traceback lexer can't parse.
+nb_render_error_lexer = "myst-ansi"
 
 # -- Options for copybutton -------------------------------------------------
 # https://sphinx-copybutton.readthedocs.io/en/latest/index.html

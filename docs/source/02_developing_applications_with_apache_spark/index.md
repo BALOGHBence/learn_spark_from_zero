@@ -8,8 +8,11 @@ session set up in
 {doc}`Setting Up Databricks Connect <../00_getting_started/01_setting_up_databricks_connect>`.
 
 All examples use the `samples.bakehouse` dataset, the sales records of a
-fictional chain of bakeries, which is available in every Databricks
-workspace. The chapter is organised into four notebooks:
+fictional chain of bakeries, from the `samples` catalog
+([Sample datasets](https://docs.databricks.com/aws/en/discover/databricks-datasets#unity-catalog-datasets)).
+{doc}`DataFrame API Basics <01_dataframe_api_basics>` notes what to do if
+your workspace doesn't have it. The chapter is organised into four
+notebooks:
 
 - {doc}`DataFrame API Basics <01_dataframe_api_basics>`: inspecting data,
   deriving columns, casting under ANSI mode, filtering, conditional logic,

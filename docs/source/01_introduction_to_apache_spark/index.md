@@ -8,10 +8,12 @@ Every code example on these pages runs against Databricks serverless compute
 through that session.
 
 The material targets **Apache Spark 4.x as shipped on Databricks**:
-Databricks Runtime 19 is built on Apache Spark 4.2.0, and serverless
-environment version 6 pairs with Databricks Connect 19. Where Databricks
-behaves differently from open-source Spark (for example, serverless compute
-only speaks Spark Connect), the pages call it out.
+Databricks Runtime 19 is powered by Apache Spark 4.2.0
+([Databricks Runtime 19](https://docs.databricks.com/aws/en/release-notes/runtime/19)),
+and serverless environment version 6 ships Databricks Connect 19
+([Serverless environment version 6](https://docs.databricks.com/aws/en/release-notes/serverless/environment-version/six)).
+Where Databricks behaves differently from open-source Spark (for example,
+serverless compute supports only Spark Connect APIs), the pages call it out.
 
 The chapter is organised into four sections:
 
