@@ -2,7 +2,7 @@
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: my_project
-  uuid: 33959df7-f344-435d-bc4a-d334329392a4  # Change this
+  uuid: 7bf9a76a-8e39-4a2d-9f1d-e402950e407c
 
 include:
   - dab/*.yml
@@ -17,14 +17,14 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-59bc96e6-d850.cloud.databricks.com
+      host: https://dbc-9cd964aa-9609.cloud.databricks.com
 
   prod:
     mode: production
     workspace:
-      host: https://dbc-59bc96e6-d850.cloud.databricks.com
+      host: https://dbc-9cd964aa-9609.cloud.databricks.com
       # We explicitly deploy to /Workspace/Users/bence.balogh@datapao.com to make sure we only have a single copy.
       root_path: /Workspace/Users/bence.balogh@datapao.com/.bundle/${bundle.name}/${bundle.target}
     permissions:
-      - user_name: bence.balogh@datapao.com
+      - user_name: benceeok@gmail.com
         level: CAN_MANAGE
