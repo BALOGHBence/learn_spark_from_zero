@@ -221,3 +221,5 @@ __marimo__/
 # Databricks Declarative Automation Bundles
 scratch/**
 !scratch/README.md
+
+.DS_Store
