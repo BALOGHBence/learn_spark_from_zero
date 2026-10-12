@@ -1,0 +1,47 @@
+/* Mermaid: the extension injects a fixed `height: 500px` on every diagram SVG,
+   which leaves large empty margins around short diagrams. Let the SVG take its
+   natural height instead. */
+pre.mermaid > svg,
+.mermaid-container > pre > svg {
+    height: auto !important;
+}
+
+/* Example dropdowns (`:class-body: example-body`): a body tinted just off the
+   page background so worked examples read as a distinct, calm aside. Light
+   mode: very light blue. Dark mode: the theme's own text color is light, so
+   the light-blue tint would read as light-on-light — swap to a dark,
+   blue-tinted body instead, matching the same "barely off background" idea. */
+.example-body.sd-card-body {
+    background-color: #f0f7fb;
+}
+html[data-theme="dark"] .example-body.sd-card-body {
+    background-color: #1c2733;
+}
+
+/* Theorem admonitions (`{admonition} Theorem: <Name>` with `:class: theorem`):
+   a named result the page cites rather than derives. Solid purple title bar,
+   distinct from `{note}`'s pale blue, so "asserted, not proved here" reads
+   differently from a general aside at a glance. */
+.admonition.theorem {
+    border-color: #6f42c1;
+}
+.admonition.theorem > .admonition-title {
+    background-color: #6f42c1;
+    color: #fff;
+}
+.admonition.theorem > .admonition-title::after {
+    color: #fff;
+}
+
+/* Numbered equations: the RTD theme leaves the `.eqno` span inline, so on a
+   centered math block it drops onto its own line above. Pin it to the right
+   margin, vertically centered, the conventional place for an equation number. */
+div.math {
+    position: relative;
+}
+div.math span.eqno {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
