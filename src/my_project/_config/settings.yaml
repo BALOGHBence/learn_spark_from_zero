@@ -1,0 +1,9 @@
+settings:
+
+  CANONICAL_TS_COL:
+    value: 'canonical_ts'
+    description: "Canonical timestamp used to represent the point in time when a record was added to a table."
+
+  STAGING_TABLE_PREFIX:
+    value: '_staging_tbl_'
+    description: "Prefix for staging tables for easy discoverability in maintenance workflows."

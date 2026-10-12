@@ -1,0 +1,13 @@
+assets:
+  
+  wheels_volume:
+    volume: "/Volumes/{catalog}/{schema}/wheels/"
+    description: "The volume where wheel files are stored"
+
+  docs_volume:
+    volume: "/Volumes/{catalog}/{schema}/docs/"
+    description: "The volume where the generated documentation is dropped"
+  
+  project_assets:
+    table: "{catalog}.{schema}.tbl_project_assets"
+    description: "Raw ingested procurement documents"
