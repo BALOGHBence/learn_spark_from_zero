@@ -32,27 +32,20 @@ answer. You see the objectives when your exam is graded.
 
 ### How the Questions Are Spread Across Sections
 
-The certification page publishes a weight for each section
-([Databricks Certified Associate Developer for Apache Spark](https://www.databricks.com/learn/certification/apache-spark-developer-associate)).
-The skill currently doesn't use those weights: it gives every objective in the
-exam guide an equal share of the 45 questions instead. The two allocations
-compare as follows:
+The certification page publishes a weight for each section ([Databricks Certified Associate Developer for Apache Spark](https://www.databricks.com/learn/certification/apache-spark-developer-associate)), and the skill uses those weights. Applied to 45 questions, they don't give whole numbers, so the skill rounds them with the largest-remainder method and gives the extra half-questions of Sections 3, 4 and 5 to the earlier sections:
 
 | Section | Official weight | Questions at that weight | Objectives | Skill's questions |
 | --- | ---: | ---: | ---: | ---: |
-| 1: Apache Spark Architecture and Components | 20% | 9 | 7 | 10 |
-| 2: Using Spark SQL | 20% | 9 | 4 | 6 |
+| 1: Apache Spark Architecture and Components | 20% | 9 | 7 | 9 |
+| 2: Using Spark SQL | 20% | 9 | 4 | 9 |
 | 3: Developing Apache Spark™ DataFrame/DataSet API Applications | 30% | 13.5 | 10 | 14 |
-| 4: Troubleshooting and Tuning Apache Spark DataFrame API Applications | 10% | 4.5 | 3 | 4 |
-| 5: Structured Streaming | 10% | 4.5 | 4 | 5 |
-| 6: Using Spark Connect to deploy applications | 5% | 2.25 | 2 | 3 |
-| 7: Using Pandas API on Apache Spark | 5% | 2.25 | 2 | 3 |
+| 4: Troubleshooting and Tuning Apache Spark DataFrame API Applications | 10% | 4.5 | 3 | 5 |
+| 5: Structured Streaming | 10% | 4.5 | 4 | 4 |
+| 6: Using Spark Connect to deploy applications | 5% | 2.25 | 2 | 2 |
+| 7: Using Pandas API on Apache Spark | 5% | 2.25 | 2 | 2 |
 | **Total** | **100%** | **45** | **32** | **45** |
 
-The biggest difference is Section 2, Spark SQL, which the skill under-samples
-compared with its official 20%. Within a section, a few objectives get a
-second question. Which ones changes at random on each run, so two mock exams
-don't cover exactly the same ground.
+Databricks doesn't publish how many questions of each section a real exam form has, so treat the rounding as an approximation. Within a section, every objective gets at least one question and the rest are spread over its objectives at random, so two mock exams don't cover exactly the same ground.
 
 :::{admonition} Note: AI-Generated Questions Are Not a Readiness Score
 :class: note
