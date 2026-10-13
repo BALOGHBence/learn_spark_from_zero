@@ -5,6 +5,8 @@
 
 **📖 Read the course online: [baloghbence.github.io/learn_spark_from_zero](https://baloghbence.github.io/learn_spark_from_zero/)**
 
+**📝 Take a mock exam in your browser: [baloghbence.github.io/learn_spark_from_zero/mock-exam](https://baloghbence.github.io/learn_spark_from_zero/mock-exam/)**
+
 A hands-on course that takes you from no Apache Spark knowledge to ready for the [Databricks Certified Associate Developer for Apache Spark](https://www.databricks.com/learn/certification/apache-spark-developer-associate) exam. You write and run PySpark from your own editor against Databricks serverless compute, and you test yourself with a bank of 1,000 exam-style questions.
 
 The repository contains:
@@ -38,7 +40,7 @@ The exam guide this course follows is in [`resources/`](resources/databricks-cer
 - The [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install).
 - A Databricks workspace with Unity Catalog and serverless compute. [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) is enough.
 - Optional: [Claude Code](https://claude.com/claude-code) for the quizzes and the mock exam.
-- Optional: [Node.js](https://nodejs.org/) 20 or later for the mock exam app.
+- Optional: [Node.js](https://nodejs.org/) 20 or later to run the mock exam app locally. The [hosted copy](https://baloghbence.github.io/learn_spark_from_zero/mock-exam/) needs nothing.
 
 ## Quick Start
 
@@ -97,7 +99,9 @@ Answers stay hidden until you respond. After grading you get each question's exp
 
 ## Mock Exam App
 
-Prefer a testing screen to a chat? [`apps/mock-exam`](apps/mock-exam) is a small React app that runs a full 45-question mock exam from the question bank in your browser. It needs no Databricks connection and no Claude Code, only [Node.js](https://nodejs.org/) 20 or later.
+Prefer a testing screen to a chat? [`apps/mock-exam`](apps/mock-exam) is a small React app that runs a full 45-question mock exam from the question bank in your browser. It needs no Databricks connection and no Claude Code.
+
+**Use it online at [baloghbence.github.io/learn_spark_from_zero/mock-exam](https://baloghbence.github.io/learn_spark_from_zero/mock-exam/)**, rebuilt from the question bank on every push to `main`. To run it locally instead, you need [Node.js](https://nodejs.org/) 20 or later:
 
 ```shell
 cd apps/mock-exam
