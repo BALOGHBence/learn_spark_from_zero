@@ -1,0 +1,663 @@
+# Objective 2.4: Register DataFrames as temporary views in Spark SQL, allowing them to be queried with SQL syntax.
+- id: 2.4-001
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to query the DataFrame `orders_df` with SQL using the name `orders`.
+
+    Which code does this?
+  answers:
+  - text: |-
+      |
+      ```python
+      spark.sql("SELECT country, sum(amount) FROM orders_df GROUP BY country").show()
+      ```
+    verdict: incorrect
+    justification: A Python variable name is not visible to SQL; the DataFrame must be registered as a view (or passed as a parameter).
+  - text: |-
+      |
+      ```python
+      orders_df.registerTable("orders")
+      spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()
+      ```
+    verdict: incorrect
+    justification: DataFrames have no `registerTable` method.
+  - text: |-
+      |
+      ```python
+      orders_df.saveAsView("orders")
+      spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()
+      ```
+    verdict: incorrect
+    justification: DataFrames have no `saveAsView` method.
+  - text: |-
+      |
+      ```python
+      orders_df.createOrReplaceTempView("orders")
+      spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()
+      ```
+    verdict: correct
+    justification: '`createOrReplaceTempView("orders")` registers the DataFrame under a name that `spark.sql` queries can use.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-002
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer calls `df.createTempView("sales")` when a temporary view named `sales` already exists in the session.
+
+    What happens?
+  answers:
+  - text: An error is raised because the view already exists.
+    verdict: correct
+    justification: '`createTempView` raises an error if a view with that name already exists.'
+  - text: The call is ignored.
+    verdict: incorrect
+    justification: The call is not ignored; it fails.
+  - text: A second view named `sales_1` is created.
+    verdict: incorrect
+    justification: Spark does not rename views automatically.
+  - text: The existing view is silently replaced.
+    verdict: true_but_irrelevant
+    justification: Silently replacing the view is what `createOrReplaceTempView` does.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createTempView.html
+- id: 2.4-003
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A notebook re-runs a cell that registers a temporary view each time.
+
+    Which method avoids an error when the view already exists?
+  answers:
+  - text: '`registerTempTable` with `replace=True`'
+    verdict: incorrect
+    justification: '`registerTempTable` is a deprecated alias and has no `replace` parameter.'
+  - text: '`createGlobalTempView`'
+    verdict: incorrect
+    justification: '`createGlobalTempView` also fails if the view exists, and it creates a global view instead.'
+  - text: '`createOrReplaceTempView`'
+    verdict: correct
+    justification: '`createOrReplaceTempView` replaces an existing view, so re-running the cell does not fail.'
+  - text: '`createTempView`'
+    verdict: incorrect
+    justification: '`createTempView` fails if the view exists.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-004
+  category: using_spark_sql
+  objective: '2.4'
+  question: What is the lifetime of a view created with `createOrReplaceTempView`?
+  answers:
+  - text: It lasts for exactly one query.
+    verdict: incorrect
+    justification: The view stays available for any number of queries during the session.
+  - text: It is tied to the SparkSession that created it.
+    verdict: correct
+    justification: A temporary view lives as long as the SparkSession that created it.
+  - text: It lasts until the cluster is restarted, across all sessions.
+    verdict: incorrect
+    justification: Temporary views are scoped to one session, not to the cluster.
+  - text: It persists in the metastore until dropped.
+    verdict: incorrect
+    justification: Temporary views are not stored in the metastore.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-005
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer creates a view with `df.createGlobalTempView("people")`.
+
+    How must it be referenced in SQL?
+  answers:
+  - text: '`SELECT * FROM global_temp.people`'
+    verdict: correct
+    justification: Global temporary views live in the system-preserved `global_temp` schema and must be qualified with it.
+  - text: '`SELECT * FROM global.people`'
+    verdict: incorrect
+    justification: The schema is `global_temp`, not `global`.
+  - text: '`SELECT * FROM people`'
+    verdict: incorrect
+    justification: Without the `global_temp.` prefix the view is not found.
+  - text: '`SELECT * FROM temp.people`'
+    verdict: incorrect
+    justification: The schema is `global_temp`, not `temp`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createGlobalTempView.html
+- id: 2.4-006
+  category: using_spark_sql
+  objective: '2.4'
+  question: Which statement describes a global temporary view in Apache Spark?
+  answers:
+  - text: It is stored permanently in the metastore.
+    verdict: incorrect
+    justification: Global temporary views are not stored permanently.
+  - text: It is private to one SparkSession.
+    verdict: true_but_irrelevant
+    justification: Being private to one SparkSession describes a regular temporary view.
+  - text: It is visible to all applications on all clusters.
+    verdict: incorrect
+    justification: They are limited to one Spark application.
+  - text: It is shared across SparkSessions of the same Spark application and is dropped when the application ends.
+    verdict: correct
+    justification: A global temporary view is shared by all SparkSessions of the same application and is dropped when the application ends.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceGlobalTempView.html
+- id: 2.4-007
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to create a temporary view in SQL from a query.
+
+    Which statement does this?
+  answers:
+  - text: '`REGISTER VIEW big_orders AS SELECT * FROM orders WHERE amount > 1000`'
+    verdict: incorrect
+    justification: '`REGISTER VIEW` is not SQL.'
+  - text: '`CREATE TEMP TABLE big_orders AS SELECT * FROM orders WHERE amount > 1000 PERSIST`'
+    verdict: incorrect
+    justification: '`CREATE TEMP TABLE ... PERSIST` is not valid view syntax.'
+  - text: '`CREATE OR REPLACE TEMPORARY VIEW big_orders AS SELECT * FROM orders WHERE amount > 1000`'
+    verdict: correct
+    justification: '`CREATE OR REPLACE TEMPORARY VIEW ... AS SELECT ...` creates or replaces a temporary view from a query.'
+  - text: '`CREATE VIEW TEMPORARY big_orders FROM orders WHERE amount > 1000`'
+    verdict: incorrect
+    justification: '`TEMPORARY` must come before `VIEW`, and a view needs `AS SELECT`.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view
+- id: 2.4-008
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer registers a temporary view and runs a query on it.
+
+    Which statement about the data is correct?
+  answers:
+  - text: Creating a temporary view writes the data to the warehouse directory.
+    verdict: incorrect
+    justification: Temporary views write nothing to storage.
+  - text: A temporary view does not copy or store data; querying it runs the underlying plan.
+    verdict: correct
+    justification: A temporary view only names a query plan; no data is stored, and every query on it runs the plan.
+  - text: Creating a temporary view caches the data in memory automatically.
+    verdict: incorrect
+    justification: Temporary views are not cached automatically.
+  - text: Creating a temporary view triggers a Spark job to materialize it.
+    verdict: incorrect
+    justification: Creating a temp view does not run a job.
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-009
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer registers a view and wants the result of an SQL query as a DataFrame for further transformations.
+
+    Which statement is correct?
+  answers:
+  - text: '`spark.sql(...)` returns a string that must be parsed.'
+    verdict: incorrect
+    justification: It returns a DataFrame, not a string.
+  - text: '`spark.sql(...)` returns a list of rows only.'
+    verdict: incorrect
+    justification: Rows are only returned by actions on the DataFrame.
+  - text: SQL query results cannot be combined with DataFrame operations.
+    verdict: incorrect
+    justification: SQL results are DataFrames and combine freely with DataFrame code.
+  - text: '`spark.sql(...)` returns a DataFrame, which can be transformed with the DataFrame API.'
+    verdict: correct
+    justification: '`spark.sql` returns a DataFrame, so its result can be transformed further with the DataFrame API.'
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-010
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    In Spark Connect, a DataFrame is created from a temporary view, and later the view name is replaced with a different query.
+
+    What happens to the existing DataFrame?
+  answers:
+  - text: It fails because the view changed.
+    verdict: incorrect
+    justification: Replacing the view does not make the DataFrame fail.
+  - text: It is automatically cached with the old data.
+    verdict: incorrect
+    justification: Nothing is cached automatically.
+  - text: It reflects the new view definition, because Spark Connect resolves temporary views by name at execution time.
+    verdict: correct
+    justification: Spark Connect stores only a reference to the temp view's name and resolves it at execution, so the DataFrame reflects the new definition.
+  - text: It keeps the original data, because the plan is embedded when the DataFrame is created.
+    verdict: true_but_irrelevant
+    justification: Embedding the view's plan when the DataFrame is created is Spark Classic behaviour, not Spark Connect.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 2.4-011
+  category: using_spark_sql
+  objective: '2.4'
+  question: How does Spark Classic treat a DataFrame created with `spark.table("tmp_view")` when the temp view is later replaced?
+  answers:
+  - text: The view's plan was embedded when the DataFrame was created, so the DataFrame is unaffected by the replacement.
+    verdict: correct
+    justification: In Spark Classic, the view's logical plan is embedded in the DataFrame when it is created, so later replacements do not affect it.
+  - text: The DataFrame is invalidated and must be recreated.
+    verdict: incorrect
+    justification: The DataFrame stays valid.
+  - text: The replacement fails while a DataFrame references the view.
+    verdict: incorrect
+    justification: Replacing a view that a DataFrame references is allowed.
+  - text: The DataFrame always reads the newest definition of the view.
+    verdict: true_but_irrelevant
+    justification: Reading the newest view definition is Spark Connect behaviour, not Spark Classic.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 2.4-012
+  category: using_spark_sql
+  objective: '2.4'
+  question: To avoid temporary view name clashes in Spark Connect, what does Databricks recommend?
+  answers:
+  - text: Never use temporary views with Spark Connect.
+    verdict: incorrect
+    justification: Temporary views work in Spark Connect; only naming needs care.
+  - text: Create unique temporary view names, for example by including a UUID.
+    verdict: correct
+    justification: Databricks recommends unique temp view names, for example with a UUID, so replacing one view cannot change existing DataFrames.
+  - text: Use only global temporary views.
+    verdict: incorrect
+    justification: Global temporary views do not solve the name-lookup issue, and the docs do not recommend them for it.
+  - text: Call `cache()` on every view.
+    verdict: incorrect
+    justification: Caching does not change how view names are resolved.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 2.4-013
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to remove a temporary view named `staging` from the session.
+
+    Which code does this?
+  answers:
+  - text: '`spark.catalog.uncacheTable("staging", drop=True)`'
+    verdict: incorrect
+    justification: '`uncacheTable` only removes cached data and has no `drop` parameter.'
+  - text: '`spark.catalog.dropTempView("staging")`'
+    verdict: correct
+    justification: '`spark.catalog.dropTempView("staging")` removes the temporary view.'
+  - text: '`spark.sql("DELETE VIEW staging")`'
+    verdict: incorrect
+    justification: '`DELETE VIEW` is not SQL.'
+  - text: '`spark.dropView("staging")`'
+    verdict: incorrect
+    justification: SparkSession has no `dropView` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Catalog.dropTempView.html
+- id: 2.4-014
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to remove a temporary view using SQL.
+
+    Which statement does this?
+  answers:
+  - text: '`TRUNCATE VIEW staging`'
+    verdict: incorrect
+    justification: '`TRUNCATE` applies to table data, not views.'
+  - text: '`REMOVE VIEW staging`'
+    verdict: incorrect
+    justification: '`REMOVE VIEW` is not SQL.'
+  - text: '`DELETE TEMPORARY VIEW staging`'
+    verdict: incorrect
+    justification: '`DELETE TEMPORARY VIEW` is not SQL.'
+  - text: '`DROP VIEW IF EXISTS staging`'
+    verdict: correct
+    justification: '`DROP VIEW IF EXISTS` removes a view, including a temporary view.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view
+- id: 2.4-015
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer needs a view that other users can query in later sessions, with governance in Unity Catalog.
+
+    Which object should be created?
+  answers:
+  - text: A cached DataFrame
+    verdict: incorrect
+    justification: A cached DataFrame is not visible to other users or sessions.
+  - text: A global temporary view
+    verdict: incorrect
+    justification: A global temporary view only exists within one application.
+  - text: A view created with `CREATE VIEW catalog.schema.view_name AS ...`
+    verdict: correct
+    justification: A view created with `CREATE VIEW catalog.schema.name` is a persistent Unity Catalog object that other users can query in later sessions, with governance.
+  - text: A temporary view created with `createOrReplaceTempView`
+    verdict: incorrect
+    justification: A temporary view only exists in your session.
+  source_url: https://docs.databricks.com/aws/en/views/
+- id: 2.4-016
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer queries a temporary view and joins it with a persistent table in one SQL statement.
+
+    Is this possible?
+  answers:
+  - text: Yes, temporary views can be referenced in SQL like tables, including in joins with persistent tables.
+    verdict: correct
+    justification: Temporary views can be used in SQL like tables, including joins with persistent tables.
+  - text: Yes, but only through the DataFrame API.
+    verdict: incorrect
+    justification: Temporary views are usable from SQL; that is their purpose.
+  - text: No, temporary views can only be queried alone.
+    verdict: incorrect
+    justification: Temporary views can be combined with other tables in queries.
+  - text: No, temporary views must be converted to tables first.
+    verdict: incorrect
+    justification: No conversion to tables is needed.
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-017
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A colleague opens a separate notebook attached to the same cluster and tries to query a temporary view created in your notebook.
+
+    What happens?
+  answers:
+  - text: The query succeeds only if the view was cached.
+    verdict: incorrect
+    justification: Caching does not change a view's visibility.
+  - text: The query succeeds because temporary views are cluster-wide.
+    verdict: incorrect
+    justification: Temporary views are not cluster-wide.
+  - text: The query fails because the view belongs to a different SparkSession.
+    verdict: correct
+    justification: Each notebook has its own SparkSession, and temporary views are session-scoped, so the other notebook cannot see the view.
+  - text: The view is copied automatically to the new notebook.
+    verdict: incorrect
+    justification: Views are not copied between sessions.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-018
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer registers a temporary view on a DataFrame that reads a large Parquet dataset, then runs two SQL queries on the view.
+
+    How many times is the underlying data read, if nothing is cached?
+  answers:
+  - text: Only for the first query
+    verdict: incorrect
+    justification: Without caching nothing is reused between queries.
+  - text: Once when the view is created
+    verdict: incorrect
+    justification: Creating a view reads no data.
+  - text: Never, because views read from metadata
+    verdict: incorrect
+    justification: Queries read the actual data, not just metadata.
+  - text: Once for each query, because the view is only a name for the plan
+    verdict: correct
+    justification: The view is only a named plan, so each query reads the Parquet data again unless it is cached.
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-019
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer defines the following in SQL:
+
+    ```sql
+    CREATE TEMPORARY VIEW eu_orders AS
+    SELECT * FROM orders WHERE region = 'EU'
+    ```
+
+    Then runs `SELECT count(*) FROM eu_orders`.
+
+    Which statement is correct?
+  answers:
+  - text: The count query applies the view's filter and returns the number of EU orders.
+    verdict: correct
+    justification: The view stores its query, including the filter, so querying it counts only EU orders.
+  - text: The view returns all orders because filters are not stored in views.
+    verdict: incorrect
+    justification: Views store the full query, including filters.
+  - text: The view fails because temporary views cannot have filters.
+    verdict: incorrect
+    justification: Temporary views can contain filters.
+  - text: The count is computed when the view is created and stored.
+    verdict: incorrect
+    justification: Views are evaluated when queried; their results are not stored.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view
+- id: 2.4-020
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer creates a temporary view, then calls `spark.stop()` and starts a new SparkSession.
+
+    What happens to the view?
+  answers:
+  - text: It is saved as a global temporary view.
+    verdict: incorrect
+    justification: Views are not promoted to global temporary views.
+  - text: It no longer exists, because it was scoped to the stopped session.
+    verdict: correct
+    justification: Temporary views are bound to their session, so they disappear when the session stops.
+  - text: It is converted into a persistent table.
+    verdict: incorrect
+    justification: Views are not converted to persistent tables.
+  - text: It is restored automatically in the new session.
+    verdict: incorrect
+    justification: A new session starts without the old session's temp views.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-021
+  category: using_spark_sql
+  objective: '2.4'
+  question: Which pair of statements is equivalent?
+  answers:
+  - text: '`df.createTempView("v")` and `df.cache()`'
+    verdict: incorrect
+    justification: Registering a view does not cache data.
+  - text: '`spark.table("v")` and `spark.read.parquet("v")`'
+    verdict: incorrect
+    justification: '`spark.table` reads a registered view or table; `read.parquet` reads files at a path.'
+  - text: '`df.filter(df.amount > 100)` and `spark.sql("SELECT * FROM v WHERE amount > 100")` after `df.createOrReplaceTempView("v")`'
+    verdict: correct
+    justification: After registering the view, the SQL filter and the DataFrame filter express the same query and produce the same result.
+  - text: '`df.createOrReplaceTempView("v")` and `df.write.saveAsTable("v")`'
+    verdict: incorrect
+    justification: A temporary view stores no data, while `saveAsTable` writes a persistent table.
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-022
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants a temporary view with explicit column names that differ from the query's.
+
+    Which statement is valid?
+  answers:
+  - text: '`CREATE TEMPORARY VIEW v (order_id, total) AS SELECT id, amount FROM orders`'
+    verdict: correct
+    justification: A column list after the view name, as in `CREATE TEMPORARY VIEW v (order_id, total) AS ...`, renames the view's columns.
+  - text: Temporary views cannot rename columns.
+    verdict: incorrect
+    justification: Views can rename columns with a column list or with aliases in the query.
+  - text: '`CREATE TEMPORARY VIEW v WITH COLUMNS order_id, total FROM orders`'
+    verdict: incorrect
+    justification: '`WITH COLUMNS ... FROM` is not valid view syntax.'
+  - text: '`CREATE TEMPORARY VIEW v AS SELECT id, amount FROM orders RENAME (order_id, total)`'
+    verdict: incorrect
+    justification: '`RENAME (...)` is not valid in a `SELECT`.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view
+- id: 2.4-023
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to check which tables and temporary views exist in the current session.
+
+    Which call can be used?
+  answers:
+  - text: '`spark.sql("LIST VIEWS ALL")`'
+    verdict: incorrect
+    justification: '`LIST VIEWS ALL` is not SQL; the statement is `SHOW VIEWS`.'
+  - text: '`spark.catalog.showAll()`'
+    verdict: incorrect
+    justification: '`spark.catalog` has no `showAll` method.'
+  - text: '`spark.listViews()`'
+    verdict: incorrect
+    justification: SparkSession has no `listViews` method.
+  - text: '`spark.catalog.listTables()`'
+    verdict: correct
+    justification: '`spark.catalog.listTables()` lists tables and views, including temporary views, of the current schema.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Catalog.listTables.html
+- id: 2.4-024
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A DataFrame with columns `id` and `amount` is registered as view `t`. The engineer then runs `spark.sql("SELECT id, amount * 1.2 AS gross FROM t")`.
+
+    What does the result contain?
+  answers:
+  - text: A string with the query plan
+    verdict: incorrect
+    justification: '`spark.sql` returns a DataFrame, not a plan string.'
+  - text: A DataFrame with columns `id` and `gross`
+    verdict: correct
+    justification: The query selects `id` and the computed `gross`, so the result has exactly those two columns.
+  - text: A DataFrame with columns `id`, `amount` and `gross`
+    verdict: incorrect
+    justification: '`amount` is not selected, so it is not in the result.'
+  - text: The original DataFrame, modified in place
+    verdict: incorrect
+    justification: The original DataFrame is never modified.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-025
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A team uses SQL analysts and Python developers on one pipeline.
+
+    What is the main benefit of registering DataFrames as temporary views?
+  answers:
+  - text: Temporary views speed up queries by indexing data.
+    verdict: incorrect
+    justification: Views do not create indexes.
+  - text: Temporary views back up data in the metastore.
+    verdict: incorrect
+    justification: Temporary views store nothing in the metastore.
+  - text: The same data can be queried with SQL syntax by analysts while developers keep using the DataFrame API.
+    verdict: correct
+    justification: Temporary views let analysts query the data with SQL while developers keep working with the DataFrame API on the same data.
+  - text: Temporary views make data available to external BI tools permanently.
+    verdict: incorrect
+    justification: Temporary views are session-scoped, not permanent and not visible to external tools.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-026
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer uses `spark.sql("SELECT * FROM {df} WHERE amount > 100", df=orders_df)` in PySpark.
+
+    What does this do?
+  answers:
+  - text: It fails because DataFrames can only be queried after `createTempView`.
+    verdict: incorrect
+    justification: Parameterized queries can reference DataFrames directly.
+  - text: It references the DataFrame directly in the query through a parameterized SQL query, without registering a named view first.
+    verdict: correct
+    justification: PySpark's `spark.sql` accepts DataFrames as keyword arguments referenced with `{df}`, so no view has to be registered first.
+  - text: It writes `orders_df` to a table named `df`.
+    verdict: incorrect
+    justification: Nothing is written to a table.
+  - text: It runs the query on the driver with pandas.
+    verdict: incorrect
+    justification: The query runs on the Spark engine, not with pandas on the driver.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.sql.html
+- id: 2.4-027
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer calls `df.createOrReplaceGlobalTempView("lookup")` and then queries `SELECT * FROM lookup` without a prefix.
+
+    What happens?
+  answers:
+  - text: The query fails, because global temporary views live in the `global_temp` schema and must be qualified.
+    verdict: correct
+    justification: Global temporary views live in `global_temp`, so an unqualified `lookup` is not found.
+  - text: The query reads a persistent table called `lookup` automatically.
+    verdict: incorrect
+    justification: Spark does not substitute a persistent table for a missing view.
+  - text: The query succeeds, because global views are visible without a prefix.
+    verdict: incorrect
+    justification: Global views must be qualified with `global_temp`.
+  - text: The query succeeds only on the second run.
+    verdict: incorrect
+    justification: Running the query again does not change name resolution.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceGlobalTempView.html
+- id: 2.4-028
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer runs `CREATE TEMPORARY VIEW main.sales.recent AS SELECT * FROM orders`.
+
+    Why does this fail?
+  answers:
+  - text: Temporary views can only be created with the DataFrame API.
+    verdict: incorrect
+    justification: Temporary views can be created in SQL as well.
+  - text: Temporary views must be created in the `global_temp` schema.
+    verdict: incorrect
+    justification: Only global temporary views live in `global_temp`.
+  - text: Temporary views cannot select from tables.
+    verdict: incorrect
+    justification: Temporary views can select from tables.
+  - text: A temporary view's name must not be qualified with a catalog or schema.
+    verdict: correct
+    justification: Databricks' `CREATE VIEW` reference states that a temporary view's name must not be qualified.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view
+- id: 2.4-029
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A developer needs a view only for the remainder of a notebook to simplify several SQL queries over an intermediate DataFrame.
+
+    Which object is the best fit?
+  answers:
+  - text: A global temporary view shared across applications
+    verdict: incorrect
+    justification: Global temporary views are shared within one application, not across applications, and are more than this needs.
+  - text: A Unity Catalog managed table
+    verdict: incorrect
+    justification: A managed table persists data beyond the notebook, which is not needed here.
+  - text: An external table
+    verdict: incorrect
+    justification: An external table persists data and metadata beyond the notebook.
+  - text: A temporary view
+    verdict: correct
+    justification: A temporary view lasts for the session and needs no storage, which fits a notebook-only helper.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.createOrReplaceTempView.html
+- id: 2.4-030
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer registers a streaming DataFrame as a temporary view with `createOrReplaceTempView`.
+
+    Which statement is correct?
+  answers:
+  - text: The view contains a static snapshot of the stream.
+    verdict: incorrect
+    justification: The view stays streaming; it is not a static snapshot.
+  - text: Temporary views cannot be created from streaming DataFrames.
+    verdict: incorrect
+    justification: Streaming DataFrames can be registered as temporary views.
+  - text: SQL queries on the view return a streaming DataFrame, which can be written with `writeStream`.
+    verdict: correct
+    justification: Temporary views work with streaming DataFrames; SQL on such a view returns a streaming DataFrame that you write with `writeStream`.
+  - text: The view converts the stream into a batch table automatically.
+    verdict: incorrect
+    justification: The view does not turn the stream into a batch table.
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 2.4-031
+  category: using_spark_sql
+  objective: '2.4'
+  question: |-
+    A data engineer wants to update the definition of an existing temporary view `active_users`.
+
+    Which statement is correct?
+  answers:
+  - text: '`CREATE OR REPLACE TEMPORARY VIEW active_users AS SELECT * FROM users WHERE active`'
+    verdict: correct
+    justification: '`CREATE OR REPLACE TEMPORARY VIEW` redefines the view.'
+  - text: '`REPLACE VIEW active_users WITH SELECT * FROM users WHERE active`'
+    verdict: incorrect
+    justification: '`REPLACE VIEW ... WITH` is not Spark SQL syntax.'
+  - text: '`UPDATE VIEW active_users AS SELECT * FROM users WHERE active`'
+    verdict: incorrect
+    justification: '`UPDATE VIEW` is not SQL.'
+  - text: '`ALTER TEMPORARY VIEW active_users SET QUERY SELECT * FROM users WHERE active`'
+    verdict: incorrect
+    justification: '`ALTER TEMPORARY VIEW ... SET QUERY` is not valid syntax.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-view

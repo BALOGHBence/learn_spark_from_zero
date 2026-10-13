@@ -1,0 +1,613 @@
+# Objective 3.10: Describe the purpose and implementation of broadcast joins
+- id: 3.10-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer joins a 3 TB fact table with a 5 MB dimension table.
+
+    What is the main purpose of using a broadcast join here?
+  answers:
+  - text: Collect both tables to the driver and join them locally.
+    verdict: incorrect
+    justification: Collecting both tables to the driver would not scale.
+  - text: Send the large table to every executor so the small table is not shuffled.
+    verdict: incorrect
+    justification: Broadcasting the 3 TB table would be extremely expensive; the small side is the one broadcast.
+  - text: Send the small table to every executor so the large table does not need to be shuffled for the join.
+    verdict: correct
+    justification: A broadcast join sends the small table to every executor, so each partition of the large table is joined locally without shuffling it.
+  - text: Cache both tables to avoid reading them twice.
+    verdict: incorrect
+    justification: Caching avoids re-reading data but does not change the join strategy.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Which PySpark code explicitly requests a broadcast join of `dim` with `facts`?
+  answers:
+  - text: '`facts.join(dim.cache(), "dim_id", "broadcast")`'
+    verdict: incorrect
+    justification: Caching does not request a broadcast, and `"broadcast"` is not a join type.
+  - text: '`facts.join(broadcast(dim), "dim_id")`'
+    verdict: correct
+    justification: '`broadcast(dim)` marks the small DataFrame as the broadcast side of the join.'
+  - text: '`facts.join(dim, "dim_id").broadcast()`'
+    verdict: incorrect
+    justification: DataFrames have no `broadcast()` method, and the hint must be on an input of the join.
+  - text: '`broadcast(facts).join(dim, "dim_id")`'
+    verdict: incorrect
+    justification: This marks the large fact table for broadcast, which is the wrong side.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.broadcast.html
+- id: 3.10-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: What is the default value of `spark.sql.autoBroadcastJoinThreshold` in Apache Spark?
+  answers:
+  - text: 10 MB
+    verdict: correct
+    justification: The Spark docs list a default of 10 MB (10485760 bytes) for `autoBroadcastJoinThreshold`.
+  - text: 1 GB
+    verdict: incorrect
+    justification: 1 GB is not the default.
+  - text: 1 MB
+    verdict: incorrect
+    justification: 1 MB is not the default.
+  - text: 100 MB
+    verdict: incorrect
+    justification: 100 MB is not the default.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer wants to disable automatic broadcast joins for a session.
+
+    Which setting does this?
+  answers:
+  - text: '`spark.conf.set("spark.sql.broadcast.enabled", "none")`'
+    verdict: incorrect
+    justification: There is no `spark.sql.broadcast.enabled` setting.
+  - text: '`spark.conf.set("spark.sql.autoBroadcastJoinThreshold", 0.0)`'
+    verdict: incorrect
+    justification: The documented way to disable automatic broadcasting is -1.
+  - text: '`spark.conf.set("spark.sql.join.preferSortMergeJoin", "broadcast")`'
+    verdict: incorrect
+    justification: '`preferSortMergeJoin` is a boolean, and `"broadcast"` is not a valid value.'
+  - text: '`spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)`'
+    verdict: correct
+    justification: The Spark docs state that setting the threshold to -1 disables broadcasting.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer wants Spark to automatically broadcast tables up to 50 MB.
+
+    Which setting does this?
+  answers:
+  - text: '`spark.conf.set("spark.sql.autoBroadcastJoinThreshold", 50 * 1024 * 1024)`'
+    verdict: correct
+    justification: The threshold is given in bytes, so 50 × 1024 × 1024 allows tables up to 50 MB.
+  - text: '`spark.conf.set("spark.sql.broadcastTimeout", 50)`'
+    verdict: true_but_irrelevant
+    justification: '`broadcastTimeout` is real, but it sets how long Spark waits for a broadcast, in seconds, not the size limit.'
+  - text: '`spark.conf.set("spark.driver.maxResultSize", "50m")`'
+    verdict: true_but_irrelevant
+    justification: '`maxResultSize` is real, but it limits results collected to the driver, not the broadcast threshold.'
+  - text: '`spark.conf.set("spark.sql.shuffle.partitions", 50)`'
+    verdict: true_but_irrelevant
+    justification: '`shuffle.partitions` is real, but it controls shuffle partition counts, not broadcasting.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer writes a SQL query and wants table `r` to be broadcast.
+
+    Which hint does this?
+  answers:
+  - text: '`SELECT /*+ COALESCE(r) */ * FROM src s JOIN records r ON s.key = r.key`'
+    verdict: incorrect
+    justification: '`COALESCE` is a partitioning hint that takes a number, not a table.'
+  - text: '`SELECT /*+ BROADCAST(r) */ * FROM src s JOIN records r ON s.key = r.key`'
+    verdict: correct
+    justification: The `BROADCAST(r)` hint asks Spark to broadcast `r`.
+  - text: '`SELECT /*+ SHUFFLE_HASH(r) */ * FROM src s JOIN records r ON s.key = r.key`'
+    verdict: true_but_irrelevant
+    justification: '`SHUFFLE_HASH` is a valid hint, but it requests a shuffle hash join, not a broadcast.'
+  - text: '`SELECT * FROM src s BROADCAST JOIN records r ON s.key = r.key`'
+    verdict: incorrect
+    justification: '`BROADCAST JOIN` is not SQL join syntax.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-hints.html
+- id: 3.10-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Which names are accepted for the broadcast join hint in Spark SQL?
+  answers:
+  - text: '`BROADCAST` only'
+    verdict: partially_correct
+    justification: '`BROADCAST` is valid, but `BROADCASTJOIN` and `MAPJOIN` are accepted too.'
+  - text: '`BROADCAST`, `REPLICATE` and `SMALLJOIN`'
+    verdict: partially_correct
+    justification: '`BROADCAST` is valid, but `REPLICATE` and `SMALLJOIN` are not hint names.'
+  - text: '`BROADCAST`, `BROADCASTJOIN` and `MAPJOIN`'
+    verdict: correct
+    justification: Spark accepts `BROADCAST`, `BROADCASTJOIN` and `MAPJOIN` for the broadcast hint.
+  - text: '`MAPJOIN` and `REDUCEJOIN`'
+    verdict: partially_correct
+    justification: '`MAPJOIN` is valid, but `REDUCEJOIN` is not a hint.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A table larger than `spark.sql.autoBroadcastJoinThreshold` is marked with a `BROADCAST` hint.
+
+    What does Spark do?
+  answers:
+  - text: It ignores the hint because the table is above the threshold.
+    verdict: incorrect
+    justification: The hint overrides the size threshold.
+  - text: It broadcasts both tables.
+    verdict: incorrect
+    justification: Only the hinted table is broadcast.
+  - text: It fails the query.
+    verdict: incorrect
+    justification: A large broadcast may cause memory issues, but the hint itself does not fail the query.
+  - text: It prioritizes a broadcast join with that table as the build side, even though it is above the threshold.
+    verdict: correct
+    justification: With a `BROADCAST` hint, Spark prioritizes a broadcast join even if the table exceeds `autoBroadcastJoinThreshold`.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    Different join strategy hints are given on both sides of a join.
+
+    Which hint does Spark prioritize?
+  answers:
+  - text: The hint written last in the query
+    verdict: incorrect
+    justification: The priority is fixed and does not depend on the order in the query.
+  - text: '`BROADCAST` over `MERGE` over `SHUFFLE_HASH` over `SHUFFLE_REPLICATE_NL`'
+    verdict: correct
+    justification: Spark prioritizes `BROADCAST`, then `MERGE`, then `SHUFFLE_HASH`, then `SHUFFLE_REPLICATE_NL`.
+  - text: '`MERGE` over `BROADCAST` over `SHUFFLE_HASH`'
+    verdict: incorrect
+    justification: '`BROADCAST` has the highest priority, not `MERGE`.'
+  - text: '`SHUFFLE_HASH` over `BROADCAST`'
+    verdict: incorrect
+    justification: '`BROADCAST` wins over `SHUFFLE_HASH`.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Is Spark guaranteed to use the join strategy specified in a hint?
+  answers:
+  - text: No; hints are ignored when AQE is enabled.
+    verdict: incorrect
+    justification: AQE respects hints; they are not ignored.
+  - text: Yes; hints always override the optimizer.
+    verdict: incorrect
+    justification: Hints are preferences, not guarantees.
+  - text: No; a strategy may not support all join types, so Spark may choose another strategy.
+    verdict: correct
+    justification: The docs say a hinted strategy is not guaranteed, because a strategy may not support every join type.
+  - text: Yes, but only for broadcast hints.
+    verdict: incorrect
+    justification: Broadcast hints are not guaranteed either, for example for unsupported join types.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer checks whether a join was planned as a broadcast join.
+
+    What should they look for in `df.explain()` output?
+  answers:
+  - text: A `BroadcastHashJoin` node with a `BroadcastExchange` on the small side
+    verdict: correct
+    justification: A broadcast join shows `BroadcastHashJoin` with a `BroadcastExchange` on the small side.
+  - text: An `InMemoryTableScan` node
+    verdict: incorrect
+    justification: '`InMemoryTableScan` shows reading cached data.'
+  - text: A `CartesianProduct` node
+    verdict: incorrect
+    justification: '`CartesianProduct` shows a cross join.'
+  - text: A `SortMergeJoin` node with two `Exchange hashpartitioning` nodes
+    verdict: true_but_irrelevant
+    justification: '`SortMergeJoin` with exchanges on both sides is valid output, but it shows a shuffle-based join, not a broadcast join.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.explain.html
+- id: 3.10-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: How long does Spark wait for the broadcast of a table in a broadcast join by default before timing out?
+  answers:
+  - text: 10 minutes, set by `spark.sql.autoBroadcastJoinThreshold`
+    verdict: incorrect
+    justification: '`autoBroadcastJoinThreshold` is a size, not a time.'
+  - text: 30 seconds, set by `spark.network.timeout`
+    verdict: incorrect
+    justification: The broadcast timeout is controlled by `broadcastTimeout`, not `network.timeout`.
+  - text: There is no timeout.
+    verdict: incorrect
+    justification: There is a default timeout of 300 seconds.
+  - text: 300 seconds, set by `spark.sql.broadcastTimeout`
+    verdict: correct
+    justification: '`spark.sql.broadcastTimeout` defaults to 300 seconds.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Why does Databricks say a broadcast hint can still be useful even though AQE can switch to broadcast joins at runtime?
+  answers:
+  - text: AQE never converts joins to broadcast joins.
+    verdict: incorrect
+    justification: AQE does convert sort-merge joins into broadcast joins.
+  - text: AQE only works with SQL, not with DataFrames.
+    verdict: incorrect
+    justification: AQE works for DataFrame and SQL queries.
+  - text: A statically planned broadcast join is usually faster, because AQE may only switch after both sides have already been shuffled.
+    verdict: correct
+    justification: Databricks notes that a statically planned broadcast is usually faster, because AQE may only switch after both sides are shuffled.
+  - text: Broadcast hints disable AQE for the whole query.
+    verdict: incorrect
+    justification: Hints do not disable AQE.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 3.10-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: On Databricks, what threshold does AQE use to switch a sort-merge join to a broadcast hash join at runtime?
+  answers:
+  - text: '`spark.databricks.adaptive.autoBroadcastJoinThreshold`, which defaults to 30 MB'
+    verdict: correct
+    justification: Databricks' AQE uses `spark.databricks.adaptive.autoBroadcastJoinThreshold`, default 30 MB, at runtime.
+  - text: '`spark.sql.autoBroadcastJoinThreshold`, which defaults to 300 MB'
+    verdict: partially_correct
+    justification: '`spark.sql.autoBroadcastJoinThreshold` is the static planning threshold, and its default is 10 MB, not 300 MB.'
+  - text: There is no threshold; AQE broadcasts any table.
+    verdict: incorrect
+    justification: AQE uses a size threshold.
+  - text: '`spark.sql.adaptive.advisoryPartitionSizeInBytes`, which defaults to 64 MB'
+    verdict: true_but_irrelevant
+    justification: The advisory partition size is used for coalescing, not for broadcasting.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 3.10-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A small table on the left side of a `LEFT OUTER JOIN` is not broadcast, even though it is below the threshold.
+
+    Why?
+  answers:
+  - text: Left outer joins always use broadcast for both sides.
+    verdict: incorrect
+    justification: Both sides are never broadcast in a left outer join.
+  - text: Broadcast is not supported for certain join types; for example, the left relation of a left outer join cannot be broadcast.
+    verdict: correct
+    justification: Databricks notes that broadcast is not supported for certain join types; the left side of a left outer join cannot be broadcast.
+  - text: Small tables are never broadcast in outer joins.
+    verdict: incorrect
+    justification: The right side of a left outer join can be broadcast.
+  - text: The left side of any join must be the larger table.
+    verdict: incorrect
+    justification: Table order in a join is not determined by size.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 3.10-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Can AQE's skew join optimization apply to a broadcast hash join?
+  answers:
+  - text: Yes, but only for full outer joins.
+    verdict: incorrect
+    justification: Full outer joins are not skew-optimized on either side.
+  - text: Only when the broadcast table is larger than 1 GB.
+    verdict: incorrect
+    justification: Table size does not enable skew handling for broadcast joins.
+  - text: Yes; AQE splits the broadcast table into skewed parts.
+    verdict: incorrect
+    justification: AQE does not split broadcast tables.
+  - text: No; broadcast joins are never skew-optimized, because skew handling applies only to shuffle-based joins.
+    verdict: correct
+    justification: Databricks states that broadcast joins are never skew-optimized; AQE skew handling applies to shuffle-based joins.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 3.10-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A join has no equality condition, for example `a.ts BETWEEN b.start AND b.end`, and one side is broadcast.
+
+    Which physical join can Spark use?
+  answers:
+  - text: A sort-merge join
+    verdict: incorrect
+    justification: Sort-merge joins also need equality keys.
+  - text: A broadcast nested loop join
+    verdict: correct
+    justification: Without an equi-join key, a broadcast hint leads to a broadcast nested loop join.
+  - text: A shuffle hash join
+    verdict: incorrect
+    justification: Shuffle hash joins need equality keys.
+  - text: A broadcast hash join
+    verdict: incorrect
+    justification: A broadcast hash join needs an equality condition.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer broadcasts a 2 GB DataFrame with a hint, and the job fails with out-of-memory errors.
+
+    What is the most likely cause?
+  answers:
+  - text: The broadcast table must be collected and held in memory on the driver and every executor, which is too large.
+    verdict: correct
+    justification: A broadcast table is collected to the driver and held in memory on every executor, so 2 GB can exhaust memory.
+  - text: Broadcasting always fails for tables over 1 MB.
+    verdict: incorrect
+    justification: Tables much larger than 1 MB are broadcast routinely.
+  - text: Broadcast joins require 2 GB of disk on the cluster manager.
+    verdict: incorrect
+    justification: Broadcast does not use cluster manager disk.
+  - text: The hint disabled garbage collection.
+    verdict: incorrect
+    justification: Hints do not change garbage collection.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 3.10-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Which statement about the cost of a broadcast join is correct?
+  answers:
+  - text: It shuffles both tables twice.
+    verdict: incorrect
+    justification: A broadcast join avoids shuffling the large table.
+  - text: It requires both tables to be sorted.
+    verdict: incorrect
+    justification: Sorting is needed for sort-merge joins, not broadcast joins.
+  - text: It avoids shuffling the large table, but the small table must be sent to every executor, so it only pays off when that table is small.
+    verdict: correct
+    justification: A broadcast join avoids shuffling the large side but copies the small side to every executor, so it only pays off for small tables.
+  - text: It is always cheaper than any other join regardless of size.
+    verdict: incorrect
+    justification: Broadcasting large tables is very costly.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer prefers DataFrame hints to the `broadcast()` function.
+
+    Which code is equivalent to `facts.join(broadcast(dim), "id")`?
+  answers:
+  - text: '`facts.join(dim.hint("merge"), "id")`'
+    verdict: incorrect
+    justification: '`merge` requests a sort-merge join.'
+  - text: '`facts.join(dim, "id").hint("broadcast")`'
+    verdict: incorrect
+    justification: A hint on the join result does not affect the join itself.
+  - text: '`facts.hint("broadcast").join(dim, "id")`'
+    verdict: incorrect
+    justification: This hints the large `facts` table, which is the wrong side.
+  - text: '`facts.join(dim.hint("broadcast"), "id")`'
+    verdict: correct
+    justification: '`dim.hint("broadcast")` is the DataFrame-hint equivalent of `broadcast(dim)`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.hint.html
+- id: 3.10-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    Two large tables of 2 TB each are joined on a key. Neither fits in memory.
+
+    Which join strategy is Spark most likely to use?
+  answers:
+  - text: Broadcast nested loop join
+    verdict: incorrect
+    justification: A nested loop join is for non-equi joins and is extremely expensive here.
+  - text: A driver-side local join
+    verdict: incorrect
+    justification: The driver cannot hold 4 TB of data.
+  - text: Broadcast hash join of either table
+    verdict: incorrect
+    justification: Neither 2 TB table can be broadcast.
+  - text: Sort-merge join, with both sides shuffled by the join key
+    verdict: correct
+    justification: Two large inputs are joined with a sort-merge join, which shuffles both sides by key.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: How does Spark decide automatically whether to broadcast a table when no hint is given?
+  answers:
+  - text: It broadcasts the table with fewer columns.
+    verdict: incorrect
+    justification: The column count is not the criterion; the estimated size is.
+  - text: It compares the estimated size of the table from statistics with `spark.sql.autoBroadcastJoinThreshold`.
+    verdict: correct
+    justification: Spark compares the table's estimated size from statistics with `autoBroadcastJoinThreshold`.
+  - text: It asks the cluster manager at runtime.
+    verdict: incorrect
+    justification: The cluster manager is not involved.
+  - text: It always broadcasts the table listed second in the join.
+    verdict: incorrect
+    justification: Table order alone does not decide.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer wants a broadcast join between `orders` and a 2 MB `promo` table in the following query, but the statistics of `promo` are missing and Spark plans a sort-merge join.
+
+    Which change most directly ensures a broadcast join?
+  answers:
+  - text: Add `broadcast(promo)` or a `BROADCAST` hint for `promo`.
+    verdict: correct
+    justification: A `broadcast()` call or `BROADCAST` hint forces the broadcast regardless of missing statistics.
+  - text: Call `orders.cache()`.
+    verdict: incorrect
+    justification: Caching the large side does not make Spark broadcast the small side.
+  - text: Increase `spark.sql.shuffle.partitions`.
+    verdict: incorrect
+    justification: Shuffle partitions do not change the join strategy.
+  - text: Use `crossJoin` instead.
+    verdict: incorrect
+    justification: A cross join produces all combinations, not the intended equi-join.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer joins a large DataFrame with a small lookup DataFrame several times in one pipeline.
+
+    What happens with `broadcast(lookup)` in each join?
+  answers:
+  - text: The lookup DataFrame is shuffled before every broadcast.
+    verdict: incorrect
+    justification: The broadcast side is not shuffled.
+  - text: The broadcast hint applies only to the first join.
+    verdict: incorrect
+    justification: The hint is part of each join where it is used.
+  - text: Each join plans a broadcast of the small DataFrame so the large side avoids a shuffle.
+    verdict: correct
+    justification: Each join with `broadcast(lookup)` plans a broadcast of the small side.
+  - text: The lookup DataFrame is broadcast once and then turned into a persistent table.
+    verdict: incorrect
+    justification: Broadcasting never creates a persistent table.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.broadcast.html
+- id: 3.10-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: In a broadcast hash join, what does Spark build from the broadcast table on each executor?
+  answers:
+  - text: A sorted file of the large table
+    verdict: incorrect
+    justification: Nothing is sorted in a broadcast hash join.
+  - text: A copy of the large table partitioned by key
+    verdict: incorrect
+    justification: The large table is not copied.
+  - text: A hash table of the small table, which is probed with rows of the large table
+    verdict: correct
+    justification: Each executor builds a hash table from the broadcast side and probes it with rows of the large side.
+  - text: A Bloom filter of the large table only
+    verdict: incorrect
+    justification: The hash table is built from the small table, not a Bloom filter of the large one.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Why does a broadcast join usually avoid creating a new shuffle stage for the large side?
+  answers:
+  - text: Each partition of the large table can be joined locally against the broadcast copy of the small table.
+    verdict: correct
+    justification: Each partition of the large table can be joined locally against the broadcast copy, so no shuffle is needed for it.
+  - text: The large table is written to the driver first.
+    verdict: incorrect
+    justification: The large table stays on the executors.
+  - text: The small table is split across executors by key.
+    verdict: incorrect
+    justification: The small table is copied in full to each executor, not split by key.
+  - text: The join is executed by the cluster manager.
+    verdict: incorrect
+    justification: The cluster manager does not execute joins.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: Which statement about broadcast joins and the driver is correct?
+  answers:
+  - text: The driver stores the large table for broadcast joins.
+    verdict: incorrect
+    justification: The driver holds the small table, not the large one.
+  - text: The small table is first collected to the driver before it is broadcast, so very large broadcasts can strain driver memory.
+    verdict: correct
+    justification: The small side is collected to the driver before it is broadcast, so very large broadcasts can strain driver memory.
+  - text: The driver is not involved in broadcast joins.
+    verdict: incorrect
+    justification: The driver collects and distributes the broadcast data.
+  - text: The driver only receives the final result.
+    verdict: incorrect
+    justification: The driver handles the broadcast data, not only the final result.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 3.10-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer writes `SELECT /*+ MAPJOIN(d) */ * FROM facts f JOIN dim d ON f.id = d.id`.
+
+    What does `MAPJOIN` do?
+  answers:
+  - text: It maps the join keys to new values.
+    verdict: incorrect
+    justification: It does not transform key values.
+  - text: It is not a valid hint.
+    verdict: incorrect
+    justification: It is a valid hint name.
+  - text: It forces a sort-merge join.
+    verdict: incorrect
+    justification: '`MAPJOIN` requests a broadcast, not a sort-merge join (that is `MERGE`).'
+  - text: It is a broadcast hint, equivalent to `BROADCAST(d)`.
+    verdict: correct
+    justification: '`MAPJOIN` is an accepted alias of the `BROADCAST` hint.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-hints.html
+- id: 3.10-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A team set `spark.sql.autoBroadcastJoinThreshold` to 2 GB to "make all joins faster".
+
+    What is the main risk?
+  answers:
+  - text: All joins become cross joins.
+    verdict: incorrect
+    justification: The threshold does not create cross joins.
+  - text: Spark ignores thresholds above 100 MB.
+    verdict: incorrect
+    justification: The threshold accepts values above 100 MB.
+  - text: Large tables may be broadcast, causing out-of-memory errors and network pressure on the driver and executors.
+    verdict: correct
+    justification: A very high threshold can make Spark broadcast large tables, causing out-of-memory errors and network pressure.
+  - text: AQE is disabled automatically.
+    verdict: incorrect
+    justification: Changing the threshold does not disable AQE.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 3.10-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    In Databricks SQL, a data engineer wants a shuffle hash join instead of a sort-merge join between two tables.
+
+    Which hint does this?
+  answers:
+  - text: '`/*+ SHUFFLE_HASH(t) */`'
+    verdict: correct
+    justification: The `SHUFFLE_HASH` hint requests a shuffle hash join.
+  - text: '`/*+ MERGE_HASH(t) */`'
+    verdict: incorrect
+    justification: '`MERGE_HASH` is not a hint.'
+  - text: '`/*+ BROADCAST(t) */`'
+    verdict: true_but_irrelevant
+    justification: '`BROADCAST` is a valid hint, but it requests a broadcast join instead.'
+  - text: '`/*+ HASH_ONLY(t) */`'
+    verdict: incorrect
+    justification: '`HASH_ONLY` is not a hint.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-hints
+- id: 3.10-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.10'
+  question: |-
+    A data engineer joins a 20 KB DataFrame with a 500 GB DataFrame without any hints, and table statistics are available.
+
+    What is Spark expected to do?
+  answers:
+  - text: Plan a sort-merge join because hints are required for broadcasting.
+    verdict: incorrect
+    justification: Automatic broadcasting does not require hints.
+  - text: Collect the 500 GB table to the driver.
+    verdict: incorrect
+    justification: The large table is never collected to the driver.
+  - text: Plan a cross join because the small side is tiny.
+    verdict: incorrect
+    justification: A small input does not turn an equi-join into a cross join.
+  - text: Plan a broadcast hash join automatically because the small side is below the default threshold.
+    verdict: correct
+    justification: With statistics available, a 20 KB table is below the 10 MB default threshold, so Spark broadcasts it automatically.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html

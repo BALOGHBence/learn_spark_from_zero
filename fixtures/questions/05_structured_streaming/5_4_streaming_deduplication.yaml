@@ -1,0 +1,616 @@
+# Objective 5.4: Perform Streaming Deduplication in Structured Streaming, both with and without watermark usage.
+- id: 5.4-001
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer deduplicates a stream on a unique `guid` column, with no upper bound on how late duplicates may arrive.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.dropDuplicates(["guid"])`'
+    verdict: correct
+    justification: Without a known bound on lateness, `dropDuplicates(["guid"])` deduplicates without a watermark (keeping all seen keys as state).
+  - text: '`stream_df.dropDuplicatesWithinWatermark(["guid"])` without a watermark'
+    verdict: incorrect
+    justification: '`dropDuplicatesWithinWatermark` requires a watermark.'
+  - text: '`stream_df.distinct("guid")`'
+    verdict: incorrect
+    justification: '`distinct` takes no arguments and is not supported on streams.'
+  - text: '`stream_df.withWatermark("guid", "10 minutes").dropDuplicates()`'
+    verdict: incorrect
+    justification: A watermark needs an event-time column, not `guid`, and no subset is given.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-002
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A streaming query uses `dropDuplicates(["guid"])` without a watermark.
+
+    What happens to the state?
+  answers:
+  - text: The state is limited to the last 10 minutes automatically.
+    verdict: incorrect
+    justification: No time limit applies without a watermark.
+  - text: No state is kept; duplicates are detected by the source.
+    verdict: incorrect
+    justification: Deduplication state is kept by Spark, not the source.
+  - text: The query stores data from all past records as state, because duplicates may arrive at any time.
+    verdict: correct
+    justification: Without a watermark, duplicates may arrive at any time, so the query keeps all past records as state.
+  - text: The state is cleared after each micro-batch.
+    verdict: incorrect
+    justification: Deduplication state persists across micro-batches.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-003
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    Duplicates of an event arrive at most 10 seconds late, and every duplicate has the same `guid` and `eventTime`.
+
+    Which code deduplicates while bounding state?
+  answers:
+  - text: '`stream_df.withWatermark("guid", "10 seconds").dropDuplicates(["eventTime"])`'
+    verdict: incorrect
+    justification: The watermark must be on the event-time column, and deduplicating on time alone is wrong.
+  - text: '`stream_df.withWatermark("eventTime", "10 seconds").dropDuplicates(["guid", "eventTime"])`'
+    verdict: correct
+    justification: With a watermark on `eventTime` and deduplication on `guid` and `eventTime`, old state can be dropped after 10 seconds.
+  - text: '`stream_df.withWatermark("eventTime", "10 seconds").dropDuplicates(["guid"])` with event time excluded on purpose to reduce state'
+    verdict: incorrect
+    justification: If `eventTime` is not part of the deduplication columns, `dropDuplicates` cannot drop old state.
+  - text: '`stream_df.dropDuplicates(["guid"]).withWatermark("eventTime", "10 seconds")`'
+    verdict: incorrect
+    justification: The watermark must be defined before the deduplication.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-004
+  category: structured_streaming
+  objective: '5.4'
+  question: With `withWatermark("eventTime", "10 seconds").dropDuplicates(["guid", "eventTime"])`, how does the watermark help?
+  answers:
+  - text: It deletes duplicate records from the source.
+    verdict: incorrect
+    justification: Watermarks do not change the source.
+  - text: It delays all output by 10 seconds without affecting state.
+    verdict: incorrect
+    justification: The watermark controls state cleanup, not just delays.
+  - text: It sorts the records by event time.
+    verdict: incorrect
+    justification: Watermarks do not sort data.
+  - text: It lets the query remove old state for records that are no longer expected to have duplicates, bounding the state size.
+    verdict: correct
+    justification: The watermark lets the query drop state for records that are no longer expected to have duplicates, which bounds the state size.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-005
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    Duplicates of the same event have different `eventTime` values because the producer stamps the time when it writes each copy.
+
+    Which API deduplicates them by `guid` within a time range?
+  answers:
+  - text: '`distinct()`'
+    verdict: incorrect
+    justification: '`distinct` is not supported on streams and would compare all columns.'
+  - text: '`dropDuplicates(["eventTime"])`'
+    verdict: incorrect
+    justification: Deduplicating on event time alone treats different events at the same time as duplicates.
+  - text: '`withWatermark("eventTime", "1 hour").dropDuplicatesWithinWatermark(["guid"])`'
+    verdict: correct
+    justification: '`dropDuplicatesWithinWatermark` deduplicates on `guid` even when the copies have different event times.'
+  - text: '`withWatermark("eventTime", "1 hour").dropDuplicates(["guid", "eventTime"])`'
+    verdict: incorrect
+    justification: Including the differing `eventTime` makes the copies look distinct, so they are not removed.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicatesWithinWatermark.html
+- id: 5.4-006
+  category: structured_streaming
+  objective: '5.4'
+  question: What is required to use `dropDuplicatesWithinWatermark`?
+  answers:
+  - text: The output mode must be complete.
+    verdict: incorrect
+    justification: Output mode does not affect deduplication.
+  - text: The event time column must be part of the subset.
+    verdict: incorrect
+    justification: The event time column does not have to be in the subset.
+  - text: The stream must come from Kafka.
+    verdict: incorrect
+    justification: Any streaming source works.
+  - text: A watermark must be defined on the streaming DataFrame.
+    verdict: correct
+    justification: The PySpark docs state that `dropDuplicatesWithinWatermark` requires a watermark set with `withWatermark()`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicatesWithinWatermark.html
+- id: 5.4-007
+  category: structured_streaming
+  objective: '5.4'
+  question: When using `dropDuplicatesWithinWatermark` with a watermark delay, what does the Spark guide recommend for the delay threshold?
+  answers:
+  - text: Set it longer than the maximum timestamp difference among duplicated events.
+    verdict: correct
+    justification: The Spark guide recommends a delay longer than the maximum timestamp difference among duplicates.
+  - text: Set it equal to the trigger interval.
+    verdict: incorrect
+    justification: The trigger interval is unrelated to the duplicate time gap.
+  - text: Set it shorter than the micro-batch interval.
+    verdict: incorrect
+    justification: The micro-batch interval is unrelated to the duplicate time gap.
+  - text: Set it to zero to minimize state.
+    verdict: incorrect
+    justification: A zero delay would miss duplicates with different timestamps.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-008
+  category: structured_streaming
+  objective: '5.4'
+  question: With `dropDuplicatesWithinWatermark`, which duplicates are guaranteed to be removed?
+  answers:
+  - text: All duplicates regardless of when they arrive.
+    verdict: incorrect
+    justification: Duplicates outside the threshold are not guaranteed to be removed.
+  - text: Records that arrive within the watermark threshold; duplicates outside it might also be removed, but this is not guaranteed.
+    verdict: correct
+    justification: Duplicates within the watermark threshold are always removed; later ones might be, but that is not guaranteed.
+  - text: Only duplicates in the same micro-batch.
+    verdict: incorrect
+    justification: Deduplication works across micro-batches.
+  - text: Only duplicates with identical event times.
+    verdict: incorrect
+    justification: Duplicates with different event times are removed too, which is the purpose of this API.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-009
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A team assumes that because Structured Streaming provides exactly-once processing, duplicate records sent by the source will be removed.
+
+    What does Databricks say?
+  answers:
+  - text: Exactly-once processing removes all source duplicates automatically.
+    verdict: incorrect
+    justification: Exactly-once processing does not remove duplicates that are already in the source data.
+  - text: Duplicates are removed only for Kafka sources.
+    verdict: incorrect
+    justification: No source is deduplicated automatically.
+  - text: Structured Streaming guarantees exactly-once processing but does not deduplicate records from data sources; you must deduplicate explicitly.
+    verdict: correct
+    justification: Databricks states Structured Streaming guarantees exactly-once processing but doesn't deduplicate records from sources.
+  - text: Duplicates are removed only in complete mode.
+    verdict: incorrect
+    justification: Output mode does not deduplicate.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-010
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer wants to deduplicate a stream on specific columns instead of all columns.
+
+    What does Databricks recommend instead of `distinct`?
+  answers:
+  - text: '`dropDuplicates()` or `dropDuplicatesWithinWatermark()` with the column subset'
+    verdict: correct
+    justification: Databricks recommends `dropDuplicates()` or `dropDuplicatesWithinWatermark()` with the column subset instead of `distinct`.
+  - text: '`groupBy().count()` and then filter'
+    verdict: incorrect
+    justification: Counting finds duplicate keys but does not return deduplicated rows.
+  - text: '`distinct()` followed by `select`'
+    verdict: incorrect
+    justification: '`distinct` compares all columns, and selecting afterwards does not change that.'
+  - text: '`foreachBatch` with `collect()`'
+    verdict: incorrect
+    justification: '`collect()` on the driver does not scale.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-011
+  category: structured_streaming
+  objective: '5.4'
+  question: How does the output mode affect a streaming deduplication query?
+  answers:
+  - text: Deduplication only works in update mode.
+    verdict: incorrect
+    justification: Deduplication is not limited to update mode.
+  - text: Output mode does not impact deduplication.
+    verdict: correct
+    justification: Databricks states output mode does not impact deduplication.
+  - text: Deduplication requires an aggregation to choose a mode.
+    verdict: incorrect
+    justification: Deduplication does not need an aggregation.
+  - text: Deduplication only works in complete mode.
+    verdict: incorrect
+    justification: Deduplication is not limited to complete mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.4-012
+  category: structured_streaming
+  objective: '5.4'
+  question: Which operations does Databricks list as stateful in Structured Streaming?
+  answers:
+  - text: Reads from Delta tables only
+    verdict: incorrect
+    justification: Reads are not stateful operations.
+  - text: '`select`, `filter` and `withColumn`'
+    verdict: incorrect
+    justification: These operations are stateless.
+  - text: '`cast`, `alias` and `explode`'
+    verdict: incorrect
+    justification: These operations are stateless.
+  - text: Streaming aggregation, `distinct`, `dropDuplicates`, stream-stream joins and custom stateful applications
+    verdict: correct
+    justification: Databricks lists streaming aggregations, `distinct`, `dropDuplicates`, stream-stream joins and custom stateful applications as stateful.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.4-013
+  category: structured_streaming
+  objective: '5.4'
+  question: In terms of semantics, how does streaming deduplication with a unique identifier compare with static deduplication?
+  answers:
+  - text: It only removes duplicates within a single micro-batch.
+    verdict: incorrect
+    justification: It removes duplicates across micro-batches.
+  - text: It is completely different and uses a separate API.
+    verdict: incorrect
+    justification: It uses the same `dropDuplicates` API.
+  - text: It requires converting the stream to a static DataFrame.
+    verdict: incorrect
+    justification: No conversion is needed.
+  - text: It is the same as deduplication on a static DataFrame using a unique identifier column, but the query keeps state to filter later duplicates.
+    verdict: correct
+    justification: The Spark guide states streaming deduplication with a unique identifier works the same as static deduplication, plus state for later duplicates.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-014
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer deduplicates on `guid` and `eventTime` with a 1-hour watermark. A duplicate of an event arrives 3 hours later.
+
+    What can happen?
+  answers:
+  - text: The state for the original record may already have been removed, so the late duplicate may not be detected.
+    verdict: correct
+    justification: After the watermark passes, the original record's state may be gone, so a duplicate 3 hours later may not be detected.
+  - text: It is always detected, because state is kept forever.
+    verdict: incorrect
+    justification: State is dropped after the watermark passes.
+  - text: The original record is retracted from the sink.
+    verdict: incorrect
+    justification: Rows already written to the sink are not retracted.
+  - text: The query fails.
+    verdict: incorrect
+    justification: Late duplicates do not fail the query.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-015
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A streaming DataFrame has columns `order_id`, `ts` and `amount`. The engineer calls `stream_df.dropDuplicates()` with no subset.
+
+    Which rows are treated as duplicates?
+  answers:
+  - text: Rows with the same `ts` only
+    verdict: incorrect
+    justification: Rows are compared on all columns, not only `ts`.
+  - text: Rows that are identical in all columns
+    verdict: correct
+    justification: Without a subset, `dropDuplicates` compares all columns.
+  - text: Rows in the same micro-batch only
+    verdict: incorrect
+    justification: Deduplication works across micro-batches.
+  - text: Rows with the same `order_id` only
+    verdict: true_but_irrelevant
+    justification: Matching on `order_id` only is what `dropDuplicates(["order_id"])` would do.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 5.4-016
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer wants to deduplicate on `guid` using a watermark on `eventTime`, but duplicates may have different arrival times and event times.
+
+    Which statement from Databricks applies?
+  answers:
+  - text: Use `distinct()` with a watermark.
+    verdict: incorrect
+    justification: '`distinct` is not supported on streams.'
+  - text: Use `dropDuplicates(["guid", "eventTime"])`, which handles differing event times.
+    verdict: incorrect
+    justification: Including the differing `eventTime` makes the copies look distinct.
+  - text: Use `dropDuplicatesWithinWatermark` to remove duplicates on any field, even when fields such as event time differ across duplicates.
+    verdict: correct
+    justification: Databricks recommends `dropDuplicatesWithinWatermark` when fields such as event time differ across duplicates.
+  - text: Duplicates with different event times cannot be removed.
+    verdict: incorrect
+    justification: They can be removed with `dropDuplicatesWithinWatermark`.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-017
+  category: structured_streaming
+  objective: '5.4'
+  question: Which code correctly defines a watermark before deduplication?
+  answers:
+  - text: '`stream_df.withWatermark("30 minutes", "event_time").dropDuplicates(["id"])`'
+    verdict: incorrect
+    justification: The arguments are swapped, and without `event_time` in the subset the state is not bounded.
+  - text: '`stream_df.watermark("event_time").dropDuplicates(["id"])`'
+    verdict: incorrect
+    justification: DataFrames have no `watermark` method.
+  - text: '`stream_df.withWatermark("event_time", "30 minutes").dropDuplicates(["id", "event_time"])`'
+    verdict: correct
+    justification: '`withWatermark(column, delay)` is defined first, then `dropDuplicates` on `id` and the event time column.'
+  - text: '`stream_df.dropDuplicates(["id", "event_time"]).withWatermark("30 minutes")`'
+    verdict: incorrect
+    justification: The watermark must be defined before `dropDuplicates`, and it needs a column.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withWatermark.html
+- id: 5.4-018
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    Deduplication with `dropDuplicates` on a stream without a watermark has run for months and the state has grown very large.
+
+    What is the recommended fix?
+  answers:
+  - text: Increase the number of shuffle partitions only.
+    verdict: incorrect
+    justification: More partitions spread the state but do not stop it from growing.
+  - text: Add a watermark and include the event time in the deduplication, or use `dropDuplicatesWithinWatermark`, so old state can be dropped.
+    verdict: correct
+    justification: A watermark with the event time in the deduplication, or `dropDuplicatesWithinWatermark`, lets old state be dropped.
+  - text: Remove the checkpoint every day.
+    verdict: incorrect
+    justification: Removing the checkpoint loses all progress and deduplication history.
+  - text: Switch to complete output mode.
+    verdict: incorrect
+    justification: Output mode does not change deduplication state.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.4-019
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A team prefers to deduplicate against the target Delta table on each micro-batch, so duplicates arriving days later are also skipped.
+
+    Which approach supports this?
+  answers:
+  - text: Use `distinct()` on the stream.
+    verdict: incorrect
+    justification: '`distinct` is not supported on streams.'
+  - text: Use complete output mode.
+    verdict: incorrect
+    justification: Output mode does not deduplicate against the target table.
+  - text: Use `dropDuplicates` without a watermark and delete the checkpoint daily.
+    verdict: incorrect
+    justification: Deleting the checkpoint loses progress and can reprocess data.
+  - text: Use `foreachBatch` and run a `MERGE` that inserts only rows whose key does not exist in the target table.
+    verdict: correct
+    justification: '`foreachBatch` with a `MERGE` that inserts only new keys deduplicates against the whole target table.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/foreach
+- id: 5.4-020
+  category: structured_streaming
+  objective: '5.4'
+  question: Why can deduplicating on `guid` only, while defining a watermark on `eventTime`, fail to bound the state with `dropDuplicates`?
+  answers:
+  - text: For `dropDuplicates`, the event time column must be part of the deduplication columns for the watermark to remove old state.
+    verdict: correct
+    justification: For `dropDuplicates`, the watermark can only drop state if the event time column is part of the deduplication columns.
+  - text: '`guid` must be a timestamp column.'
+    verdict: incorrect
+    justification: '`guid` does not need to be a timestamp.'
+  - text: The watermark only affects aggregations in complete mode.
+    verdict: incorrect
+    justification: Watermarks also affect deduplication.
+  - text: Watermarks never bound the state of deduplication.
+    verdict: incorrect
+    justification: Watermarks do bound deduplication state when used correctly.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-021
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A streaming deduplication query restarts from its checkpoint after a failure.
+
+    What happens to the record of which keys were already seen?
+  answers:
+  - text: It is lost, so all keys are treated as new.
+    verdict: incorrect
+    justification: State is recovered from the checkpoint.
+  - text: It is read from the sink table.
+    verdict: incorrect
+    justification: State does not come from the sink.
+  - text: It is restored from the checkpointed state, so duplicates are still detected after the restart.
+    verdict: correct
+    justification: Deduplication state is checkpointed, so it is restored after a restart.
+  - text: It is recomputed by rereading the whole source.
+    verdict: incorrect
+    justification: The source is not reread from the beginning.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.4-022
+  category: structured_streaming
+  objective: '5.4'
+  question: For which kind of DataFrame is `dropDuplicatesWithinWatermark` intended?
+  answers:
+  - text: Only streaming DataFrames whose watermark has been set with `withWatermark()`
+    verdict: correct
+    justification: The PySpark docs state this only works with streaming DataFrames whose watermark is set with `withWatermark()`.
+  - text: Batch DataFrames, where it behaves like `dropDuplicates`
+    verdict: incorrect
+    justification: The docs state it only works with streaming DataFrames.
+  - text: Only DataFrames read from JDBC
+    verdict: incorrect
+    justification: It works with any streaming source.
+  - text: Only pandas-on-Spark DataFrames
+    verdict: incorrect
+    justification: It is a Spark DataFrame method, not a pandas-on-Spark one.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicatesWithinWatermark.html
+- id: 5.4-023
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer chooses the watermark delay for deduplication with `dropDuplicates(["guid", "eventTime"])`.
+
+    What does the delay represent?
+  answers:
+  - text: The maximum number of duplicates per key
+    verdict: incorrect
+    justification: The delay is a time span, not a count.
+  - text: The trigger interval of the query
+    verdict: incorrect
+    justification: The trigger interval is a separate setting.
+  - text: The time to keep the checkpoint
+    verdict: incorrect
+    justification: Checkpoint retention is unrelated.
+  - text: An upper bound on how late a duplicate record may arrive
+    verdict: correct
+    justification: The Spark guide describes the watermark delay as an upper bound on how late a duplicate may arrive.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-024
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A streaming query deduplicates records and then aggregates them per window.
+
+    Which statement is correct about this query's state?
+  answers:
+  - text: Neither keeps state, because both are transformations.
+    verdict: incorrect
+    justification: Both are stateful in streaming.
+  - text: Both the deduplication and the aggregation are stateful operators that keep state in the state store.
+    verdict: correct
+    justification: Deduplication and aggregation are both stateful operators that keep state in the state store.
+  - text: Only the aggregation keeps state.
+    verdict: incorrect
+    justification: Deduplication also keeps state.
+  - text: Only the deduplication keeps state.
+    verdict: incorrect
+    justification: Aggregation also keeps state.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.4-025
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A batch job and a streaming job both call `dropDuplicates(["id"])`.
+
+    What is the key difference in the streaming case?
+  answers:
+  - text: The batch case keeps state between runs.
+    verdict: incorrect
+    justification: Batch jobs do not keep state between runs.
+  - text: There is no difference.
+    verdict: incorrect
+    justification: The streaming case needs state.
+  - text: The streaming query must remember previously seen ids across micro-batches, which requires state.
+    verdict: correct
+    justification: A streaming query must remember ids seen in earlier micro-batches, which requires state.
+  - text: The streaming case removes duplicates only within each row.
+    verdict: incorrect
+    justification: Duplicates are compared across rows.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 5.4-026
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A query uses `withWatermark("ts", "2 hours").dropDuplicatesWithinWatermark(["event_id"])`. Two copies of an event arrive 30 minutes apart.
+
+    What happens?
+  answers:
+  - text: The query fails.
+    verdict: incorrect
+    justification: Duplicates do not fail the query.
+  - text: Both copies are written, because the timestamps differ.
+    verdict: incorrect
+    justification: '`dropDuplicatesWithinWatermark` handles differing timestamps.'
+  - text: The first copy is replaced by the second.
+    verdict: incorrect
+    justification: The first copy is kept; the duplicate is dropped.
+  - text: The second copy is dropped, because it arrives within the watermark threshold.
+    verdict: correct
+    justification: The copies arrive 30 minutes apart, within the 2-hour threshold, so the second one is dropped.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-027
+  category: structured_streaming
+  objective: '5.4'
+  question: In which Databricks Runtime version and above can a unique identifier be used to deduplicate records within a watermark threshold with `dropDuplicatesWithinWatermark`?
+  answers:
+  - text: Databricks Runtime 18.0 and above only
+    verdict: incorrect
+    justification: It is available long before 18.0.
+  - text: Databricks Runtime 13.3 LTS and above
+    verdict: correct
+    justification: Databricks documents this from Databricks Runtime 13.3 LTS.
+  - text: Databricks Runtime 9.1 LTS and above
+    verdict: incorrect
+    justification: 9.1 LTS predates this feature.
+  - text: Databricks Runtime 7.3 LTS and above
+    verdict: incorrect
+    justification: 7.3 LTS predates this feature.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-028
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer runs `stream_df.distinct()` to remove duplicates.
+
+    What does the Spark streaming guide say?
+  answers:
+  - text: Distinct operations on streaming Datasets are not supported; use `dropDuplicates` instead.
+    verdict: correct
+    justification: The Spark guide states distinct is not supported on streaming Datasets; use `dropDuplicates`.
+  - text: '`distinct` works and keeps unbounded state.'
+    verdict: incorrect
+    justification: '`distinct` is not supported on streams.'
+  - text: '`distinct` is the recommended way to deduplicate streams.'
+    verdict: incorrect
+    justification: '`dropDuplicates` is the recommended approach.'
+  - text: '`distinct` works only with a watermark.'
+    verdict: incorrect
+    justification: A watermark does not make `distinct` supported.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-029
+  category: structured_streaming
+  objective: '5.4'
+  question: After a deduplication query's watermark threshold has passed for a key, what happens to that key's state?
+  answers:
+  - text: The state is written to the sink.
+    verdict: incorrect
+    justification: State is not written to the sink.
+  - text: The state is moved to the driver.
+    verdict: incorrect
+    justification: State stays on the executors in the state store.
+  - text: The query drops the state information for deduplication after the threshold passes.
+    verdict: correct
+    justification: Databricks says the query drops deduplication state after the threshold passes.
+  - text: The state is kept forever.
+    verdict: incorrect
+    justification: State is dropped after the threshold.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.4-030
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A data engineer deduplicates by `guid` without a watermark on a low-volume stream with a small, bounded set of keys.
+
+    Why can this still be acceptable?
+  answers:
+  - text: Without a watermark, Spark keeps no state.
+    verdict: incorrect
+    justification: Deduplication without a watermark keeps state.
+  - text: Spark automatically adds a watermark for small streams.
+    verdict: incorrect
+    justification: Spark does not add watermarks automatically.
+  - text: Low-volume streams are not stateful.
+    verdict: incorrect
+    justification: Deduplication is stateful regardless of volume.
+  - text: State grows with the number of distinct keys; if the key space is small and bounded, the state stays manageable.
+    verdict: correct
+    justification: State grows with the number of distinct keys; with a small, bounded key set it stays manageable.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.4-031
+  category: structured_streaming
+  objective: '5.4'
+  question: |-
+    A query uses `dropDuplicatesWithinWatermark(["id"])` with a 1-hour watermark. A record arrives whose event time is older than the current watermark.
+
+    What does the PySpark documentation say happens to such data?
+  answers:
+  - text: Data that is too late, older than the watermark, is dropped.
+    verdict: correct
+    justification: The PySpark docs note that data older than the watermark is dropped.
+  - text: It causes the query to restart.
+    verdict: incorrect
+    justification: Late data does not restart the query.
+  - text: It is always written to the sink as a new record.
+    verdict: incorrect
+    justification: Data that is too late is dropped, not written.
+  - text: It replaces the earlier duplicate in the sink.
+    verdict: incorrect
+    justification: Rows already in the sink are not replaced.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicatesWithinWatermark.html

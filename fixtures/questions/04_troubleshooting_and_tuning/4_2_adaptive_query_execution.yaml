@@ -1,0 +1,592 @@
+# Objective 4.2: Describe Adaptive Query Execution (AQE) and its benefits.
+- id: 4.2-001
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer explains Adaptive Query Execution (AQE) to a colleague.
+
+    Which description is correct?
+  answers:
+  - text: A compile-time optimizer that runs before any data is read
+    verdict: true_but_irrelevant
+    justification: Optimizing before any data is read describes the static, compile-time optimizer, not AQE.
+  - text: Query re-optimization that happens during execution, using statistics collected at the end of shuffle and broadcast stages
+    verdict: correct
+    justification: Databricks defines AQE as re-optimization during execution, based on accurate statistics collected at the end of shuffle and broadcast stages.
+  - text: A feature that automatically adds more executors when a query is slow
+    verdict: true_but_irrelevant
+    justification: Adding executors is autoscaling or dynamic allocation, not AQE.
+  - text: A cache that stores query results for reuse
+    verdict: incorrect
+    justification: AQE does not cache query results.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-002
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Since which Apache Spark version is AQE enabled by default?
+  answers:
+  - text: Spark 3.2.0
+    verdict: correct
+    justification: The Spark docs state AQE has been enabled by default since Spark 3.2.0.
+  - text: Spark 2.0.0
+    verdict: incorrect
+    justification: Spark 2.0 had no AQE framework.
+  - text: Spark 3.0.0
+    verdict: true_but_irrelevant
+    justification: The new AQE framework was introduced in Spark 3.0, but it only became enabled by default in 3.2.0.
+  - text: Spark 4.0.0
+    verdict: incorrect
+    justification: AQE was on by default long before Spark 4.0.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.2-003
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Which configuration is the umbrella switch for AQE in Apache Spark?
+  answers:
+  - text: '`spark.sql.autoBroadcastJoinThreshold`'
+    verdict: true_but_irrelevant
+    justification: '`autoBroadcastJoinThreshold` is a real setting, but it controls broadcast sizing, not AQE as a whole.'
+  - text: '`spark.sql.optimizer.enabled`'
+    verdict: incorrect
+    justification: There is no `spark.sql.optimizer.enabled` switch.
+  - text: '`spark.sql.adaptive.coalescePartitions.enabled`'
+    verdict: true_but_irrelevant
+    justification: '`coalescePartitions.enabled` is a real setting, but it controls only one AQE feature.'
+  - text: '`spark.sql.adaptive.enabled`'
+    verdict: correct
+    justification: '`spark.sql.adaptive.enabled` is the umbrella setting that turns AQE on or off in Apache Spark.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.2-004
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Which of the following is one of the four major AQE features on Databricks?
+  answers:
+  - text: Dynamically rewriting Python UDFs into SQL
+    verdict: incorrect
+    justification: AQE does not rewrite UDFs.
+  - text: Dynamically reordering joins based on table size
+    verdict: incorrect
+    justification: Databricks notes that dynamic join reordering is not part of AQE.
+  - text: Dynamically changing a sort-merge join into a broadcast hash join
+    verdict: correct
+    justification: Switching a sort-merge join to a broadcast hash join at runtime is one of AQE's four features.
+  - text: Dynamically adding worker nodes
+    verdict: incorrect
+    justification: Adding workers is autoscaling, not AQE.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-005
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Which list contains the four major AQE features described by Databricks?
+  answers:
+  - text: Join reordering, predicate pushdown, column pruning and constant folding
+    verdict: true_but_irrelevant
+    justification: Predicate pushdown, column pruning and constant folding are real optimizations, but they belong to the static optimizer, and join reordering is not part of AQE.
+  - text: Switching sort-merge joins to broadcast joins, coalescing post-shuffle partitions, handling skew joins, and detecting and propagating empty relations
+    verdict: correct
+    justification: 'Databricks lists the four AQE features: broadcast switching, partition coalescing, skew join handling and empty relation propagation.'
+  - text: Autoscaling, spot instances, disk cache and Photon
+    verdict: incorrect
+    justification: Autoscaling, spot instances, disk cache and Photon are platform features, not AQE features.
+  - text: Caching, broadcasting, checkpointing and partition pruning
+    verdict: incorrect
+    justification: Caching, checkpointing and partition pruning are not AQE features.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-006
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Why is runtime re-optimization especially helpful when table statistics are missing or stale?
+  answers:
+  - text: AQE collects statistics by scanning every table before the query starts.
+    verdict: incorrect
+    justification: AQE does not pre-scan tables; it uses statistics observed during execution.
+  - text: AQE asks the user for statistics at runtime.
+    verdict: incorrect
+    justification: AQE does not ask users for statistics.
+  - text: AQE disables the optimizer when statistics are missing.
+    verdict: incorrect
+    justification: The optimizer still runs when statistics are missing.
+  - text: AQE uses accurate statistics observed at runtime after a shuffle or broadcast stage, instead of relying only on estimates.
+    verdict: correct
+    justification: At the end of a shuffle or broadcast stage AQE has accurate runtime statistics, so it can correct plans built on missing or stale estimates.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-007
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Which queries does AQE apply to?
+  answers:
+  - text: Non-streaming queries that contain at least one exchange (such as a join, aggregate or window) or a sub-query
+    verdict: correct
+    justification: AQE applies to non-streaming queries with at least one exchange (join, aggregate, window) or a sub-query.
+  - text: Only queries with no shuffles
+    verdict: incorrect
+    justification: Queries without an exchange offer nothing for AQE to re-optimize.
+  - text: Only SQL queries, not DataFrame queries
+    verdict: incorrect
+    justification: AQE applies to DataFrame and SQL queries.
+  - text: All streaming queries
+    verdict: incorrect
+    justification: AQE does not apply to streaming queries.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-008
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A streaming query runs on Databricks with AQE enabled.
+
+    Does AQE re-optimize it as it does for batch queries?
+  answers:
+  - text: Yes, but only the first micro-batch.
+    verdict: incorrect
+    justification: Not even the first micro-batch is re-optimized.
+  - text: Yes, every micro-batch is re-optimized in the same way.
+    verdict: incorrect
+    justification: Micro-batches are not re-optimized by AQE.
+  - text: No, AQE applies to non-streaming queries.
+    verdict: correct
+    justification: Databricks states AQE applies to non-streaming queries only.
+  - text: Only when the output mode is complete.
+    verdict: incorrect
+    justification: Output mode is unrelated to AQE.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-009
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer runs `df.explain()` on an AQE-applied query before executing it.
+
+    Which node is usually at the root of the plan?
+  answers:
+  - text: '`AdaptiveSparkPlan`, with `isFinalPlan=false` until execution completes'
+    verdict: correct
+    justification: AQE plans have an `AdaptiveSparkPlan` root with `isFinalPlan=false` before and during execution.
+  - text: '`BroadcastExchange` with `isFinalPlan=true`'
+    verdict: incorrect
+    justification: '`isFinalPlan` is a flag of `AdaptiveSparkPlan`, and it is false before execution.'
+  - text: '`InMemoryTableScan`'
+    verdict: incorrect
+    justification: '`InMemoryTableScan` shows a cached read, not AQE.'
+  - text: '`WholeStageCodegen` with `isAdaptive=true`'
+    verdict: incorrect
+    justification: There is no `isAdaptive` flag; AQE is shown by the `AdaptiveSparkPlan` node.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-010
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: After an AQE query finishes, what changes in the `AdaptiveSparkPlan` node?
+  answers:
+  - text: The node is replaced by `SortMergeJoin`.
+    verdict: incorrect
+    justification: The `AdaptiveSparkPlan` node stays the root; joins are nodes inside it.
+  - text: The plan is reset to the initial plan.
+    verdict: incorrect
+    justification: The plan does not revert to the initial one.
+  - text: The node is removed from the plan.
+    verdict: incorrect
+    justification: The node stays in the plan.
+  - text: The `isFinalPlan` flag becomes `true`, and the final plan can differ from the initial plan.
+    verdict: correct
+    justification: After execution, `isFinalPlan` becomes true and the final plan may differ from the initial one.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-011
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer runs SQL `EXPLAIN` on an AQE-applicable query.
+
+    Does it show the plan AQE will finally execute?
+  answers:
+  - text: '`EXPLAIN` is not supported when AQE is enabled.'
+    verdict: incorrect
+    justification: '`EXPLAIN` works with AQE enabled.'
+  - text: Yes, but only for joins.
+    verdict: incorrect
+    justification: This applies to all queries, not only joins.
+  - text: No; `EXPLAIN` does not execute the query, so the current plan is the same as the initial plan.
+    verdict: correct
+    justification: SQL `EXPLAIN` does not run the query, so its current plan equals the initial plan and does not show AQE's final choices.
+  - text: Yes; `EXPLAIN` runs the query and shows the final plan.
+    verdict: incorrect
+    justification: '`EXPLAIN` does not execute the query.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-012
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: In the query plan, how can a data engineer tell that AQE coalesced partitions?
+  answers:
+  - text: A `SortMergeJoin` node has `isSkew=true`.
+    verdict: true_but_irrelevant
+    justification: '`isSkew=true` on a `SortMergeJoin` is a real AQE marker, but it shows skew handling, not coalescing.'
+  - text: A shuffle reader node is marked as coalesced in the final plan.
+    verdict: correct
+    justification: Databricks says coalescing appears as a shuffle reader node marked as coalesced.
+  - text: A `BroadcastExchange` node appears.
+    verdict: true_but_irrelevant
+    justification: A `BroadcastExchange` shows a broadcast, not coalescing.
+  - text: A `LocalTableScan` node is empty.
+    verdict: true_but_irrelevant
+    justification: An empty `LocalTableScan` is a real AQE marker, but it shows empty relation propagation.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-013
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    In the final plan, a `SortMergeJoin` node shows `isSkew` as `true`.
+
+    What does this mean?
+  answers:
+  - text: The join was converted to a broadcast join.
+    verdict: incorrect
+    justification: A broadcast conversion would show a different join node.
+  - text: The join was skipped because one side was empty.
+    verdict: incorrect
+    justification: Empty relations show as an empty `LocalTableScan`.
+  - text: AQE applied its skew join optimization to that join.
+    verdict: correct
+    justification: '`isSkew=true` on a `SortMergeJoin` shows AQE applied skew join optimization.'
+  - text: The join failed because of skew.
+    verdict: incorrect
+    justification: It does not indicate a failure.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-014
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    Part of an AQE plan was replaced by a `LocalTableScan` with an empty relation.
+
+    Which AQE feature did this?
+  answers:
+  - text: Dynamically detecting and propagating empty relations
+    verdict: correct
+    justification: An empty `LocalTableScan` replacing part of the plan shows dynamic empty relation propagation.
+  - text: Switching to broadcast joins
+    verdict: incorrect
+    justification: A broadcast switch shows as a different join node.
+  - text: Skew join handling
+    verdict: incorrect
+    justification: Skew handling shows as `isSkew=true`.
+  - text: Coalescing partitions
+    verdict: incorrect
+    justification: Coalescing shows as a coalesced shuffle reader.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-015
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: When does AQE consider a partition skewed?
+  answers:
+  - text: When it has more than 1 million rows
+    verdict: incorrect
+    justification: Skew is based on bytes, not row count.
+  - text: When it is larger than both `skewedPartitionFactor` times the median partition size and `skewedPartitionThresholdInBytes`
+    verdict: correct
+    justification: A partition is skewed only if it exceeds both `skewedPartitionFactor` × median and `skewedPartitionThresholdInBytes`.
+  - text: When it is the largest partition of the stage
+    verdict: incorrect
+    justification: The largest partition is not automatically skewed.
+  - text: When it is larger than either the median or 1 MB
+    verdict: incorrect
+    justification: Both conditions must hold, and there is no 1 MB rule.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-016
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: What are the default values of the two AQE skew detection settings on Databricks?
+  answers:
+  - text: '`skewedPartitionFactor` = 10 and `skewedPartitionThresholdInBytes` = 1 GB'
+    verdict: incorrect
+    justification: 10 and 1 GB are not the defaults.
+  - text: '`skewedPartitionFactor` = 5 and `skewedPartitionThresholdInBytes` = 10 MB'
+    verdict: partially_correct
+    justification: The factor of 5 is right, but the threshold is 256 MB, not 10 MB.
+  - text: '`skewedPartitionFactor` = 2 and `skewedPartitionThresholdInBytes` = 64 MB'
+    verdict: incorrect
+    justification: 2 and 64 MB are not the defaults.
+  - text: '`skewedPartitionFactor` = 5 and `skewedPartitionThresholdInBytes` = 256 MB'
+    verdict: correct
+    justification: 'Databricks lists the defaults: factor 5 and threshold 256 MB.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-017
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: For which join types can AQE skew optimization be applied on both sides?
+  answers:
+  - text: Left outer and right outer joins
+    verdict: incorrect
+    justification: Left outer is optimized only on the left, and right outer only on the right.
+  - text: Inner and cross joins
+    verdict: correct
+    justification: Databricks' table shows that inner and cross joins can be skew-optimized on both sides.
+  - text: Left semi and left anti joins
+    verdict: incorrect
+    justification: Left semi and anti joins are optimized only on the left.
+  - text: Full outer joins
+    verdict: incorrect
+    justification: Full outer joins are not skew-optimized on either side.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-018
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: A `FULL OUTER JOIN` has a heavily skewed key. Will AQE split the skewed partitions?
+  answers:
+  - text: No; full outer joins are not skew-optimized on either side.
+    verdict: correct
+    justification: Full outer joins are not skew-optimized on either side.
+  - text: Yes, on both sides.
+    verdict: incorrect
+    justification: Neither side is optimized.
+  - text: Only if the right side is broadcast.
+    verdict: incorrect
+    justification: Broadcast joins are never skew-optimized.
+  - text: Yes, on the left side only.
+    verdict: incorrect
+    justification: Neither side is optimized.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-019
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: In a `LEFT OUTER JOIN`, on which side can AQE optimize skew?
+  answers:
+  - text: The right side only
+    verdict: incorrect
+    justification: The right side of a left outer join is not optimized.
+  - text: Both sides
+    verdict: incorrect
+    justification: Only inner and cross joins are optimized on both sides.
+  - text: The left side only
+    verdict: correct
+    justification: In a left outer join, only skew on the left side can be optimized.
+  - text: Neither side
+    verdict: incorrect
+    justification: The left side can be optimized.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-020
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer sees a skew join hint in old code and asks whether to keep it with AQE enabled.
+
+    What does Databricks recommend?
+  answers:
+  - text: Remove AQE and keep the hint.
+    verdict: incorrect
+    justification: Disabling AQE removes its automatic optimizations.
+  - text: Keep the skew hint, because AQE ignores skew.
+    verdict: incorrect
+    justification: AQE does handle skew.
+  - text: Use both the hint and AQE for every join.
+    verdict: incorrect
+    justification: Using both is not recommended.
+  - text: Rely on AQE skew join handling, which is automatic and generally performs better than the hint.
+    verdict: correct
+    justification: Databricks recommends relying on AQE skew handling, which is automatic and generally performs better than the skew hint.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-021
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer expected AQE to reorder a five-table join based on runtime sizes, but it did not.
+
+    Why?
+  answers:
+  - text: AQE only reorders joins in streaming queries.
+    verdict: incorrect
+    justification: AQE does not apply to streaming at all.
+  - text: Join reordering requires AQE to be disabled.
+    verdict: incorrect
+    justification: Disabling AQE does not enable reordering.
+  - text: AQE reorders joins only when broadcast hints are present.
+    verdict: incorrect
+    justification: Hints do not enable join reordering.
+  - text: Dynamic join reordering is not part of AQE.
+    verdict: correct
+    justification: Databricks notes that dynamic join reordering is not part of AQE.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-022
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    AQE did not convert a join to a broadcast join even though the relation was small, and the relation has many empty partitions.
+
+    What explains this?
+  answers:
+  - text: The broadcast timeout is too short.
+    verdict: incorrect
+    justification: The broadcast timeout is unrelated.
+  - text: AQE avoids switching to broadcast hash joins when the ratio of non-empty partitions is below `spark.sql.adaptive.nonEmptyPartitionRatioForBroadcastJoin`.
+    verdict: correct
+    justification: AQE avoids switching to a broadcast join when the ratio of non-empty partitions is below `nonEmptyPartitionRatioForBroadcastJoin`.
+  - text: AQE requires the relation to have exactly one partition.
+    verdict: incorrect
+    justification: There is no single-partition requirement.
+  - text: AQE never broadcasts relations with empty partitions due to a bug.
+    verdict: incorrect
+    justification: This is intended behaviour, not a bug.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-023
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: What benefit does AQE coalescing of post-shuffle partitions provide?
+  answers:
+  - text: It combines many small partitions into reasonably sized ones, reducing scheduling and task setup overhead.
+    verdict: correct
+    justification: Coalescing merges small post-shuffle partitions into reasonably sized ones, reducing per-task overhead.
+  - text: It removes the need for shuffles.
+    verdict: incorrect
+    justification: Coalescing happens after the shuffle; it does not remove it.
+  - text: It caches every shuffle partition.
+    verdict: incorrect
+    justification: Coalescing does not cache data.
+  - text: It splits large partitions into many tiny ones.
+    verdict: true_but_irrelevant
+    justification: Splitting large partitions is skew handling, not coalescing.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-024
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: With AQE partition coalescing, what does the Spark documentation say about choosing `spark.sql.shuffle.partitions`?
+  answers:
+  - text: It must be set to 1 so AQE can split partitions.
+    verdict: incorrect
+    justification: Setting it to 1 would prevent parallelism; coalescing merges partitions, it doesn't split them.
+  - text: It must be set exactly to the number of executors.
+    verdict: incorrect
+    justification: It does not need to match the number of executors.
+  - text: Users do not need to set a precise shuffle partition number to fit the dataset, because Spark picks a suitable number at runtime from a large initial number.
+    verdict: correct
+    justification: The Spark docs say coalescing removes the need to tune the shuffle partition count exactly; Spark picks a suitable number at runtime from a large initial number.
+  - text: It is ignored entirely by Spark.
+    verdict: incorrect
+    justification: Spark still uses it as the initial number of partitions.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.2-025
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Which configuration sets the minimum size of partitions after AQE coalescing, with a default of 1 MB?
+  answers:
+  - text: '`spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes`'
+    verdict: true_but_irrelevant
+    justification: '`skewedPartitionThresholdInBytes` is used for skew detection.'
+  - text: '`spark.sql.files.maxPartitionBytes`'
+    verdict: true_but_irrelevant
+    justification: '`maxPartitionBytes` is real, but it applies to file reads.'
+  - text: '`spark.sql.adaptive.advisoryPartitionSizeInBytes`'
+    verdict: true_but_irrelevant
+    justification: '`advisoryPartitionSizeInBytes` is the target size (64 MB), not the minimum.'
+  - text: '`spark.sql.adaptive.coalescePartitions.minPartitionSize`'
+    verdict: correct
+    justification: '`coalescePartitions.minPartitionSize` (default 1 MB) is the minimum size after coalescing.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-026
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    On Databricks, a data engineer wants to disable AQE for a test.
+
+    Which property does the Databricks AQE documentation list for enabling or disabling AQE?
+  answers:
+  - text: '`spark.databricks.optimizer.adaptive.enabled`'
+    verdict: correct
+    justification: Databricks' AQE page lists `spark.databricks.optimizer.adaptive.enabled` (default true) to enable or disable AQE.
+  - text: '`spark.sql.shuffle.partitions`'
+    verdict: true_but_irrelevant
+    justification: '`shuffle.partitions` is real, but it sets shuffle partitions (or `auto`), not AQE on/off.'
+  - text: '`spark.databricks.aqe.mode`'
+    verdict: incorrect
+    justification: There is no `spark.databricks.aqe.mode` property.
+  - text: '`spark.databricks.adaptive.autoBroadcastJoinThreshold`'
+    verdict: true_but_irrelevant
+    justification: This is the AQE broadcast threshold, not the on/off switch.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-027
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Does AQE ignore query hints such as `BROADCAST`?
+  answers:
+  - text: Yes, but only broadcast hints.
+    verdict: incorrect
+    justification: Broadcast hints are respected.
+  - text: Yes; AQE removes all hints at runtime.
+    verdict: incorrect
+    justification: AQE does not remove hints.
+  - text: No; AQE respects hints like static optimization, but can still apply dynamic optimizations not affected by the hints.
+    verdict: correct
+    justification: Databricks states AQE respects hints like static optimization, while still applying dynamic optimizations the hints don't affect.
+  - text: AQE only works when hints are present.
+    verdict: incorrect
+    justification: AQE works without hints.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-028
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Why might a statically planned broadcast join outperform a broadcast join chosen by AQE?
+  answers:
+  - text: AQE uses a slower broadcast algorithm.
+    verdict: incorrect
+    justification: AQE does not use a slower broadcast algorithm.
+  - text: AQE may switch to a broadcast join only after both sides have been shuffled, when actual sizes are known.
+    verdict: correct
+    justification: AQE may only switch to a broadcast join after both sides have been shuffled, so a static broadcast avoids that cost.
+  - text: AQE always disables whole-stage code generation.
+    verdict: incorrect
+    justification: AQE does not disable code generation.
+  - text: AQE broadcasts both sides of the join.
+    verdict: incorrect
+    justification: AQE broadcasts only the small side.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-029
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: |-
+    A data engineer sees many small post-shuffle tasks even though AQE is enabled.
+
+    Which configuration must also be true for partition coalescing to take place?
+  answers:
+  - text: '`spark.sql.adaptive.skewJoin.enabled`'
+    verdict: true_but_irrelevant
+    justification: '`skewJoin.enabled` is real, but it controls skew handling, not coalescing.'
+  - text: '`spark.sql.autoBroadcastJoinThreshold` set to -1'
+    verdict: incorrect
+    justification: Disabling broadcasting does not enable coalescing.
+  - text: '`spark.sql.adaptive.coalescePartitions.enabled`'
+    verdict: correct
+    justification: Coalescing requires both `spark.sql.adaptive.enabled` and `spark.sql.adaptive.coalescePartitions.enabled`.
+  - text: '`spark.sql.adaptive.localShuffleReader.enabled` set to false'
+    verdict: incorrect
+    justification: The local shuffle reader setting does not enable coalescing.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.2-030
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: What is a "query stage" in AQE terminology?
+  answers:
+  - text: A single task processing one partition
+    verdict: incorrect
+    justification: A single task is far smaller than a query stage.
+  - text: A SQL statement in a multi-statement script
+    verdict: incorrect
+    justification: SQL statements are not query stages.
+  - text: A notebook cell
+    verdict: incorrect
+    justification: Notebook cells are not plan concepts.
+  - text: A part of the plan ending at a shuffle or broadcast exchange, after which accurate statistics are available
+    verdict: correct
+    justification: A query stage is a part of the plan that ends at a shuffle or broadcast exchange; once it completes, accurate statistics are available.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.2-031
+  category: troubleshooting_and_tuning
+  objective: '4.2'
+  question: Where in the Spark UI can a data engineer see that AQE changed a plan?
+  answers:
+  - text: On the Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: In the SQL / DataFrame query plan diagram, which evolves during execution and shows the current plan
+    verdict: correct
+    justification: The SQL / DataFrame query diagram evolves during execution and shows the current AQE plan.
+  - text: AQE changes are not visible in the Spark UI
+    verdict: incorrect
+    justification: AQE changes are visible in the plan diagram.
+  - text: On the Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe

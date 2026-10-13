@@ -1,0 +1,669 @@
+# Objective 3.6: Manage input and output operations by writing, overwriting, and reading DataFrames with schemas.
+- id: 3.6-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads a large CSV dataset and wants to avoid the extra pass over the data that schema inference needs.
+
+    Which approach does this?
+  answers:
+  - text: Read the data twice and compare the results.
+    verdict: incorrect
+    justification: Reading the data twice adds work instead of removing it.
+  - text: Set `inferSchema` to `True`.
+    verdict: incorrect
+    justification: '`inferSchema=True` is what causes the extra pass.'
+  - text: Call `df.printSchema()` before reading.
+    verdict: incorrect
+    justification: '`printSchema` runs after reading and does not affect how the data is read.'
+  - text: Provide an explicit schema with `spark.read.schema(schema).csv(path)`.
+    verdict: correct
+    justification: With an explicit schema, Spark does not need to scan the data to infer types.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.schema.html
+- id: 3.6-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer defines a schema with a DDL string.
+
+    Which code is valid?
+  answers:
+  - text: '`spark.read.csv(path, schema={"id": int, "name": str, "amount": float})`'
+    verdict: incorrect
+    justification: Python types in a dictionary are not a valid schema.
+  - text: '`spark.read.schema("id INT, name STRING, amount DOUBLE").csv(path, header=True)`'
+    verdict: correct
+    justification: '`schema()` accepts a DDL string such as `"id INT, name STRING, amount DOUBLE"`.'
+  - text: '`spark.read.schema(["id INT", "name STRING", "amount DOUBLE"]).csv(path)`'
+    verdict: incorrect
+    justification: A schema is a `StructType` or a single DDL string, not a list of strings.
+  - text: '`spark.read.schema("id:int|name:string|amount:double").csv(path)`'
+    verdict: incorrect
+    justification: This is not valid DDL syntax; columns are separated by commas and written as `name TYPE`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.schema.html
+- id: 3.6-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer defines a schema with `StructType`.
+
+    Which code is correct?
+  answers:
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+      schema = StructType([
+          StructField("id", IntegerType(), False),
+          StructField("name", StringType(), True),
+      ])
+      df = spark.read.schema(schema).json(path)
+      ```
+    verdict: correct
+    justification: A `StructType` built from `StructField(name, type, nullable)` is passed to `read.schema(...)`.
+  - text: |-
+      |
+      ```python
+      schema = StructType(id=IntegerType(), name=StringType())
+      df = spark.read.json(path).schema(schema)
+      ```
+    verdict: incorrect
+    justification: '`StructType` does not take keyword arguments, and `DataFrame.schema` is a property, not a method that applies a schema.'
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.types import StructType, StructField
+      schema = StructType({"id": "int", "name": "string"})
+      df = spark.read.schema(schema).json(path)
+      ```
+    verdict: incorrect
+    justification: '`StructType` takes a list of `StructField` objects, not a dictionary.'
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.types import StructField
+      schema = [StructField("id", int), StructField("name", str)]
+      df = spark.read.json(path, columns=schema)
+      ```
+    verdict: incorrect
+    justification: '`StructField` needs Spark data types, and `json()` has no `columns` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.schema.html
+- id: 3.6-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: What does the third argument of `StructField("id", IntegerType(), False)` mean?
+  answers:
+  - text: The field is not written to output files.
+    verdict: incorrect
+    justification: Nullability does not control which columns are written.
+  - text: The field is not part of the primary key.
+    verdict: incorrect
+    justification: Spark DataFrames have no primary key concept in `StructField`.
+  - text: The field is not nullable.
+    verdict: correct
+    justification: The third argument is `nullable`; `False` means the field must not contain nulls.
+  - text: The field is not sorted.
+    verdict: incorrect
+    justification: Nullability has nothing to do with sorting.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.schema.html
+- id: 3.6-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads CSV files with `inferSchema=True`.
+
+    What is the cost?
+  answers:
+  - text: Schema inference is only possible for Parquet.
+    verdict: incorrect
+    justification: Schema inference also works for CSV and JSON.
+  - text: Spark must go through the input data to infer the column types, which adds an extra pass.
+    verdict: correct
+    justification: '`inferSchema` requires an extra pass over the data to determine the column types.'
+  - text: Spark reads only the header and guesses the types instantly.
+    verdict: incorrect
+    justification: Inference does not rely only on the header; it reads the data.
+  - text: All columns are typed as strings.
+    verdict: incorrect
+    justification: '`inferSchema` assigns proper types instead of strings.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 3.6-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads a CSV file without `inferSchema` and without a schema.
+
+    What are the column types?
+  answers:
+  - text: All columns are strings.
+    verdict: correct
+    justification: Without `inferSchema` or a schema, the CSV reader types every column as a string.
+  - text: Types are inferred from the first row.
+    verdict: incorrect
+    justification: Types are inferred only when `inferSchema` is enabled.
+  - text: The read fails without a schema.
+    verdict: incorrect
+    justification: Reading works without a schema.
+  - text: All columns are doubles.
+    verdict: incorrect
+    justification: Columns default to strings, not doubles.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 3.6-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads Parquet files without providing a schema.
+
+    How does Spark get the schema?
+  answers:
+  - text: By scanning every row to infer types
+    verdict: incorrect
+    justification: No row scanning is needed for Parquet.
+  - text: It treats all columns as strings
+    verdict: incorrect
+    justification: Parquet columns keep their stored types.
+  - text: From the Parquet file metadata, because Parquet is self-describing
+    verdict: correct
+    justification: Parquet stores its schema in the file metadata, so Spark reads it from there.
+  - text: From the header row
+    verdict: incorrect
+    justification: Parquet files have no header row.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html
+- id: 3.6-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads JSON files without a schema.
+
+    What does Spark do by default?
+  answers:
+  - text: It fails because JSON has no schema.
+    verdict: incorrect
+    justification: JSON can be read without providing a schema.
+  - text: It reads only the first line.
+    verdict: incorrect
+    justification: The whole input is read, not just the first line.
+  - text: It uses all columns as strings with no inference.
+    verdict: true_but_irrelevant
+    justification: Treating every column as a string without inference is what CSV does by default, not JSON.
+  - text: It infers the schema by reading the JSON data.
+    verdict: correct
+    justification: By default the JSON reader infers the schema by reading the data.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-json.html
+- id: 3.6-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer overwrites the output path `/mnt/curated/customers` with a new DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.parquet("/mnt/curated/customers", replace=True)`'
+    verdict: incorrect
+    justification: '`parquet()` has no `replace` parameter (it accepts `mode="overwrite"`).'
+  - text: '`df.overwrite().parquet("/mnt/curated/customers")`'
+    verdict: incorrect
+    justification: DataFrames have no `overwrite()` method.
+  - text: '`df.write.mode("append").parquet("/mnt/curated/customers").overwrite()`'
+    verdict: incorrect
+    justification: '`append` adds data, and `parquet()` returns `None`, so nothing can be chained after it.'
+  - text: '`df.write.mode("overwrite").parquet("/mnt/curated/customers")`'
+    verdict: correct
+    justification: '`mode("overwrite")` replaces the data at the output path.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.mode.html
+- id: 3.6-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer writes Parquet files compressed with gzip instead of the default codec.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.parquet(path, codec="gzip").save()`'
+    verdict: incorrect
+    justification: '`parquet()` writes immediately and returns `None`, so `.save()` cannot follow, and `codec` is not its parameter.'
+  - text: '`df.write.option("compression", "gzip").parquet(path)`'
+    verdict: correct
+    justification: The `compression` option sets the Parquet codec, here gzip.
+  - text: '`df.write.format("gzip").parquet(path)`'
+    verdict: incorrect
+    justification: '`gzip` is a compression codec, not a data source format.'
+  - text: '`df.write.compress("gzip").parquet(path)`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `compress` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.option.html
+- id: 3.6-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads JSON using the generic API.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.format("json").load(path)`'
+    verdict: correct
+    justification: '`read.format("json").load(path)` is the generic way to read JSON.'
+  - text: '`spark.read.load(path).format("json")`'
+    verdict: incorrect
+    justification: '`load` returns a DataFrame, which has no `format` method; the format must be set first.'
+  - text: '`spark.read.json().load(path)`'
+    verdict: incorrect
+    justification: '`json()` needs a path and returns a DataFrame, so `.load()` cannot follow.'
+  - text: '`spark.load("json", path)`'
+    verdict: incorrect
+    justification: SparkSession has no `load` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.load.html
+- id: 3.6-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer writes a DataFrame using the generic API in ORC format.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.save(path).format("orc")`'
+    verdict: incorrect
+    justification: '`save` returns `None`, so `.format()` cannot follow.'
+  - text: '`df.write.orc().save(path, mode="overwrite")`'
+    verdict: incorrect
+    justification: '`orc()` needs a path and writes immediately.'
+  - text: '`df.write.format("orc").mode("overwrite").save(path)`'
+    verdict: correct
+    justification: '`write.format("orc").mode("overwrite").save(path)` writes ORC with the generic API.'
+  - text: '`df.save(path, "orc")`'
+    verdict: incorrect
+    justification: DataFrames have no `save` method; writing goes through `df.write`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.save.html
+- id: 3.6-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer wants to check that a DataFrame read with a schema has the expected nested structure.
+
+    Which method prints it as a tree?
+  answers:
+  - text: '`df.show(schema=True)`'
+    verdict: incorrect
+    justification: '`show` has no `schema` parameter.'
+  - text: '`df.explain()`'
+    verdict: incorrect
+    justification: '`explain` prints the query plan.'
+  - text: '`df.printSchema()`'
+    verdict: correct
+    justification: '`printSchema()` prints the schema as a tree, including nested fields.'
+  - text: '`df.describe()`'
+    verdict: incorrect
+    justification: '`describe` computes statistics.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.printSchema.html
+- id: 3.6-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A JSON source has a nested field `payload.user.id`. The engineer provides a schema for only some fields.
+
+    What happens to fields in the data that are not in the schema?
+  answers:
+  - text: The read fails.
+    verdict: incorrect
+    justification: Missing fields from the schema do not cause failures.
+  - text: They are stored in a `_extra` column automatically.
+    verdict: incorrect
+    justification: No `_extra` column is created automatically.
+  - text: They are added as string columns.
+    verdict: incorrect
+    justification: Spark does not add extra string columns.
+  - text: They are ignored and not included in the DataFrame.
+    verdict: correct
+    justification: Fields not in the provided schema are ignored when reading JSON.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.json.html
+- id: 3.6-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: A data engineer provides a schema where `amount` is `INT`, but some values in the CSV file are `"abc"`. With default settings (`PERMISSIVE` mode), what happens to those values?
+  answers:
+  - text: The job fails immediately.
+    verdict: true_but_irrelevant
+    justification: Failing immediately is `FAILFAST` behaviour.
+  - text: They become null in the `amount` column.
+    verdict: correct
+    justification: In `PERMISSIVE` mode, values that cannot be parsed into the schema type become null.
+  - text: They are kept as the string `"abc"`.
+    verdict: incorrect
+    justification: An `INT` column cannot hold a string.
+  - text: They are cast to 0.
+    verdict: incorrect
+    justification: Values are not replaced with 0.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.6-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads CSV files with a custom date format in column `d`.
+
+    Which option tells the CSV reader how to parse dates?
+  answers:
+  - text: '`.option("dateFormat", "dd.MM.yyyy")`'
+    verdict: correct
+    justification: The CSV `dateFormat` option sets the pattern used to parse dates.
+  - text: '`.option("parseDates", "dd.MM.yyyy")`'
+    verdict: incorrect
+    justification: There is no `parseDates` option.
+  - text: '`.option("dateType", "dd.MM.yyyy")`'
+    verdict: incorrect
+    justification: There is no `dateType` option.
+  - text: '`.option("datePattern", "dd.MM.yyyy")`'
+    verdict: incorrect
+    justification: There is no `datePattern` option.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.6-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A CSV file uses `"NA"` for missing values. The engineer wants these read as nulls.
+
+    Which option does this?
+  answers:
+  - text: '`.option("missing", "NA")`'
+    verdict: incorrect
+    justification: There is no `missing` option.
+  - text: '`.option("nullValue", "NA")`'
+    verdict: correct
+    justification: '`nullValue` sets the string that represents null, so `"NA"` becomes null.'
+  - text: '`.option("emptyValue", "NA")`'
+    verdict: true_but_irrelevant
+    justification: '`emptyValue` is a real option, but it sets how empty strings are represented, not which string means null.'
+  - text: '`.option("na", "null")`'
+    verdict: incorrect
+    justification: There is no `na` option.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.6-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads a Unity Catalog table into a DataFrame.
+
+    Why is no schema needed?
+  answers:
+  - text: The schema must be passed but defaults to empty.
+    verdict: incorrect
+    justification: No schema needs to be passed.
+  - text: Tables always use string columns.
+    verdict: incorrect
+    justification: Tables keep their declared types.
+  - text: Spark infers it from the first file every time.
+    verdict: incorrect
+    justification: Spark uses the catalog schema, not file inference.
+  - text: The table's schema is stored in the catalog and applied when reading.
+    verdict: correct
+    justification: A table's schema is stored in the catalog, so Spark applies it when reading the table.
+  source_url: https://docs.databricks.com/aws/en/tables/
+- id: 3.6-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer appends a DataFrame with an extra column to an existing Delta table on Databricks without enabling schema evolution.
+
+    What happens?
+  answers:
+  - text: The table is overwritten with the new schema.
+    verdict: incorrect
+    justification: An append never overwrites the table.
+  - text: The extra column is dropped silently.
+    verdict: incorrect
+    justification: Delta Lake does not silently drop columns.
+  - text: The write fails because of a schema mismatch, since Delta Lake enforces the table schema.
+    verdict: correct
+    justification: Delta Lake enforces the table schema, so an append with an unknown column fails unless schema evolution is enabled.
+  - text: The extra column is added silently.
+    verdict: true_but_irrelevant
+    justification: Adding the column is what happens when schema evolution (`mergeSchema`) is enabled.
+  source_url: https://docs.databricks.com/aws/en/tables/update-schema
+- id: 3.6-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer wants to add new columns to a Delta table when appending a DataFrame with additional columns.
+
+    Which option enables this for the write?
+  answers:
+  - text: '`.option("mergeSchema", "true")`'
+    verdict: correct
+    justification: '`mergeSchema` enables schema evolution so the new columns are added to the Delta table.'
+  - text: '`.option("addColumns", "true")`'
+    verdict: incorrect
+    justification: There is no `addColumns` option.
+  - text: '`.option("schemaEvolution", "none")`'
+    verdict: incorrect
+    justification: '`"none"` would not enable evolution, and `schemaEvolution` is not the documented option.'
+  - text: '`.option("inferSchema", "true")`'
+    verdict: incorrect
+    justification: '`inferSchema` is a CSV read option.'
+  source_url: https://docs.databricks.com/aws/en/tables/update-schema
+- id: 3.6-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer overwrites a Delta table and also needs to replace the table's schema with the DataFrame's schema.
+
+    Which option enables this?
+  answers:
+  - text: '`.option("replaceSchema", "true")` with `mode("ignore")`'
+    verdict: incorrect
+    justification: There is no `replaceSchema` option, and `ignore` skips the write.
+  - text: '`.option("mergeSchema", "false")` with `mode("append")`'
+    verdict: incorrect
+    justification: Appending with `mergeSchema=false` keeps the old schema and the old data.
+  - text: '`.option("overwriteSchema", "true")` with `mode("overwrite")`'
+    verdict: correct
+    justification: '`overwriteSchema=true` with `mode("overwrite")` replaces the table''s schema as well as its data.'
+  - text: No option is needed; overwrite always replaces the schema.
+    verdict: incorrect
+    justification: A normal overwrite keeps the table schema and fails if the DataFrame's schema differs.
+  source_url: https://docs.databricks.com/aws/en/tables/update-schema
+- id: 3.6-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer creates a DataFrame from Python data with an explicit schema.
+
+    Which code does this?
+  answers:
+  - text: '`spark.createDataFrame(schema="id INT, label STRING", data=None)`'
+    verdict: incorrect
+    justification: '`data` cannot be `None`; it must contain the rows.'
+  - text: '`spark.createDataFrame([(1, "a")]).schema("id INT, label STRING")`'
+    verdict: incorrect
+    justification: '`DataFrame.schema` is a property, not a method that applies a schema.'
+  - text: '`spark.createDataFrame([(1, "a")], columns="id INT, label STRING")`'
+    verdict: incorrect
+    justification: '`createDataFrame` has no `columns` parameter.'
+  - text: '`spark.createDataFrame([(1, "a")], schema="id INT, label STRING")`'
+    verdict: correct
+    justification: '`createDataFrame(data, schema="id INT, label STRING")` applies a DDL schema.'
+  source_url: https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_df.html
+- id: 3.6-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer wants to reuse the schema of an existing DataFrame `ref_df` to read new files.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.parquet(path, like=ref_df)`'
+    verdict: incorrect
+    justification: '`parquet()` has no `like` parameter.'
+  - text: '`spark.read.schema(ref_df.schema).parquet(path)`'
+    verdict: correct
+    justification: '`ref_df.schema` is a `StructType` that can be passed to `read.schema`.'
+  - text: '`spark.read.schema(ref_df.columns).parquet(path)`'
+    verdict: incorrect
+    justification: '`columns` is a list of names, not a schema.'
+  - text: '`spark.read.schema(ref_df.dtypes()).parquet(path)`'
+    verdict: incorrect
+    justification: '`dtypes` is a property, not a method, and it is not a schema.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.schema.html
+- id: 3.6-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: What does `df.dtypes` return?
+  answers:
+  - text: A list of (column name, data type string) tuples
+    verdict: correct
+    justification: '`dtypes` returns a list of (column name, type string) tuples.'
+  - text: A `StructType` object
+    verdict: true_but_irrelevant
+    justification: A `StructType` is what `df.schema` returns.
+  - text: A pandas Series of types
+    verdict: incorrect
+    justification: It returns a Python list, not a pandas Series.
+  - text: The number of columns per type
+    verdict: incorrect
+    justification: It does not count columns per type.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dtypes.html
+- id: 3.6-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer writes a DataFrame to CSV with a pipe delimiter and a header.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.option("header", True).option("sep", "|").csv(path)`'
+    verdict: correct
+    justification: The `header` and `sep` options give a header row and a pipe delimiter.
+  - text: '`df.write.csv(path, delimiter="|", headers="yes").save()`'
+    verdict: incorrect
+    justification: '`csv()` writes immediately and returns `None`, so `.save()` cannot follow; the option is `header`, not `headers`.'
+  - text: '`df.write.format("csv|").save(path)`'
+    verdict: incorrect
+    justification: '`csv|` is not a format name.'
+  - text: '`df.write.option("separator", "|").text(path)`'
+    verdict: incorrect
+    justification: '`separator` is not an option, and the text writer cannot write multiple columns.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 3.6-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer writes a DataFrame as JSON Lines files.
+
+    Which code does this?
+  answers:
+  - text: '`df.toJSON().write(path)`'
+    verdict: incorrect
+    justification: '`toJSON()` returns an RDD of strings, which has no `write` attribute.'
+  - text: '`df.write.format("jsonlines").save(path)`'
+    verdict: incorrect
+    justification: '`jsonlines` is not a format name; JSON output is already JSON Lines.'
+  - text: '`df.write.jsonl(path)`'
+    verdict: incorrect
+    justification: There is no `jsonl` method.
+  - text: '`df.write.mode("overwrite").json(path)`'
+    verdict: correct
+    justification: '`write.json` writes JSON Lines (one JSON object per line).'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.json.html
+- id: 3.6-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads several Parquet folders at once.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.parquet(["/mnt/a"] + "/mnt/b")`'
+    verdict: incorrect
+    justification: A list cannot be added to a string.
+  - text: '`spark.read.parquet("/mnt/a").parquet("/mnt/b")`'
+    verdict: incorrect
+    justification: '`parquet()` returns a DataFrame, which has no `parquet` method.'
+  - text: '`spark.read.parquet("/mnt/a", "/mnt/b", "/mnt/c")`'
+    verdict: correct
+    justification: '`parquet()` accepts several paths and reads them into one DataFrame.'
+  - text: '`spark.read.parquet("/mnt/{a,b,c}", multiple=True)`'
+    verdict: incorrect
+    justification: '`parquet()` has no `multiple` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.parquet.html
+- id: 3.6-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    Parquet files with different but compatible schemas exist in one folder. The engineer wants a DataFrame with the union of all columns.
+
+    Which read option enables this?
+  answers:
+  - text: '`.option("unionSchema", "true")`'
+    verdict: incorrect
+    justification: There is no `unionSchema` option.
+  - text: '`.option("mergeSchema", "true")`'
+    verdict: correct
+    justification: The Parquet `mergeSchema` option merges compatible schemas from all files.
+  - text: '`.option("allowMissingColumns", "true")`'
+    verdict: true_but_irrelevant
+    justification: '`allowMissingColumns` is a parameter of `unionByName`, not a Parquet read option.'
+  - text: '`.option("inferSchema", "true")`'
+    verdict: incorrect
+    justification: '`inferSchema` is a CSV/JSON option; Parquet already has a schema.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html
+- id: 3.6-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer reads text files and wants one row per file instead of one row per line.
+
+    Which option does this?
+  answers:
+  - text: '`spark.read.text(path, wholetext=True)`'
+    verdict: correct
+    justification: '`wholetext=True` reads each file as a single row.'
+  - text: '`spark.read.text(path).coalesce(1)`'
+    verdict: incorrect
+    justification: '`coalesce(1)` changes the number of partitions, not the number of rows per file.'
+  - text: '`spark.read.text(path, mode="file")`'
+    verdict: incorrect
+    justification: '`text()` has no `mode="file"` option.'
+  - text: '`spark.read.text(path, lineSep=None)`'
+    verdict: incorrect
+    justification: '`lineSep=None` keeps the default line separator.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.text.html
+- id: 3.6-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer writes to Parquet and needs the output in `/Volumes/main/curated/files/out` replaced each run, partitioned by `dt`.
+
+    Which code is correct?
+  answers:
+  - text: '`df.write.partitionBy("dt").parquet("/Volumes/main/curated/files/out").mode("overwrite")`'
+    verdict: incorrect
+    justification: '`parquet()` writes immediately and returns `None`, so `.mode()` cannot follow.'
+  - text: '`df.repartition("dt").write.parquet("/Volumes/main/curated/files/out")`'
+    verdict: incorrect
+    justification: '`repartition` does not create partition directories, and without a mode the write fails if data exists.'
+  - text: '`df.write.parquet("/Volumes/main/curated/files/out", partitionBy="dt", overwrite=True)`'
+    verdict: partially_correct
+    justification: '`parquet()` does accept `partitionBy=`, but there is no `overwrite` parameter; it should be `mode="overwrite"`.'
+  - text: '`df.write.mode("overwrite").partitionBy("dt").parquet("/Volumes/main/curated/files/out")`'
+    verdict: correct
+    justification: '`mode("overwrite")` replaces the output, and `partitionBy("dt")` creates one directory per value.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.option.html
+- id: 3.6-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.6'
+  question: |-
+    A data engineer on Databricks needs a governed location in Unity Catalog to read and write non-tabular files such as raw CSV files.
+
+    Which object should be used?
+  answers:
+  - text: A temporary view
+    verdict: incorrect
+    justification: A temporary view names a query and stores no files.
+  - text: A Unity Catalog volume, accessed with paths like `/Volumes/<catalog>/<schema>/<volume>/...`
+    verdict: correct
+    justification: Unity Catalog volumes provide governed storage for non-tabular files, accessed with `/Volumes/<catalog>/<schema>/<volume>/` paths.
+  - text: A global temporary view
+    verdict: incorrect
+    justification: A global temporary view is also only a named query.
+  - text: The driver's local `/tmp` folder
+    verdict: incorrect
+    justification: The driver's `/tmp` is local, temporary and not governed by Unity Catalog.
+  source_url: https://docs.databricks.com/aws/en/volumes/

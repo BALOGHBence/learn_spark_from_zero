@@ -1,0 +1,649 @@
+# Objective 3.3: Perform aggregate operations on DataFrames such as count, approximate count distinct, and mean, summary.
+- id: 3.3-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs a fast estimate of the number of unique visitors in a 5-billion-row clickstream; a small error is acceptable.
+
+    Which code is the best fit?
+  answers:
+  - text: '`df.select(count_distinct("visitor_id"))`'
+    verdict: partially_correct
+    justification: '`count_distinct` returns the exact number, but it is far more expensive on 5 billion rows; the requirement was a fast estimate.'
+  - text: '`df.select("visitor_id").distinct().count()`'
+    verdict: partially_correct
+    justification: '`distinct().count()` is also exact, but it shuffles all distinct values, which is slow at this scale.'
+  - text: '`df.select(count("visitor_id"))`'
+    verdict: incorrect
+    justification: '`count` counts non-null values, including repeats, not distinct visitors.'
+  - text: '`df.select(approx_count_distinct("visitor_id"))`'
+    verdict: correct
+    justification: '`approx_count_distinct` estimates distinct counts with HyperLogLog++, which is much cheaper than exact counting and fits when a small error is acceptable.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.approx_count_distinct.html
+- id: 3.3-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: What is the default maximum relative standard deviation (`rsd`) of `approx_count_distinct`?
+  answers:
+  - text: '0.01'
+    verdict: true_but_irrelevant
+    justification: 0.01 is the threshold below which the docs recommend `count_distinct` instead, not the default.
+  - text: '0.05'
+    verdict: correct
+    justification: The PySpark docs give a default `rsd` of 0.05.
+  - text: '0.5'
+    verdict: incorrect
+    justification: 0.5 is not the default.
+  - text: '0.1'
+    verdict: incorrect
+    justification: 0.1 is not the default.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.approx_count_distinct.html
+- id: 3.3-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: According to the PySpark documentation, when is it more efficient to use `count_distinct()` instead of `approx_count_distinct()`?
+  answers:
+  - text: When the column contains strings
+    verdict: incorrect
+    justification: The column type does not decide which function is more efficient.
+  - text: When the DataFrame has more than 1 billion rows
+    verdict: incorrect
+    justification: Large data favours the approximate function, not the exact one.
+  - text: When the requested `rsd` is below 0.01
+    verdict: correct
+    justification: The docs state that if `rsd` < 0.01 it is more efficient to use `count_distinct()`.
+  - text: When the DataFrame is cached
+    verdict: incorrect
+    justification: Caching is not a criterion in the docs.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.approx_count_distinct.html
+- id: 3.3-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs the exact number of distinct (`country`, `city`) combinations.
+
+    Which code does this?
+  answers:
+  - text: '`df.select(count_distinct("country", "city"))`'
+    verdict: correct
+    justification: '`count_distinct` with several columns counts exact distinct combinations.'
+  - text: '`df.select(approx_count_distinct("country", "city"))`'
+    verdict: partially_correct
+    justification: This counts combinations too, but only approximately; the requirement was an exact number.
+  - text: '`df.select(count("country", "city"))`'
+    verdict: incorrect
+    justification: '`count` takes a single column and counts non-null values, not distinct combinations.'
+  - text: '`df.agg(sum_distinct("country", "city"))`'
+    verdict: incorrect
+    justification: '`sum_distinct` sums distinct numeric values and takes one column.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.count_distinct.html
+- id: 3.3-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer computes the average `amount` per `region`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy(mean("amount")).agg("region")`'
+    verdict: incorrect
+    justification: The grouping and aggregation are swapped.
+  - text: '`df.groupBy("region").agg(mean("amount").alias("avg_amount"))`'
+    verdict: correct
+    justification: '`groupBy("region").agg(mean("amount"))` computes the average per region.'
+  - text: '`df.groupBy("region").mean().alias("amount")`'
+    verdict: incorrect
+    justification: '`mean()` without arguments averages all numeric columns, and `.alias` on a DataFrame does not name a column.'
+  - text: '`df.agg(mean("amount")).groupBy("region")`'
+    verdict: incorrect
+    justification: Aggregating first leaves no `region` column to group by.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.mean.html
+- id: 3.3-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: Which statement about `mean` and `avg` in `pyspark.sql.functions` is correct?
+  answers:
+  - text: '`mean` only works with integers.'
+    verdict: incorrect
+    justification: Both work on any numeric type.
+  - text: '`mean` returns the median and `avg` returns the average.'
+    verdict: incorrect
+    justification: Neither returns the median; that is `median` or `percentile_approx`.
+  - text: They are aliases that compute the same average of a column.
+    verdict: correct
+    justification: '`mean` and `avg` are aliases for the same average.'
+  - text: '`avg` ignores nulls and `mean` counts nulls as zero.'
+    verdict: incorrect
+    justification: Both ignore nulls.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.avg.html
+- id: 3.3-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A column `score` has values 10, 20 and null.
+
+    What does `avg("score")` return?
+  answers:
+  - text: 15.0, because nulls are ignored
+    verdict: correct
+    justification: '`avg` ignores nulls, so it averages 10 and 20: 15.0.'
+  - text: null, because one value is null
+    verdict: incorrect
+    justification: One null does not make the whole average null.
+  - text: 30.0, because it returns the sum
+    verdict: incorrect
+    justification: '`avg` returns the average, not the sum.'
+  - text: 10.0, because null counts as 0
+    verdict: incorrect
+    justification: Nulls are not treated as 0, which would give 10.0.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.avg.html
+- id: 3.3-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer calls `df.summary()` without arguments.
+
+    Which statistics are computed?
+  answers:
+  - text: count, mean, stddev, min and max only
+    verdict: true_but_irrelevant
+    justification: count, mean, stddev, min and max only is what `describe()` returns.
+  - text: sum, average and median only
+    verdict: incorrect
+    justification: '`summary` does not return sum or median by those names.'
+  - text: count of nulls and count of distinct values
+    verdict: incorrect
+    justification: '`summary` does not report null counts or distinct counts.'
+  - text: count, mean, stddev, min, approximate 25%, 50% and 75% percentiles, and max
+    verdict: correct
+    justification: Without arguments, `summary()` computes count, mean, stddev, min, approximate 25%, 50% and 75% percentiles and max.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.summary.html
+- id: 3.3-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: What does `df.describe()` compute?
+  answers:
+  - text: count, mean, stddev, min and max for numeric and string columns
+    verdict: correct
+    justification: '`describe()` returns count, mean, stddev, min and max for numeric and string columns.'
+  - text: The number of partitions and rows
+    verdict: incorrect
+    justification: '`describe` computes statistics of values, not partition counts.'
+  - text: Only the schema of the DataFrame
+    verdict: incorrect
+    justification: The schema is shown by `printSchema()`.
+  - text: count, mean, stddev, min, quartiles and max
+    verdict: true_but_irrelevant
+    justification: Adding quartiles is what `summary()` does by default.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.describe.html
+- id: 3.3-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer only needs the count, minimum and the 90th percentile of each column.
+
+    Which code does this?
+  answers:
+  - text: '`df.describe("count", "min", "90%")`'
+    verdict: incorrect
+    justification: '`describe` takes column names, not statistic names.'
+  - text: '`df.summary(stats=["count", "min", 0.9])`'
+    verdict: incorrect
+    justification: '`summary` takes statistics as positional strings, not a `stats` keyword with numbers.'
+  - text: '`df.summary("count", "min", "90%")`'
+    verdict: correct
+    justification: '`summary` accepts the statistics to compute, including percentiles such as `"90%"`.'
+  - text: '`df.agg("count", "min", "90%")`'
+    verdict: incorrect
+    justification: '`agg` takes Column expressions or a dictionary, not statistic names like these.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.summary.html
+- id: 3.3-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs the total number of rows in a DataFrame as a Python integer.
+
+    Which code does this?
+  answers:
+  - text: '`df.agg(count("*"))`'
+    verdict: partially_correct
+    justification: '`agg(count("*"))` computes the count, but it returns a DataFrame, not a Python integer.'
+  - text: '`df.count()`'
+    verdict: correct
+    justification: '`df.count()` is an action that returns the number of rows as a Python int.'
+  - text: '`len(df.columns)`'
+    verdict: incorrect
+    justification: '`len(df.columns)` returns the number of columns.'
+  - text: '`df.select(count("*"))`'
+    verdict: partially_correct
+    justification: '`select(count("*"))` computes the count, but it returns a DataFrame, not a Python integer.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.count.html
+- id: 3.3-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: What is the difference between `count("*")` and `count("email")` inside `agg`?
+  answers:
+  - text: They always return the same number.
+    verdict: incorrect
+    justification: They differ whenever `email` contains nulls.
+  - text: '`count("*")` ignores rows with any null value.'
+    verdict: incorrect
+    justification: '`count("*")` counts every row, including rows with nulls.'
+  - text: '`count("email")` counts distinct emails.'
+    verdict: incorrect
+    justification: '`count` does not count distinct values.'
+  - text: '`count("*")` counts all rows, while `count("email")` counts rows where `email` is not null.'
+    verdict: correct
+    justification: '`count("*")` counts all rows; `count("email")` skips nulls in `email`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.count.html
+- id: 3.3-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer computes the total and maximum `amount` per `store_id` in one aggregation.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("store_id").agg(sum("amount").alias("total"), max("amount").alias("max_amount"))`'
+    verdict: correct
+    justification: '`agg` with several aggregate expressions computes both statistics per store in one pass.'
+  - text: '`df.groupBy("store_id").agg("sum(amount), max(amount)")`'
+    verdict: incorrect
+    justification: '`agg` does not take one SQL string with several expressions like this.'
+  - text: '`df.groupBy("store_id").sum("amount").max("amount")`'
+    verdict: incorrect
+    justification: '`GroupedData.sum` returns a DataFrame, which has no `max` method.'
+  - text: '`df.agg(sum("amount"), max("amount")).groupBy("store_id")`'
+    verdict: incorrect
+    justification: Aggregating before grouping leaves no `store_id` to group by.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.agg.html
+- id: 3.3-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer uses a dictionary with `agg`: `df.groupBy("dept").agg({"salary": "avg", "age": "max"})`.
+
+    What is the result?
+  answers:
+  - text: An error, because `agg` only accepts Column expressions
+    verdict: incorrect
+    justification: '`agg` also accepts a dictionary of column → function name.'
+  - text: The average of all columns
+    verdict: incorrect
+    justification: Only the listed columns are aggregated.
+  - text: One row per `dept` with the average salary and maximum age
+    verdict: correct
+    justification: A dictionary maps columns to aggregate functions, giving one row per `dept` with `avg(salary)` and `max(age)`.
+  - text: One row in total with both statistics
+    verdict: incorrect
+    justification: There is one row per group, not one in total.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.agg.html
+- id: 3.3-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer wants total `amount` per `customer_id`, with one column per `year`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("customer_id", "year").pivot().sum("amount")`'
+    verdict: incorrect
+    justification: '`pivot` needs a column, and grouping by `year` would not spread years into columns.'
+  - text: '`df.groupBy("customer_id").pivot("year").sum("amount")`'
+    verdict: correct
+    justification: '`groupBy(...).pivot("year").sum("amount")` gives one row per customer and one column per year.'
+  - text: '`df.groupBy("year").pivot("customer_id").agg("amount")`'
+    verdict: incorrect
+    justification: This makes one column per customer, and `agg` needs an aggregate expression.
+  - text: '`df.pivot("year").groupBy("customer_id").sum("amount")`'
+    verdict: incorrect
+    justification: DataFrames have no `pivot` method; `pivot` is called on grouped data.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.pivot.html
+- id: 3.3-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer calls `pivot("year")` without a list of values.
+
+    What does Spark do?
+  answers:
+  - text: It creates one column per row.
+    verdict: incorrect
+    justification: Pivot creates one column per distinct value, not per row.
+  - text: It pivots only the first 10 values.
+    verdict: incorrect
+    justification: Spark does not limit the pivot to the first 10 values.
+  - text: It fails because a list of values is required.
+    verdict: incorrect
+    justification: The values list is optional.
+  - text: It eagerly computes the distinct values of `year` to determine the output schema.
+    verdict: correct
+    justification: Without values, Spark eagerly computes the distinct values of the pivot column to know the output columns.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.pivot.html
+- id: 3.3-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: How can a data engineer avoid the extra computation when pivoting on `quarter`, whose values are known?
+  answers:
+  - text: Pass the values explicitly, for example `pivot("quarter", ["Q1", "Q2", "Q3", "Q4"])`.
+    verdict: correct
+    justification: Passing the values list lets Spark skip the eager distinct computation.
+  - text: Cache the DataFrame before pivoting.
+    verdict: incorrect
+    justification: Caching does not remove the need to find distinct values.
+  - text: Use `pivot("quarter").distinct()`.
+    verdict: incorrect
+    justification: '`pivot(...).distinct()` is not valid on grouped data.'
+  - text: Call `count()` before `pivot`.
+    verdict: incorrect
+    justification: '`count()` does not provide the pivot values.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.pivot.html
+- id: 3.3-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs the approximate median of `latency_ms` per `service`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("service").agg(percentile_approx("latency_ms", 50))`'
+    verdict: incorrect
+    justification: Percentages must be between 0.0 and 1.0, so 50 is invalid.
+  - text: '`df.groupBy("service").agg(median_exact("latency_ms"))`'
+    verdict: incorrect
+    justification: There is no `median_exact` function.
+  - text: '`df.groupBy("service").agg(avg("latency_ms"))`'
+    verdict: true_but_irrelevant
+    justification: '`avg` is valid, but it computes the mean, which differs from the median for skewed latencies.'
+  - text: '`df.groupBy("service").agg(percentile_approx("latency_ms", 0.5))`'
+    verdict: correct
+    justification: '`percentile_approx(col, 0.5)` returns the approximate median per group.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.percentile_approx.html
+- id: 3.3-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs approximate quartiles of `amount` as a Python list on the driver.
+
+    Which code does this?
+  answers:
+  - text: '`df.select(percentile_approx("amount")).collect()`'
+    verdict: incorrect
+    justification: '`percentile_approx` needs a percentage argument.'
+  - text: '`df.approxQuantile("amount", [0.25, 0.5, 0.75], 0.01)`'
+    verdict: correct
+    justification: '`approxQuantile(col, probabilities, relativeError)` returns a Python list of quantiles on the driver.'
+  - text: '`df.quantile("amount", 0.25, 0.5, 0.75)`'
+    verdict: incorrect
+    justification: DataFrames have no `quantile` method (that is pandas).
+  - text: '`df.summary("amount", [0.25, 0.5, 0.75])`'
+    verdict: incorrect
+    justification: '`summary` takes statistic names such as `"25%"`, not a column and a list.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.approxQuantile.html
+- id: 3.3-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer computes the grand total of `amount` over the whole DataFrame without grouping.
+
+    Which code does this?
+  answers:
+  - text: '`df.sum("amount")`'
+    verdict: incorrect
+    justification: DataFrames have no `sum` method.
+  - text: '`df.select("amount").count()`'
+    verdict: incorrect
+    justification: '`count()` returns the number of rows, not the total amount.'
+  - text: '`df.agg(sum("amount"))`'
+    verdict: correct
+    justification: '`df.agg(sum("amount"))` aggregates over the whole DataFrame without grouping.'
+  - text: '`df.groupBy().sum()`'
+    verdict: partially_correct
+    justification: '`groupBy().sum()` also aggregates the whole DataFrame, but without arguments it sums every numeric column, not only `amount`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.sum.html
+- id: 3.3-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs the standard deviation of `price` per `category`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("category").stddev("price").agg()`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `stddev` method.'
+  - text: '`df.groupBy("category").agg(stddev("price"))`'
+    verdict: correct
+    justification: '`groupBy("category").agg(stddev("price"))` computes the standard deviation per category.'
+  - text: '`df.agg(stddev("price", "category"))`'
+    verdict: incorrect
+    justification: '`stddev` takes one column, and no grouping is applied.'
+  - text: '`df.describe("price").groupBy("category")`'
+    verdict: incorrect
+    justification: '`describe` returns a summary DataFrame without `category`, so it cannot be grouped like this.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.stddev.html
+- id: 3.3-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer collects all `page` values per `session_id` into an array, keeping duplicates.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("session_id").agg(collect_set("page"))`'
+    verdict: partially_correct
+    justification: '`collect_set` also builds an array per session, but it removes duplicates.'
+  - text: '`df.groupBy("session_id").agg(explode("page"))`'
+    verdict: incorrect
+    justification: '`explode` creates rows; it is not an aggregate.'
+  - text: '`df.groupBy("session_id").agg(array("page"))`'
+    verdict: incorrect
+    justification: '`array` builds an array from columns within one row; it is not an aggregate.'
+  - text: '`df.groupBy("session_id").agg(collect_list("page"))`'
+    verdict: correct
+    justification: '`collect_list` gathers values into an array per group and keeps duplicates.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.collect_list.html
+- id: 3.3-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer runs `df.groupBy("country").count()`.
+
+    What is the name of the count column in the result?
+  answers:
+  - text: '`cnt`'
+    verdict: incorrect
+    justification: The name is not abbreviated.
+  - text: '`country_count`'
+    verdict: incorrect
+    justification: Spark does not prefix the column with the group name.
+  - text: '`count`'
+    verdict: correct
+    justification: '`GroupedData.count()` names the result column `count`.'
+  - text: '`count(1)`'
+    verdict: incorrect
+    justification: '`count(1)` is the column name you get from `agg(count(lit(1)))`, not from `groupBy().count()`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.agg.html
+- id: 3.3-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer wants the latest `event_time` per `device_id`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("device_id").agg(max("event_time").alias("last_seen"))`'
+    verdict: correct
+    justification: '`max("event_time")` returns the latest timestamp per device.'
+  - text: '`df.orderBy("event_time").groupBy("device_id").first()`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `first()` method, and a prior `orderBy` is not guaranteed to survive grouping.'
+  - text: '`df.groupBy("device_id").agg(last("event_time"))`'
+    verdict: incorrect
+    justification: '`last` returns the last value in the group''s processing order, which is not guaranteed to be the latest time.'
+  - text: '`df.groupBy("device_id").agg(collect_list("event_time")[0])`'
+    verdict: incorrect
+    justification: Indexing `collect_list` gives an arbitrary element in no guaranteed order.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.max.html
+- id: 3.3-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer counts orders per customer and also needs the number of distinct products, in one query.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("customer_id").agg(count("*").alias("orders"), count_distinct("product_id").alias("products"))`'
+    verdict: correct
+    justification: '`agg` combines `count("*")` and `count_distinct("product_id")` in one aggregation.'
+  - text: '`df.groupBy("customer_id").count().count_distinct("product_id")`'
+    verdict: incorrect
+    justification: The result of `count()` is a DataFrame, which has no `count_distinct` method.
+  - text: '`df.groupBy("customer_id").agg({"*": "count", "product_id": "distinct"})`'
+    verdict: incorrect
+    justification: '`"distinct"` is not a valid aggregate name for a dictionary in `agg`.'
+  - text: '`df.groupBy("customer_id").agg(count("orders"), distinct("product_id"))`'
+    verdict: incorrect
+    justification: There is no `orders` column, and `distinct` is not an aggregate function.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.sum.html
+- id: 3.3-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: Which code computes the average `amount` per `region` and keeps only regions with an average above 500?
+  answers:
+  - text: '`df.groupBy("region").filter(avg("amount") > 500)`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `filter` method.'
+  - text: '`df.filter(avg("amount") > 500).groupBy("region")`'
+    verdict: incorrect
+    justification: Aggregate functions cannot be used in a row-level `filter` before grouping.
+  - text: '`df.groupBy("region").having("avg(amount) > 500")`'
+    verdict: incorrect
+    justification: '`HAVING` exists in SQL, but `GroupedData` has no `having` method.'
+  - text: '`df.groupBy("region").agg(avg("amount").alias("avg_amt")).filter("avg_amt > 500")`'
+    verdict: correct
+    justification: Aggregate first, then filter on the aggregated column (like SQL `HAVING`).
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.agg.html
+- id: 3.3-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A dashboard needs the distinct count of users per day, and exact precision is not required. The table has billions of rows.
+
+    Why is `approx_count_distinct` preferred over `count_distinct`?
+  answers:
+  - text: It returns exact results faster by caching the column.
+    verdict: incorrect
+    justification: It returns an estimate, not exact results, and does not rely on caching.
+  - text: It only counts values in the first partition.
+    verdict: incorrect
+    justification: It counts over all partitions.
+  - text: It uses a sketch-based estimate (HyperLogLog++) that needs much less memory and shuffle than tracking every distinct value.
+    verdict: correct
+    justification: '`approx_count_distinct` uses HyperLogLog++ sketches, which use far less memory and shuffle than an exact distinct count.'
+  - text: It avoids reading the column from storage.
+    verdict: incorrect
+    justification: It still reads the column.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/functions/approx_count_distinct
+- id: 3.3-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A column `qty` contains integers and nulls. All values in a group are null.
+
+    What does `sum("qty")` return for that group?
+  answers:
+  - text: The number of nulls
+    verdict: incorrect
+    justification: '`sum` does not count nulls.'
+  - text: 'null'
+    verdict: correct
+    justification: Aggregates ignore nulls; when all inputs are null, `sum` returns null.
+  - text: An error
+    verdict: incorrect
+    justification: No error is raised.
+  - text: '0'
+    verdict: incorrect
+    justification: The result is null, not 0; use `coalesce` to turn it into 0.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.sum.html
+- id: 3.3-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer needs total sales by `region` and `product`, plus subtotals for each `region` and a grand total.
+
+    Which method produces these hierarchical subtotals?
+  answers:
+  - text: '`df.rollup("region", "product").agg(sum("sales"))`'
+    verdict: correct
+    justification: '`rollup` produces grouping sets for (region, product), (region) and the grand total.'
+  - text: '`df.groupBy("region", "product").agg(sum("sales"))`'
+    verdict: partially_correct
+    justification: '`groupBy` gives the per-region and product totals, but not the subtotals or the grand total.'
+  - text: '`df.pivot("region").agg(sum("sales"))`'
+    verdict: incorrect
+    justification: DataFrames have no `pivot` method, and pivoting does not create subtotals.
+  - text: '`df.groupBy("region").agg(sum("sales"), sum("product"))`'
+    verdict: incorrect
+    justification: Summing a product column is meaningless, and it doesn't produce per-product rows or a grand total.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.rollup.html
+- id: 3.3-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: What does `df.agg(max("amount"))` return?
+  answers:
+  - text: The row with the maximum amount
+    verdict: incorrect
+    justification: Only the maximum value is returned, not the whole row.
+  - text: A DataFrame with one row per partition
+    verdict: incorrect
+    justification: The aggregate covers the whole DataFrame, not each partition.
+  - text: A Python number
+    verdict: incorrect
+    justification: A Python number only comes from an action such as `collect()[0][0]`.
+  - text: A DataFrame with a single row containing the maximum amount
+    verdict: correct
+    justification: '`agg` without grouping returns a DataFrame with one row holding the maximum.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.agg.html
+- id: 3.3-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer calls `count_distinct("email")` on a column that contains nulls.
+
+    How are nulls treated?
+  answers:
+  - text: Each null is counted separately.
+    verdict: incorrect
+    justification: Nulls are not counted at all.
+  - text: The function fails on nulls.
+    verdict: incorrect
+    justification: Nulls do not cause errors.
+  - text: Nulls are not counted as a distinct value.
+    verdict: correct
+    justification: '`count_distinct` ignores nulls.'
+  - text: Null is counted as one distinct value.
+    verdict: incorrect
+    justification: Null is not counted as a value.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.count_distinct.html
+- id: 3.3-032
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.3'
+  question: |-
+    A data engineer groups by two columns: `df.groupBy("country", "city").count()`.
+
+    What does each output row represent?
+  answers:
+  - text: One city with the number of countries
+    verdict: incorrect
+    justification: It counts rows per combination, not countries per city.
+  - text: One combination of `country` and `city` with its row count
+    verdict: correct
+    justification: Grouping by two columns gives one row per distinct (`country`, `city`) combination with its count.
+  - text: One country with the number of cities
+    verdict: incorrect
+    justification: It counts rows per combination, not cities per country.
+  - text: One partition with its row count
+    verdict: incorrect
+    justification: Groups are defined by values, not partitions.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.groupBy.html

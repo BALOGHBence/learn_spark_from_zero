@@ -1,0 +1,604 @@
+# Objective 6.2: Describe the different deployment mode types (Client, Cluster, Local) in the Apache Spark™ environment.
+- id: 6.2-001
+  category: using_spark_connect
+  objective: '6.2'
+  question: What does the deploy mode of a Spark application determine?
+  answers:
+  - text: Where the driver process runs
+    verdict: correct
+    justification: The Spark glossary defines deploy mode as what distinguishes where the driver process runs.
+  - text: Which cluster manager allocates resources
+    verdict: true_but_irrelevant
+    justification: Choosing the cluster manager is done with `--master`, not the deploy mode.
+  - text: How many executors are started
+    verdict: incorrect
+    justification: The number of executors is set by resource configuration, not the deploy mode.
+  - text: Which file format is used for output
+    verdict: incorrect
+    justification: Output formats are unrelated to deploy mode.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-002
+  category: using_spark_connect
+  objective: '6.2'
+  question: In client deploy mode, where does the driver run?
+  answers:
+  - text: Inside the cluster, on one of the worker nodes
+    verdict: true_but_irrelevant
+    justification: Running the driver inside the cluster describes cluster mode.
+  - text: On the cluster manager only
+    verdict: incorrect
+    justification: The cluster manager never runs the driver program itself.
+  - text: On every executor
+    verdict: incorrect
+    justification: There is a single driver, not one per executor.
+  - text: Outside the cluster, in the process of the submitter that launched the application
+    verdict: correct
+    justification: In client mode, the submitter launches the driver outside the cluster, inside its own process.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-003
+  category: using_spark_connect
+  objective: '6.2'
+  question: In cluster deploy mode, where does the driver run?
+  answers:
+  - text: In the user's browser
+    verdict: incorrect
+    justification: The browser only shows UIs; it does not run the driver.
+  - text: On the submitting laptop
+    verdict: true_but_irrelevant
+    justification: Running the driver on the submitting machine describes client mode.
+  - text: Inside the cluster, launched by the framework on one of the nodes
+    verdict: correct
+    justification: In cluster mode, the framework launches the driver inside the cluster on one of its nodes.
+  - text: On the history server
+    verdict: incorrect
+    justification: The history server shows finished applications; it does not run drivers.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-004
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer submits an application from a gateway machine physically co-located with the worker machines and wants interactive console output.
+
+    Which deploy mode does the Spark documentation consider appropriate?
+  answers:
+  - text: Local-cluster mode
+    verdict: incorrect
+    justification: Local-cluster mode is only for unit tests.
+  - text: Client mode
+    verdict: correct
+    justification: The Spark docs recommend client mode when submitting from a gateway co-located with the workers, with input and output attached to the console.
+  - text: Cluster mode
+    verdict: true_but_irrelevant
+    justification: Cluster mode is valid, but the docs suggest it for submitting from machines far from the workers.
+  - text: Local mode
+    verdict: incorrect
+    justification: Local mode does not use the cluster at all.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-005
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer submits a long-running application from a laptop far away from the cluster's worker machines.
+
+    Which deploy mode is commonly used to minimize network latency between the driver and the executors?
+  answers:
+  - text: Cluster mode
+    verdict: correct
+    justification: For submissions from far away, cluster mode runs the driver near the executors, minimizing network latency.
+  - text: Local mode
+    verdict: incorrect
+    justification: Local mode would not use the cluster.
+  - text: No deploy mode is needed
+    verdict: incorrect
+    justification: Every submission to a cluster uses a deploy mode; client is the default.
+  - text: Client mode
+    verdict: true_but_irrelevant
+    justification: Client mode is valid, but the docs suggest it for gateways co-located with the workers.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-006
+  category: using_spark_connect
+  objective: '6.2'
+  question: Why is client mode especially suitable for interactive applications such as the Spark shell?
+  answers:
+  - text: Client mode runs all code on executors.
+    verdict: incorrect
+    justification: The driver code runs in the client process; executors run the tasks.
+  - text: The driver runs on a worker node, which speeds up shell commands.
+    verdict: true_but_irrelevant
+    justification: Running the driver on a worker node describes cluster mode.
+  - text: Client mode disables lazy evaluation.
+    verdict: incorrect
+    justification: Deploy mode does not affect lazy evaluation.
+  - text: The driver runs inside the `spark-submit` process, and the application's input and output are attached to the console.
+    verdict: correct
+    justification: In client mode, the driver runs in the `spark-submit` process with input and output attached to the console, which suits REPLs.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-007
+  category: using_spark_connect
+  objective: '6.2'
+  question: What is the default value of `spark.submit.deployMode`?
+  answers:
+  - text: '`cluster`'
+    verdict: incorrect
+    justification: '`cluster` must be set explicitly.'
+  - text: '`client`'
+    verdict: correct
+    justification: The Spark configuration docs list `client` as the default for `spark.submit.deployMode`.
+  - text: '`standalone`'
+    verdict: incorrect
+    justification: '`standalone` is a cluster manager, not a deploy mode.'
+  - text: '`local`'
+    verdict: incorrect
+    justification: '`local` is a master URL, not a deploy mode.'
+  source_url: https://spark.apache.org/docs/latest/configuration.html
+- id: 6.2-008
+  category: using_spark_connect
+  objective: '6.2'
+  question: Which `spark-submit` flag selects the deploy mode?
+  answers:
+  - text: '`--master`'
+    verdict: true_but_irrelevant
+    justification: '`--master` is a valid flag, but it selects the cluster manager or local mode.'
+  - text: '`--driver-mode`'
+    verdict: incorrect
+    justification: There is no `--driver-mode` flag.
+  - text: '`--deploy-mode`'
+    verdict: correct
+    justification: '`--deploy-mode` selects client or cluster mode.'
+  - text: '`--mode`'
+    verdict: incorrect
+    justification: There is no `--mode` flag.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-009
+  category: using_spark_connect
+  objective: '6.2'
+  question: Which master URL runs Spark locally with as many worker threads as there are logical cores on the machine?
+  answers:
+  - text: '`local`'
+    verdict: true_but_irrelevant
+    justification: '`local` is valid, but it uses a single worker thread.'
+  - text: '`local[*]`'
+    verdict: correct
+    justification: '`local[*]` uses as many worker threads as logical cores.'
+  - text: '`local[1]`'
+    verdict: true_but_irrelevant
+    justification: '`local[1]` is valid, but it also uses one thread.'
+  - text: '`spark://localhost:7077`'
+    verdict: true_but_irrelevant
+    justification: This is a valid URL, but it connects to a standalone cluster instead of running locally.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-010
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A developer runs a test with `--master local`.
+
+    How much parallelism does Spark use?
+  answers:
+  - text: Two threads by default
+    verdict: incorrect
+    justification: The default for `local` is one thread.
+  - text: One executor per core on remote workers
+    verdict: incorrect
+    justification: Local mode uses no remote workers.
+  - text: One worker thread, so there is no parallelism
+    verdict: correct
+    justification: The Spark docs state `local` runs with one worker thread, so there is no parallelism.
+  - text: One thread per core
+    verdict: true_but_irrelevant
+    justification: One thread per core is what `local[*]` gives.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-011
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A developer runs Spark with `--master "local[4]"` on a laptop.
+
+    What does this do?
+  answers:
+  - text: Connects to a cluster with 4 worker nodes
+    verdict: incorrect
+    justification: No cluster is involved.
+  - text: Submits the application in cluster mode with 4 executors
+    verdict: incorrect
+    justification: Local mode does not submit to a cluster.
+  - text: Starts 4 separate Spark applications
+    verdict: incorrect
+    justification: It is one application.
+  - text: Runs Spark locally in a single process with 4 worker threads
+    verdict: correct
+    justification: '`local[4]` runs Spark in one local process with 4 worker threads.'
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-012
+  category: using_spark_connect
+  objective: '6.2'
+  question: Which statement describes local mode?
+  answers:
+  - text: The driver and the executor work run in a single JVM on one machine, which is useful for development and testing.
+    verdict: correct
+    justification: In local mode, the driver and the task execution run in one JVM on one machine, which is ideal for development and testing.
+  - text: Local mode requires YARN.
+    verdict: incorrect
+    justification: Local mode needs no cluster manager such as YARN.
+  - text: The driver runs on the cluster and executors on the laptop.
+    verdict: incorrect
+    justification: Nothing runs on a cluster in local mode.
+  - text: Executors run on remote workers while the driver runs locally.
+    verdict: incorrect
+    justification: Local mode uses no remote workers.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-013
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer submits a Python application to a Spark standalone cluster using `--deploy-mode cluster`.
+
+    What does the Spark documentation say?
+  answers:
+  - text: It is the recommended mode for Python on standalone clusters.
+    verdict: incorrect
+    justification: Cluster mode is not supported for Python on standalone clusters.
+  - text: Standalone mode currently does not support cluster mode for Python applications.
+    verdict: correct
+    justification: The Spark docs state that standalone mode currently does not support cluster mode for Python applications.
+  - text: Standalone clusters do not support Python at all.
+    verdict: incorrect
+    justification: Standalone clusters do support Python, in client mode.
+  - text: Python applications always run in local mode on standalone clusters.
+    verdict: incorrect
+    justification: They are not forced into local mode; client mode works.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-014
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A team running a Spark standalone cluster in cluster deploy mode wants the driver restarted automatically if it fails with a non-zero exit code.
+
+    Which option does this?
+  answers:
+  - text: '`--deploy-mode client`'
+    verdict: incorrect
+    justification: Client mode puts the driver outside the cluster, which is the opposite of supervision.
+  - text: '`--restart-driver`'
+    verdict: incorrect
+    justification: There is no `--restart-driver` flag.
+  - text: '`--supervise` (`spark.driver.supervise`)'
+    verdict: correct
+    justification: On a standalone cluster in cluster mode, `--supervise` restarts the driver automatically if it fails with a non-zero exit code.
+  - text: '`spark.task.maxFailures`'
+    verdict: true_but_irrelevant
+    justification: '`spark.task.maxFailures` is real, but it controls task retries, not driver restarts.'
+  source_url: https://spark.apache.org/docs/latest/configuration.html
+- id: 6.2-015
+  category: using_spark_connect
+  objective: '6.2'
+  question: Which master URL connects to a Spark standalone cluster?
+  answers:
+  - text: '`spark://HOST:7077`'
+    verdict: correct
+    justification: '`spark://HOST:PORT` (default port 7077) connects to a standalone master.'
+  - text: '`yarn://HOST:7077`'
+    verdict: incorrect
+    justification: YARN uses `--master yarn` and finds the cluster from configuration.
+  - text: '`k8s://HOST:7077`'
+    verdict: incorrect
+    justification: Kubernetes uses `k8s://` with the API server's address, not the standalone port.
+  - text: '`local[HOST]`'
+    verdict: incorrect
+    justification: '`local[...]` takes a thread count, not a host.'
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-016
+  category: using_spark_connect
+  objective: '6.2'
+  question: Which master URL is used to submit to a Kubernetes cluster?
+  answers:
+  - text: '`spark://k8s/HOST`'
+    verdict: incorrect
+    justification: '`spark://` is for standalone clusters.'
+  - text: '`kube:HOST`'
+    verdict: incorrect
+    justification: '`kube:` is not a valid scheme.'
+  - text: '`local[k8s]`'
+    verdict: incorrect
+    justification: '`local[...]` is for local mode.'
+  - text: '`k8s://https://HOST:PORT`'
+    verdict: correct
+    justification: Kubernetes master URLs have the form `k8s://https://HOST:PORT`.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-017
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer submits to Hadoop YARN with `--master yarn`.
+
+    How does Spark find the cluster location?
+  answers:
+  - text: From the `HADOOP_CONF_DIR` or `YARN_CONF_DIR` environment variable
+    verdict: correct
+    justification: With `--master yarn`, Spark finds the cluster from `HADOOP_CONF_DIR` or `YARN_CONF_DIR`.
+  - text: From the `--deploy-mode` flag
+    verdict: incorrect
+    justification: The deploy mode only chooses where the driver runs.
+  - text: From the Spark UI port
+    verdict: incorrect
+    justification: The Spark UI port is unrelated.
+  - text: From a URL in the master string
+    verdict: incorrect
+    justification: The YARN master string contains no URL.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-018
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    In client mode, the machine that submitted the application shuts down while the job is running.
+
+    What happens to the application?
+  answers:
+  - text: It moves to local mode.
+    verdict: incorrect
+    justification: Spark does not switch to local mode.
+  - text: It continues, because the driver runs on the cluster.
+    verdict: true_but_irrelevant
+    justification: Continuing to run is cluster-mode behaviour.
+  - text: It pauses until the machine restarts.
+    verdict: incorrect
+    justification: Applications do not pause and resume.
+  - text: It fails, because the driver runs in the submitting process on that machine.
+    verdict: correct
+    justification: In client mode, the driver runs in the submitting process, so the application fails when that machine goes down.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-019
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    In cluster mode, the user closes the laptop after submitting.
+
+    What happens to the application?
+  answers:
+  - text: It loses all executors.
+    verdict: incorrect
+    justification: Executors keep running with the driver.
+  - text: It switches to client mode.
+    verdict: incorrect
+    justification: Deploy mode does not change at runtime.
+  - text: It continues running, because the driver runs inside the cluster.
+    verdict: correct
+    justification: In cluster mode, the driver runs inside the cluster, so closing the laptop does not affect it.
+  - text: It stops immediately.
+    verdict: true_but_irrelevant
+    justification: Stopping when the submitter disconnects is client-mode behaviour.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-020
+  category: using_spark_connect
+  objective: '6.2'
+  question: Why must the driver be network-addressable from the worker nodes in any deploy mode?
+  answers:
+  - text: The workers download data files from the driver.
+    verdict: incorrect
+    justification: Executors read data from storage, not from the driver.
+  - text: The driver must accept connections from its executors throughout the application's lifetime.
+    verdict: correct
+    justification: In every deploy mode, executors connect back to the driver for the whole application, so the driver must be reachable from the workers.
+  - text: The workers send all logs to the driver.
+    verdict: incorrect
+    justification: Logs are written locally or delivered elsewhere.
+  - text: The driver stores the shuffle files.
+    verdict: incorrect
+    justification: Shuffle files are stored by executors.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-021
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A developer wants to run unit tests of PySpark transformations on a laptop without any cluster.
+
+    Which deployment option is the most appropriate?
+  answers:
+  - text: Cluster mode on YARN
+    verdict: incorrect
+    justification: YARN requires a cluster.
+  - text: Client mode against a Kubernetes cluster
+    verdict: incorrect
+    justification: A Kubernetes cluster is not needed for unit tests.
+  - text: Local-cluster mode for production
+    verdict: incorrect
+    justification: Local-cluster mode is for Spark's own unit tests, not production.
+  - text: Local mode, for example `local[2]`
+    verdict: correct
+    justification: Local mode runs tests on a laptop without a cluster; `local[2]` gives some parallelism.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-022
+  category: using_spark_connect
+  objective: '6.2'
+  question: What does the Spark documentation say about the `local-cluster[N,C,M]` master URL?
+  answers:
+  - text: It replaces cluster mode for Python.
+    verdict: incorrect
+    justification: It does not replace cluster mode.
+  - text: It is used for Kubernetes deployments.
+    verdict: incorrect
+    justification: Kubernetes uses `k8s://` URLs.
+  - text: It is only for unit tests.
+    verdict: correct
+    justification: The Spark docs state `local-cluster[N,C,M]` is only for unit tests.
+  - text: It is the recommended mode for production.
+    verdict: incorrect
+    justification: It is not meant for production.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-023
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer runs `spark-submit --master yarn --deploy-mode cluster app.py`.
+
+    Where does the driver run?
+  answers:
+  - text: In local mode on the submitting machine
+    verdict: incorrect
+    justification: '`--master yarn` is not local mode.'
+  - text: In the YARN cluster, on a node chosen by the cluster
+    verdict: correct
+    justification: With `--deploy-mode cluster` on YARN, the driver runs inside the YARN cluster.
+  - text: On every worker
+    verdict: incorrect
+    justification: There is one driver, not one per worker.
+  - text: On the machine that ran `spark-submit`
+    verdict: true_but_irrelevant
+    justification: Running on the submitting machine is client-mode behaviour.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-024
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer runs `spark-submit --master yarn app.py` without `--deploy-mode`.
+
+    Where does the driver run?
+  answers:
+  - text: On the submitting machine, because the default deploy mode is client
+    verdict: correct
+    justification: Without `--deploy-mode`, the default is client, so the driver runs on the submitting machine.
+  - text: On every node manager
+    verdict: incorrect
+    justification: There is one driver.
+  - text: Nowhere; the deploy mode is required
+    verdict: incorrect
+    justification: The deploy mode is optional; it defaults to client.
+  - text: In the YARN cluster, because YARN always uses cluster mode
+    verdict: incorrect
+    justification: YARN supports both deploy modes, and client is the default.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-025
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A developer wants to run Spark locally using 8 cores, as shown in the Spark documentation examples.
+
+    Which master value is correct?
+  answers:
+  - text: '`"local:8"`'
+    verdict: incorrect
+    justification: '`local:8` is not valid master syntax.'
+  - text: '`"local-cluster[8]"`'
+    verdict: incorrect
+    justification: '`local-cluster` takes three values and is only for unit tests.'
+  - text: '`"local[8]"`'
+    verdict: correct
+    justification: '`local[8]` runs Spark locally with 8 worker threads, as in the Spark docs examples.'
+  - text: '`"cores=8"`'
+    verdict: incorrect
+    justification: '`cores=8` is not a master URL.'
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-026
+  category: using_spark_connect
+  objective: '6.2'
+  question: On classic Databricks compute, where does the Spark driver of a notebook or job run?
+  answers:
+  - text: On the user's laptop browser
+    verdict: incorrect
+    justification: The browser only shows the notebook UI.
+  - text: On the compute resource's driver node, inside the cluster
+    verdict: correct
+    justification: On classic Databricks compute, the driver runs on the compute resource's driver node.
+  - text: On each worker node
+    verdict: incorrect
+    justification: Workers run executors, not the driver.
+  - text: In a separate external cluster manager
+    verdict: incorrect
+    justification: Databricks manages the cluster; the driver is not in an external cluster manager.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 6.2-027
+  category: using_spark_connect
+  objective: '6.2'
+  question: A developer uses Databricks Connect from a local IDE. Which part of the application runs on the developer's machine?
+  answers:
+  - text: The client code that builds DataFrame operations; the Spark execution happens on Databricks compute
+    verdict: correct
+    justification: With Databricks Connect, local client code builds DataFrame operations, and Spark executes them on Databricks compute.
+  - text: Only the executors, while the driver runs on Databricks
+    verdict: incorrect
+    justification: Executors are never local with Databricks Connect.
+  - text: Nothing; the code is uploaded and run as a notebook
+    verdict: incorrect
+    justification: Code runs from the local IDE; it is not uploaded as a notebook.
+  - text: All Spark execution, including executors
+    verdict: incorrect
+    justification: Spark execution happens on Databricks, not locally.
+  source_url: https://docs.databricks.com/aws/en/dev-tools/databricks-connect/
+- id: 6.2-028
+  category: using_spark_connect
+  objective: '6.2'
+  question: How does the deploy mode affect where executors run?
+  answers:
+  - text: In local mode, executors run on remote workers.
+    verdict: incorrect
+    justification: Local mode uses no remote workers.
+  - text: In client mode, executors run on the client machine.
+    verdict: incorrect
+    justification: Executors do not run on the client machine in client mode.
+  - text: In cluster mode, executors run on the driver node.
+    verdict: incorrect
+    justification: Executors do not run on the driver node in cluster mode.
+  - text: It does not; executors always run on worker nodes in the cluster in client and cluster mode, and only the driver location changes.
+    verdict: correct
+    justification: Executors always run on worker nodes in client and cluster mode; only the driver's location changes.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 6.2-029
+  category: using_spark_connect
+  objective: '6.2'
+  question: In local mode, how many machines are involved in running the application?
+  answers:
+  - text: As many machines as there are cores
+    verdict: incorrect
+    justification: Cores are threads on one machine, not separate machines.
+  - text: 'At least two: one driver and one worker'
+    verdict: incorrect
+    justification: No worker machine is needed.
+  - text: One driver machine and one cluster manager machine
+    verdict: incorrect
+    justification: No cluster manager is needed.
+  - text: One machine, where the driver and the tasks run in one process
+    verdict: correct
+    justification: In local mode, everything runs on one machine, in one process.
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-030
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer needs to retry failed tasks up to 3 times while running locally with 4 threads.
+
+    Which master value does this?
+  answers:
+  - text: '`local[3,4]`'
+    verdict: incorrect
+    justification: 'The values are swapped: this gives 3 threads and 4 maximum failures.'
+  - text: '`local[4,3]`'
+    verdict: correct
+    justification: '`local[K,F]` sets K threads and F maximum task failures, so `local[4,3]` gives 4 threads and 3 attempts.'
+  - text: '`local[4]` with `--deploy-mode cluster`'
+    verdict: incorrect
+    justification: Local mode does not use cluster deploy mode.
+  - text: '`local[4]:retry=3`'
+    verdict: incorrect
+    justification: '`:retry=3` is not valid syntax.'
+  source_url: https://spark.apache.org/docs/latest/submitting-applications.html
+- id: 6.2-031
+  category: using_spark_connect
+  objective: '6.2'
+  question: |-
+    A data engineer compares client and cluster mode for a production job scheduled from a lightweight scheduler machine.
+
+    Why is cluster mode often preferred?
+  answers:
+  - text: Client mode does not support executors.
+    verdict: incorrect
+    justification: Client mode also uses executors.
+  - text: Cluster mode is required for SQL queries.
+    verdict: incorrect
+    justification: SQL queries work in both modes.
+  - text: The driver runs inside the cluster, so the job does not depend on the scheduler machine's resources or connectivity.
+    verdict: correct
+    justification: In cluster mode, the driver runs in the cluster, so the job does not depend on the scheduler machine.
+  - text: Cluster mode runs faster because it skips the driver.
+    verdict: incorrect
+    justification: Every application has a driver.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html

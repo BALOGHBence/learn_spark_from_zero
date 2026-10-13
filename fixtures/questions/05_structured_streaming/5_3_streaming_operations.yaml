@@ -1,0 +1,628 @@
+# Objective 5.3: Perform basic operations on Streaming DataFrames and Streaming Datasets, such as selection, projection, window and aggregation.
+- id: 5.3-001
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer selects two columns and filters rows on a streaming DataFrame.
+
+    Which code is correct?
+  answers:
+  - text: '`stream_df.writeStream.select("device_id", "temp")`'
+    verdict: incorrect
+    justification: '`DataStreamWriter` has no `select`; transformations come before `writeStream`.'
+  - text: '`stream_df.select("device_id", "temp").filter(col("temp") > 30)`'
+    verdict: correct
+    justification: Streaming DataFrames support `select` and `filter` just like static DataFrames.
+  - text: '`stream_df.selectStream("device_id", "temp").filterStream("temp > 30")`'
+    verdict: incorrect
+    justification: There are no `selectStream` or `filterStream` methods.
+  - text: '`stream_df.select("device_id", "temp").collect().filter(lambda r: r.temp > 30)`'
+    verdict: incorrect
+    justification: '`collect()` cannot be called on a streaming DataFrame.'
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-002
+  category: structured_streaming
+  objective: '5.3'
+  question: Which statement about selection and projection on streaming DataFrames is correct?
+  answers:
+  - text: Only SQL queries can be used on streaming DataFrames.
+    verdict: incorrect
+    justification: Streaming DataFrames support the DataFrame API as well as SQL.
+  - text: Filters are applied only after the query stops.
+    verdict: incorrect
+    justification: Filters are applied in every micro-batch.
+  - text: Projections must be done in `foreachBatch`.
+    verdict: incorrect
+    justification: Projections work directly on the stream.
+  - text: Most common operations such as `select`, `filter`, `where` and `withColumn` work the same way as on static DataFrames.
+    verdict: correct
+    justification: Most common DataFrame operations work the same way on streaming DataFrames.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-003
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer counts events per 10-minute tumbling window of `event_time`.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.window("event_time", "10 minutes").count()`'
+    verdict: incorrect
+    justification: DataFrames have no `window` method.
+  - text: '`stream_df.groupBy(window("10 minutes", "event_time")).count()`'
+    verdict: incorrect
+    justification: The time column must be the first argument, and the duration the second.
+  - text: '`stream_df.groupBy(window("event_time", "10 minutes")).count()`'
+    verdict: correct
+    justification: '`groupBy(window("event_time", "10 minutes"))` creates 10-minute tumbling windows.'
+  - text: '`stream_df.groupBy("event_time").window("10 minutes").count()`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `window` method; `window` is a function used inside `groupBy`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-004
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer wants 10-minute windows that start every 5 minutes, so windows overlap.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.groupBy(window("event_time", "10 minutes", "5 minutes")).count()`'
+    verdict: correct
+    justification: '`window(col, "10 minutes", "5 minutes")` creates 10-minute windows that start every 5 minutes.'
+  - text: '`stream_df.groupBy(window("event_time", "5 minutes", "10 minutes")).count()`'
+    verdict: incorrect
+    justification: The slide (10 minutes) cannot be longer than the window (5 minutes); the arguments are swapped.
+  - text: '`stream_df.groupBy(session_window("event_time", "10 minutes")).count()`'
+    verdict: true_but_irrelevant
+    justification: '`session_window` is a valid function, but it creates gap-based sessions, not fixed overlapping windows.'
+  - text: '`stream_df.groupBy(window("event_time", "10 minutes"), window("event_time", "5 minutes")).count()`'
+    verdict: incorrect
+    justification: Grouping by two tumbling windows does not create sliding windows.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-005
+  category: structured_streaming
+  objective: '5.3'
+  question: With `window("event_time", "10 minutes", "5 minutes")`, how many windows does a single event fall into?
+  answers:
+  - text: Ten
+    verdict: incorrect
+    justification: Ten would need a 1-minute slide.
+  - text: Two, because each 10-minute window slides every 5 minutes
+    verdict: correct
+    justification: With a 10-minute window sliding every 5 minutes, each event falls into 10 / 5 = 2 windows.
+  - text: Five
+    verdict: incorrect
+    justification: Five would need a 1- or 2-minute slide.
+  - text: One
+    verdict: true_but_irrelevant
+    justification: One window per event is what a tumbling window gives.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-006
+  category: structured_streaming
+  objective: '5.3'
+  question: What is the type of the column produced by `window(...)` in a grouped result?
+  answers:
+  - text: An integer window number
+    verdict: incorrect
+    justification: It is not an integer index.
+  - text: An array of timestamps
+    verdict: incorrect
+    justification: It is a struct, not an array.
+  - text: A string such as `"10 minutes"`
+    verdict: incorrect
+    justification: The column holds timestamps, not the duration string.
+  - text: A struct with `start` and `end` timestamp fields
+    verdict: correct
+    justification: '`window(...)` produces a struct column with `start` and `end` timestamps.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-007
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer wants the window start as its own column after a windowed aggregation.
+
+    Which code does this?
+  answers:
+  - text: '`result.select(split("window", "-")[0], "count")`'
+    verdict: incorrect
+    justification: The window is a struct, not a string, so `split` does not apply.
+  - text: '`result.select(window_start("window"), "count")`'
+    verdict: incorrect
+    justification: There is no `window_start` function for this.
+  - text: '`result.select(col("window.start").alias("window_start"), "count")`'
+    verdict: correct
+    justification: Struct fields are accessed with dot notation, as in `col("window.start")`.
+  - text: '`result.select(col("window")[0].alias("window_start"), "count")`'
+    verdict: incorrect
+    justification: The window is a struct, not an array, so positional indexing does not work.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-008
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer groups user activity into sessions that close after 30 minutes of inactivity.
+
+    Which function does this?
+  answers:
+  - text: '`session_window("event_time", "30 minutes")`'
+    verdict: correct
+    justification: '`session_window(col, "30 minutes")` creates sessions that close after 30 minutes of inactivity.'
+  - text: '`window("event_time", "30 minutes", "1 minute")`'
+    verdict: incorrect
+    justification: This creates sliding windows, not sessions.
+  - text: '`window("event_time", "30 minutes")`'
+    verdict: true_but_irrelevant
+    justification: '`window` with 30 minutes is valid, but it creates fixed 30-minute tumbling windows, not activity-based sessions.'
+  - text: '`date_trunc("30 minutes", "event_time")`'
+    verdict: incorrect
+    justification: '`date_trunc` takes unit names such as `"hour"`, not `"30 minutes"`, and it does not create sessions.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.session_window.html
+- id: 5.3-009
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer computes 5-minute window counts and wants to keep state for late data up to 10 minutes.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.groupBy(window("event_time", "5 minutes", "10 minutes"), "id").count()`'
+    verdict: incorrect
+    justification: The third argument of `window` is the slide, not a watermark.
+  - text: '`stream_df.groupBy(window("event_time", "5 minutes"), "id").count().withWatermark("event_time", "10 minutes")`'
+    verdict: incorrect
+    justification: The watermark must be defined before the aggregation it applies to.
+  - text: '`stream_df.withWatermark("10 minutes").groupBy(window("event_time", "5 minutes")).count()`'
+    verdict: incorrect
+    justification: '`withWatermark` needs both the column name and the delay.'
+  - text: '`stream_df.withWatermark("event_time", "10 minutes").groupBy(window("event_time", "5 minutes"), "id").count()`'
+    verdict: correct
+    justification: '`withWatermark` must come before the windowed aggregation on the same event-time column.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withWatermark.html
+- id: 5.3-010
+  category: structured_streaming
+  objective: '5.3'
+  question: In the query `df.withWatermark("event_time", "10 minutes").groupBy(window("event_time", "5 minutes"), "id").count()`, how long is state kept for a window?
+  answers:
+  - text: Until the next micro-batch
+    verdict: incorrect
+    justification: State lasts across micro-batches until the watermark passes.
+  - text: Forever
+    verdict: incorrect
+    justification: Watermarks allow state to be dropped.
+  - text: Until the end of the window is 10 minutes older than the latest observed `event_time`
+    verdict: correct
+    justification: Databricks explains that state is kept until the end of the window is 10 minutes older than the latest observed `event_time`.
+  - text: Exactly 5 minutes after the window starts
+    verdict: incorrect
+    justification: State depends on the watermark, not a fixed 5 minutes.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-011
+  category: structured_streaming
+  objective: '5.3'
+  question: Records arrive later than the watermark threshold. What does Databricks say about them?
+  answers:
+  - text: Records within the threshold are always processed; records outside it might still be processed, but this is not guaranteed.
+    verdict: correct
+    justification: Records within the threshold are always processed; records outside it may be processed, but that is not guaranteed.
+  - text: They are always processed.
+    verdict: incorrect
+    justification: Very late records are not guaranteed to be processed.
+  - text: They always stop the query.
+    verdict: incorrect
+    justification: Late records do not stop the query.
+  - text: They are written to a dead-letter table automatically.
+    verdict: incorrect
+    justification: There is no automatic dead-letter table.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-012
+  category: structured_streaming
+  objective: '5.3'
+  question: What is the tradeoff of choosing a shorter watermark?
+  answers:
+  - text: Higher latency and more state, but higher tolerance for late data
+    verdict: true_but_irrelevant
+    justification: Higher latency and more state with more tolerance describes a longer watermark.
+  - text: Lower latency and less state, but lower tolerance for late data
+    verdict: correct
+    justification: Databricks explains that shorter watermarks lower latency and state but tolerate less late data.
+  - text: More state but lower latency
+    verdict: incorrect
+    justification: A shorter watermark means less state, not more.
+  - text: No effect on latency or state
+    verdict: incorrect
+    justification: The watermark duration affects latency and state.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-013
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A windowed aggregation with a watermark is written in append mode.
+
+    When are rows written to the sink?
+  answers:
+  - text: After the watermark threshold has passed for the window, so writes are delayed by the lateness threshold.
+    verdict: correct
+    justification: In append mode, rows are written once the watermark passes the window, so writes are delayed by the lateness threshold.
+  - text: Only when the query is stopped.
+    verdict: incorrect
+    justification: Rows are written while the query runs.
+  - text: Never; append mode is not allowed with watermarks.
+    verdict: incorrect
+    justification: Append mode with a watermark is the standard setup.
+  - text: Immediately in every micro-batch, and updated later.
+    verdict: true_but_irrelevant
+    justification: Writing immediately and updating later describes update mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-014
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A windowed aggregation with a watermark is written in update mode.
+
+    What happens?
+  answers:
+  - text: The whole result table is rewritten every trigger.
+    verdict: true_but_irrelevant
+    justification: Rewriting the full result every trigger describes complete mode.
+  - text: State is never dropped.
+    verdict: incorrect
+    justification: With a watermark, update mode does drop old state.
+  - text: Rows are written only after the threshold passes.
+    verdict: true_but_irrelevant
+    justification: Writing rows only after the threshold passes describes append mode.
+  - text: Rows are written as results are calculated and can be updated as new data arrives; old state is dropped after the threshold.
+    verdict: correct
+    justification: In update mode, rows are written as results change and can be updated later; old state is dropped after the threshold.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-015
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A windowed aggregation with a watermark is written in complete mode.
+
+    What happens to the aggregation state?
+  answers:
+  - text: It is stored only for the current micro-batch.
+    verdict: incorrect
+    justification: State persists across micro-batches.
+  - text: It is dropped after the watermark threshold.
+    verdict: true_but_irrelevant
+    justification: Dropping state after the threshold is how append and update modes behave.
+  - text: It is not dropped, and the query rewrites the full result on each trigger.
+    verdict: correct
+    justification: Databricks states that in complete mode aggregation state is never dropped and the full result is rewritten each trigger.
+  - text: Complete mode ignores the aggregation.
+    verdict: incorrect
+    justification: Complete mode is specifically for aggregations.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-016
+  category: structured_streaming
+  objective: '5.3'
+  question: In a windowed `groupBy`, how should the event-time column be referenced to preserve the watermark?
+  answers:
+  - text: By casting it to a string first
+    verdict: incorrect
+    justification: A string is not an event-time timestamp.
+  - text: By name, such as `"event_time"` or `col("event_time")`
+    verdict: correct
+    justification: Databricks recommends referencing the event-time column by name so the watermark marker is preserved.
+  - text: By position, such as `df[2]`
+    verdict: incorrect
+    justification: Positional references are not recommended for keeping the event time marker.
+  - text: Through a Python UDF that returns the column
+    verdict: incorrect
+    justification: A UDF loses the event time marker.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-017
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A query joins two streams with different watermarks of 1 hour and 2 hours.
+
+    Which global watermark does Structured Streaming use by default?
+  answers:
+  - text: The average of the individual watermarks
+    verdict: incorrect
+    justification: Watermarks are not averaged.
+  - text: The watermark of the first stream only
+    verdict: incorrect
+    justification: Every input stream's watermark is considered.
+  - text: The minimum of the individual watermarks, so it moves at the pace of the slowest stream
+    verdict: correct
+    justification: By default the global watermark is the minimum of all streams' watermarks, so it moves at the slowest stream's pace.
+  - text: The maximum of the individual watermarks
+    verdict: true_but_irrelevant
+    justification: Using the maximum is possible, but only after setting `multipleWatermarkPolicy` to `max`; it is not the default.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-018
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A team wants lower latency when joining several streams and accepts that slower streams' late data may be dropped.
+
+    Which setting changes the multiple-watermark policy?
+  answers:
+  - text: '`spark.sql.streaming.multipleWatermarkPolicy` set to `max`'
+    verdict: correct
+    justification: Setting `multipleWatermarkPolicy` to `max` uses the fastest stream's watermark, lowering latency.
+  - text: '`spark.sql.streaming.noDataMicroBatches.enabled` set to `true`'
+    verdict: true_but_irrelevant
+    justification: '`noDataMicroBatches.enabled` is real, but it controls whether empty micro-batches run, not the watermark policy.'
+  - text: '`spark.sql.streaming.watermark` set to `fast`'
+    verdict: incorrect
+    justification: There is no `spark.sql.streaming.watermark` setting with this value.
+  - text: '`spark.sql.shuffle.partitions` set to `max`'
+    verdict: incorrect
+    justification: Shuffle partitions take numbers or `auto`.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-019
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer writes a stream-stream outer join.
+
+    What does Databricks say about watermarks for this join?
+  answers:
+  - text: Watermarks are not allowed for outer joins.
+    verdict: incorrect
+    justification: Watermarks are required, not forbidden, for outer joins.
+  - text: Watermarking is mandatory for outer joins, and unmatched rows are written with nulls after the lateness threshold passes.
+    verdict: correct
+    justification: Databricks states watermarks are mandatory for outer stream-stream joins, and unmatched rows are written with nulls after the threshold.
+  - text: Outer joins are not supported between streams.
+    verdict: incorrect
+    justification: Outer joins between streams are supported with watermarks.
+  - text: Watermarks are optional, and unmatched rows are written immediately.
+    verdict: incorrect
+    justification: Watermarks are mandatory, and unmatched rows wait for the threshold.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/watermarks
+- id: 5.3-020
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer tries to sort a streaming DataFrame by `event_time` without any aggregation.
+
+    What happens?
+  answers:
+  - text: The stream is sorted globally across all micro-batches.
+    verdict: incorrect
+    justification: A global sort of an unbounded stream is not supported.
+  - text: Sorting works only in append mode.
+    verdict: incorrect
+    justification: Sorting is supported only in complete mode after an aggregation.
+  - text: The stream is sorted within each partition automatically.
+    verdict: incorrect
+    justification: Streams are not sorted automatically.
+  - text: It is not supported; sorting on streaming DataFrames is only supported after an aggregation in complete output mode.
+    verdict: correct
+    justification: The Spark guide states sorting on streams is supported only after an aggregation in complete output mode.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-021
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer joins a streaming DataFrame of orders with a static DataFrame of products.
+
+    Is this supported?
+  answers:
+  - text: Yes, but only with a cross join.
+    verdict: incorrect
+    justification: Any supported join type works, not only cross joins.
+  - text: No, streams can only be joined with other streams.
+    verdict: incorrect
+    justification: Streams can be joined with static DataFrames.
+  - text: Yes, stream-static joins are supported, and each micro-batch is joined with the static DataFrame.
+    verdict: correct
+    justification: Stream-static joins are supported; each micro-batch is joined with the static DataFrame.
+  - text: No, static DataFrames must be converted to streams first.
+    verdict: incorrect
+    justification: No conversion is needed.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-022
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer computes a running count per `country` on a stream without event-time windows.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.count().groupBy("country")`'
+    verdict: incorrect
+    justification: '`count()` on a streaming DataFrame is not allowed and returns no DataFrame.'
+  - text: '`stream_df.groupBy("country").count()`'
+    verdict: correct
+    justification: '`groupBy("country").count()` on a stream is a running aggregation per country.'
+  - text: '`stream_df.select(count("country"))` with `show()`'
+    verdict: incorrect
+    justification: '`show()` cannot be used on streaming DataFrames.'
+  - text: '`stream_df.groupBy("country").collect()`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `collect`, and streams cannot be collected.'
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-023
+  category: structured_streaming
+  objective: '5.3'
+  question: Which output mode is not supported for a streaming aggregation without a watermark, because results never become final?
+  answers:
+  - text: Complete
+    verdict: incorrect
+    justification: Complete mode works without a watermark.
+  - text: Update
+    verdict: incorrect
+    justification: Update mode works without a watermark.
+  - text: None; all are supported
+    verdict: incorrect
+    justification: Append mode is not supported in this case.
+  - text: Append
+    verdict: correct
+    justification: Without a watermark, aggregation results never become final, so append mode is not supported.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-024
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer computes the average `temp` per `device_id` per 1-hour tumbling window.
+
+    Which code does this?
+  answers:
+  - text: '`stream_df.groupBy(window("ts", "1 hour"), "device_id").agg(avg("temp"))`'
+    verdict: correct
+    justification: '`groupBy(window("ts", "1 hour"), "device_id").agg(avg("temp"))` averages per device and hour.'
+  - text: '`stream_df.groupBy("device_id").agg(avg("temp")).window("ts", "1 hour")`'
+    verdict: incorrect
+    justification: DataFrames have no `window` method.
+  - text: '`stream_df.agg(avg("temp")).groupBy(window("ts", "1 hour"))`'
+    verdict: incorrect
+    justification: Aggregating first leaves no columns to window.
+  - text: '`stream_df.groupBy(window("1 hour"), "device_id").agg(avg("temp"))`'
+    verdict: incorrect
+    justification: '`window` needs the time column as its first argument.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-025
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer applies `selectExpr("CAST(value AS STRING) AS json")` to a Kafka stream.
+
+    Why is this needed?
+  answers:
+  - text: '`selectExpr` triggers the stream.'
+    verdict: incorrect
+    justification: Streams are started with `writeStream`, not `selectExpr`.
+  - text: Kafka streams cannot be selected otherwise.
+    verdict: incorrect
+    justification: Kafka columns can be selected; the cast is needed for the binary data.
+  - text: The Kafka source returns `key` and `value` as binary columns, which must be cast before parsing.
+    verdict: correct
+    justification: The Kafka source returns `key` and `value` as binary, so they must be cast to strings before parsing.
+  - text: The cast compresses the data.
+    verdict: incorrect
+    justification: Casting converts the type; it does not compress.
+  source_url: https://spark.apache.org/docs/latest/streaming/structured-streaming-kafka-integration.html
+- id: 5.3-026
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer uses SQL on a streaming temporary view to count events per 5-minute window.
+
+    Which statement is valid?
+  answers:
+  - text: '`SELECT count(*) FROM events GROUP BY event_time EVERY 5 MINUTES`'
+    verdict: incorrect
+    justification: '`EVERY 5 MINUTES` is not valid syntax.'
+  - text: '`SELECT window(event_time, ''5 minutes'') AS w, count(*) FROM events GROUP BY window(event_time, ''5 minutes'')`'
+    verdict: correct
+    justification: The SQL `window` function can be used in `SELECT` and `GROUP BY` for windowed aggregation.
+  - text: Windowed aggregations cannot be expressed in SQL.
+    verdict: incorrect
+    justification: Windowed aggregations can be written in SQL.
+  - text: '`SELECT count(*) FROM events WINDOW 5 MINUTES`'
+    verdict: incorrect
+    justification: '`WINDOW 5 MINUTES` is not valid syntax.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html
+- id: 5.3-027
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A windowed aggregation feeds another windowed aggregation in the same streaming query on Databricks.
+
+    Which output mode is supported when chaining multiple stateful operators?
+  answers:
+  - text: Append only
+    verdict: correct
+    justification: Databricks states that only append mode is supported when chaining multiple stateful operators.
+  - text: Any mode
+    verdict: incorrect
+    justification: Only append mode is supported.
+  - text: Complete only
+    verdict: incorrect
+    justification: Complete mode is not supported for chained stateful operators.
+  - text: Update only
+    verdict: incorrect
+    justification: Update mode is not supported for chained stateful operators.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.3-028
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer wants the top 3 rows from a stream with `limit(3)` in a non-aggregated query.
+
+    What does the Spark streaming guide say about `limit` and taking the first N rows on streams?
+  answers:
+  - text: They return the first 3 rows of each micro-batch and stop.
+    verdict: incorrect
+    justification: Spark does not take N rows per micro-batch and stop.
+  - text: They are supported only on Kafka streams.
+    verdict: incorrect
+    justification: This applies to all sources.
+  - text: They are supported in every output mode.
+    verdict: incorrect
+    justification: They are not supported.
+  - text: They are not supported on streaming Datasets in general.
+    verdict: correct
+    justification: The Spark guide states that limit and taking the first N rows are not supported on streaming Datasets.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-029
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer uses `distinct()` on a streaming DataFrame.
+
+    What does the Spark streaming guide recommend?
+  answers:
+  - text: Use `dropDuplicates` instead, ideally with a watermark, because `distinct` is not supported on streaming Datasets.
+    verdict: correct
+    justification: '`distinct` is not supported on streams; `dropDuplicates`, ideally with a watermark, is the alternative.'
+  - text: '`distinct()` works the same as in batch.'
+    verdict: incorrect
+    justification: '`distinct` is not supported on streams.'
+  - text: Use `collect()` and deduplicate on the driver.
+    verdict: incorrect
+    justification: Streaming DataFrames cannot be collected.
+  - text: Use `orderBy` before `distinct()`.
+    verdict: incorrect
+    justification: Sorting does not make `distinct` work.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.3-030
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A streaming query only uses `select`, `filter` and `withColumn`.
+
+    Which statement is correct?
+  answers:
+  - text: It is stateful and keeps all rows in state.
+    verdict: incorrect
+    justification: These operations keep no state.
+  - text: It requires complete output mode.
+    verdict: incorrect
+    justification: Complete mode is only for aggregations.
+  - text: It requires a watermark.
+    verdict: incorrect
+    justification: Watermarks are only needed for stateful operations.
+  - text: It is a stateless query; it only tracks which rows have been processed from the source to the sink.
+    verdict: correct
+    justification: Queries with only `select`, `filter` and `withColumn` are stateless; they only track progress.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 5.3-031
+  category: structured_streaming
+  objective: '5.3'
+  question: |-
+    A data engineer computes 1-day windows on a timestamp in UTC but wants the windows to start at 02:00 instead of midnight.
+
+    Which parameter of `window` supports this?
+  answers:
+  - text: '`timezone` set to `"+02:00"`'
+    verdict: incorrect
+    justification: '`window` has no `timezone` parameter.'
+  - text: '`offset`, for example `window("ts", "1 day", offset=2)`'
+    verdict: incorrect
+    justification: '`window` has no `offset` parameter.'
+  - text: '`startTime`, for example `window("ts", "1 day", startTime="2 hours")`'
+    verdict: correct
+    justification: The `startTime` parameter shifts window boundaries, so 1-day windows can start at 02:00.
+  - text: '`slideDuration` set to `"2 hours"`'
+    verdict: incorrect
+    justification: A 2-hour slide creates many overlapping windows instead of shifting the start.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.window.html

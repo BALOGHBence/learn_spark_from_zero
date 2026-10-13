@@ -1,0 +1,630 @@
+# Objective 1.6: Describe the execution patterns of the Apache Spark™ engine, including actions, transformations, and lazy evaluation.
+- id: 1.6-001
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer classifies DataFrame methods into transformations and actions.
+
+    Which of the following is an action?
+  answers:
+  - text: '`count()`'
+    verdict: correct
+    justification: '`count()` is an action: it triggers a job and returns the number of rows to the driver.'
+  - text: '`withColumn()`'
+    verdict: incorrect
+    justification: '`withColumn()` is a transformation that returns a new DataFrame.'
+  - text: '`filter()`'
+    verdict: incorrect
+    justification: '`filter()` is a transformation that returns a new DataFrame.'
+  - text: '`groupBy()`'
+    verdict: incorrect
+    justification: '`groupBy()` returns grouped data for a later aggregation; it does not run a job.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-002
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which of the following DataFrame methods is a transformation?
+  answers:
+  - text: '`take()`'
+    verdict: incorrect
+    justification: '`take()` is an action that returns rows to the driver.'
+  - text: '`select()`'
+    verdict: correct
+    justification: '`select()` is a transformation: it returns a new DataFrame and runs nothing.'
+  - text: '`show()`'
+    verdict: incorrect
+    justification: '`show()` is an action that computes and prints rows.'
+  - text: '`collect()`'
+    verdict: incorrect
+    justification: '`collect()` is an action that returns all rows to the driver.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-003
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A notebook cell contains only the code below and runs in less than a second on a 5 TB table.
+
+    ```python
+    orders = spark.read.table("sales.orders")
+    big = orders.filter("amount > 1000").select("order_id", "amount")
+    ```
+
+    Why does it finish so quickly?
+  answers:
+  - text: Spark caches the table automatically on read.
+    verdict: incorrect
+    justification: Spark does not cache tables automatically on read.
+  - text: Spark samples the table and only processes 1% of the data.
+    verdict: incorrect
+    justification: Spark does not sample data implicitly; it simply has not executed anything yet.
+  - text: Transformations are lazy, so no data is processed until an action is called.
+    verdict: correct
+    justification: Reading a table, `filter` and `select` are lazy transformations, so Spark only builds a plan; no data is processed until an action runs.
+  - text: The filter is executed on the driver using table statistics only.
+    verdict: incorrect
+    justification: Filters run on executors when an action is called; they are not evaluated on the driver from statistics.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-004
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A developer asks what happens when an action is called on a DataFrame.
+
+    Which statement is correct?
+  answers:
+  - text: Spark executes only the last transformation in the chain.
+    verdict: incorrect
+    justification: Spark computes the whole lineage needed for the result, not just the last transformation.
+  - text: Spark executes each transformation in the order written without optimization.
+    verdict: incorrect
+    justification: The optimizer can reorder and combine transformations; they are not run literally in the written order.
+  - text: Spark returns the cached result of the previous action.
+    verdict: incorrect
+    justification: Results are not reused between actions unless the DataFrame is cached.
+  - text: Spark optimizes the accumulated plan of transformations and launches a job to compute the result.
+    verdict: correct
+    justification: When an action is called, Spark optimizes the accumulated plan of transformations and launches a job (or jobs) to compute the result.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-005
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer writes `df.filter("c > 1")` on a DataFrame without a column `c`, using Spark Classic.
+
+    When is the error raised?
+  answers:
+  - text: Never; the filter is silently ignored.
+    verdict: incorrect
+    justification: Spark never silently ignores invalid column references.
+  - text: Immediately when the transformation is defined, because Spark Classic analyzes plans eagerly.
+    verdict: correct
+    justification: Spark Classic analyzes plans eagerly, so referencing a missing column raises an `AnalysisException` as soon as the transformation is defined.
+  - text: Only when the DataFrame is written to a table.
+    verdict: incorrect
+    justification: The error is raised much earlier, when the filter is defined.
+  - text: Only when an action such as `show()` is called.
+    verdict: true_but_irrelevant
+    justification: Deferring the error until an action or schema access is how Spark Connect behaves, not Spark Classic.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 1.6-006
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    On serverless compute, which uses Spark Connect, a developer defines `df2 = df.filter(col("age_with_typo") > 6)` where the column does not exist.
+
+    When does the error appear?
+  answers:
+  - text: Never, because Spark Connect ignores unknown columns
+    verdict: incorrect
+    justification: Spark Connect does not ignore unknown columns; the server's analysis raises an error.
+  - text: Only when the session is stopped
+    verdict: incorrect
+    justification: The error appears when the plan is analyzed, not when the session stops.
+  - text: When an operation needs a resolved plan, such as `df2.columns`, `df2.schema` or an action like `df2.show()`
+    verdict: correct
+    justification: Spark Connect builds unresolved plans on the client; the error appears only when the plan is sent for analysis, for example on `df2.columns`, `df2.schema` or `df2.show()`.
+  - text: Immediately when `filter` is called
+    verdict: true_but_irrelevant
+    justification: Raising the error immediately on `filter` is Spark Classic behaviour, not Spark Connect.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 1.6-007
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which statement about lazy execution is true for both Spark Classic and Spark Connect?
+  answers:
+  - text: SQL queries run with `spark.sql("SELECT ...")` are always executed eagerly.
+    verdict: incorrect
+    justification: '`spark.sql("SELECT ...")` returns a lazy DataFrame in both; only SQL commands such as `CREATE` or `INSERT` run eagerly.'
+  - text: Actions are lazy in Spark Connect.
+    verdict: incorrect
+    justification: Actions are eager in Spark Connect, just as in Spark Classic.
+  - text: Transformations are eager in Spark Connect and lazy in Spark Classic.
+    verdict: incorrect
+    justification: Transformations are lazy in both; only schema analysis differs between them.
+  - text: Transformations such as `filter` and `select` are lazy, and actions such as `collect()` and `show()` are eager.
+    verdict: correct
+    justification: In both Spark Classic and Spark Connect, transformations are lazy and actions such as `collect()` and `show()` are eager.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 1.6-008
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer runs `spark.sql("CREATE TABLE t AS SELECT ...")` and `spark.sql("SELECT * FROM t")` without calling any action afterwards.
+
+    Which statement is correct?
+  answers:
+  - text: The `CREATE TABLE` command runs eagerly, while the `SELECT` query only builds a lazy DataFrame.
+    verdict: correct
+    justification: SQL commands such as `CREATE TABLE ... AS SELECT` execute eagerly, while a `SELECT` query returns a lazy DataFrame until an action is called.
+  - text: Both statements run eagerly.
+    verdict: partially_correct
+    justification: The `CREATE TABLE` part is right, but a `SELECT` query is not executed eagerly.
+  - text: The `SELECT` runs eagerly and the `CREATE TABLE` is lazy.
+    verdict: incorrect
+    justification: 'It is the other way round: the command is eager and the query is lazy.'
+  - text: Both statements are lazy until `show()` is called.
+    verdict: partially_correct
+    justification: The `SELECT` part is right, but the `CREATE TABLE` command runs immediately, not when `show()` is called.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 1.6-009
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which of these methods triggers a Spark job?
+  answers:
+  - text: '`df.orderBy("id")`'
+    verdict: incorrect
+    justification: '`orderBy` is a transformation; it only runs when an action needs the sorted data.'
+  - text: '`df.write.mode("overwrite").parquet("/tmp/out")`'
+    verdict: correct
+    justification: Writing a DataFrame is an action, so `write...parquet(...)` triggers a job.
+  - text: '`df.drop("tmp")`'
+    verdict: incorrect
+    justification: '`drop` is a transformation.'
+  - text: '`df.withColumnRenamed("a", "b")`'
+    verdict: incorrect
+    justification: '`withColumnRenamed` is a transformation.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-010
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer reads a CSV file, then filters, then calls `limit(10)` and `show()`.
+
+    What benefit does lazy evaluation provide here?
+  answers:
+  - text: Spark reads the file twice to validate the data.
+    verdict: incorrect
+    justification: Lazy evaluation does not read files twice.
+  - text: Spark automatically caches the CSV file for future queries.
+    verdict: incorrect
+    justification: Lazy evaluation does not cache files.
+  - text: Spark can optimize the whole plan together and avoid processing more data than needed for the result.
+    verdict: correct
+    justification: Because nothing runs until `show()`, Spark sees the filter and limit together and can avoid processing more data than the 10 rows it needs.
+  - text: Spark executes the filter before reading the file.
+    verdict: incorrect
+    justification: A filter cannot run before the data it filters is read; with pushdown it can be applied during the read.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-011
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A developer is surprised that a `filter` with a typo in a string literal runs without error and the error only appears in the output data later.
+
+    Which concept explains why no job ran when the filter was defined?
+  answers:
+  - text: Lazy evaluation of transformations
+    verdict: correct
+    justification: '`filter` is a lazy transformation, so no job runs when it is defined; its effect only shows when an action computes the data.'
+  - text: Speculative execution
+    verdict: incorrect
+    justification: Speculative execution re-runs slow tasks; it does not decide when jobs start.
+  - text: Eager analysis of SQL commands
+    verdict: incorrect
+    justification: Eager analysis of SQL commands is unrelated; a filter is a lazy transformation.
+  - text: Broadcast of the filter predicate
+    verdict: incorrect
+    justification: Filter predicates are not broadcast.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-012
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer wants to return the first 5 rows of a DataFrame to the driver as a list of `Row` objects.
+
+    Which method does this?
+  answers:
+  - text: '`df.limit(5)`'
+    verdict: partially_correct
+    justification: '`limit(5)` selects 5 rows, but it returns a new DataFrame (a transformation), not a list of rows.'
+  - text: '`df.show(5)`'
+    verdict: incorrect
+    justification: '`show(5)` prints the rows and returns `None`.'
+  - text: '`df.sample(5)`'
+    verdict: incorrect
+    justification: '`sample` takes a fraction, not a row count, and returns a DataFrame.'
+  - text: '`df.take(5)`'
+    verdict: correct
+    justification: '`take(5)` is an action that returns the first 5 rows to the driver as a list of `Row` objects.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.take.html
+- id: 1.6-013
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: What is the difference between `df.limit(5)` and `df.take(5)`?
+  answers:
+  - text: '`limit(5)` is a transformation that returns a new DataFrame, while `take(5)` is an action that returns rows to the driver.'
+    verdict: correct
+    justification: '`limit` is a transformation returning a DataFrame; `take` is an action returning a list of rows to the driver.'
+  - text: Both are transformations that return a DataFrame.
+    verdict: incorrect
+    justification: Only `limit` returns a DataFrame; `take` returns rows.
+  - text: Both are actions that return a list of rows.
+    verdict: incorrect
+    justification: Only `take` is an action; `limit` returns a DataFrame.
+  - text: '`take(5)` returns a DataFrame and `limit(5)` returns a list.'
+    verdict: incorrect
+    justification: The return types are swapped.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.limit.html
+- id: 1.6-014
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer wants to inspect the logical and physical plans Spark will use for a DataFrame without computing the results.
+
+    Which method should be used?
+  answers:
+  - text: '`df.collect(plan=True)`'
+    verdict: incorrect
+    justification: '`collect()` has no `plan` parameter and runs the query.'
+  - text: '`df.printSchema(True)`'
+    verdict: incorrect
+    justification: '`printSchema` prints the schema, not the query plans.'
+  - text: '`df.show(plan=True)`'
+    verdict: incorrect
+    justification: '`show()` has no `plan` parameter and runs the query.'
+  - text: '`df.explain(extended=True)`'
+    verdict: correct
+    justification: '`explain(extended=True)` prints the parsed, analyzed and optimized logical plans plus the physical plan without running the query.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.explain.html
+- id: 1.6-015
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A DataFrame `df2` is derived from `df` with several transformations and is not cached. Two actions are called on `df2`.
+
+    What happens?
+  answers:
+  - text: The lineage is computed once and automatically reused for the second action.
+    verdict: incorrect
+    justification: Spark does not reuse results automatically across actions; that requires `cache()`/`persist()`.
+  - text: The full lineage of `df2` is computed for each action.
+    verdict: correct
+    justification: Without caching, each action recomputes the full lineage of `df2` from the source.
+  - text: The second action fails because `df2` was already consumed.
+    verdict: incorrect
+    justification: DataFrames are not consumed by actions; you can call as many actions as you like.
+  - text: The second action reads the output of the first action from disk.
+    verdict: incorrect
+    justification: Actions do not leave reusable output on disk for later actions (apart from shuffle files, which do not replace full recomputation of `df2`).
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-016
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which statement about `df.foreach(f)` is correct?
+  answers:
+  - text: It is a transformation that returns a new DataFrame.
+    verdict: incorrect
+    justification: '`foreach` returns nothing; it is an action, not a transformation.'
+  - text: It is only available for streaming DataFrames.
+    verdict: incorrect
+    justification: '`DataFrame.foreach` works on batch DataFrames; streaming uses `writeStream.foreach`.'
+  - text: It is an action that applies the function `f` to every row on the executors.
+    verdict: correct
+    justification: '`foreach` is an action that runs `f` on every row, on the executors.'
+  - text: It runs `f` on the driver for every row.
+    verdict: incorrect
+    justification: The function runs on the executors, not on the driver.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.foreach.html
+- id: 1.6-017
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which of the following lists contains only actions?
+  answers:
+  - text: '`groupBy()`, `agg()`, `count()`'
+    verdict: partially_correct
+    justification: '`count()` here could be the action, but `groupBy()` and `agg()` are transformations.'
+  - text: '`collect()`, `count()`, `first()`'
+    verdict: correct
+    justification: '`collect()`, `count()` and `first()` are all actions.'
+  - text: '`filter()`, `take()`, `collect()`'
+    verdict: partially_correct
+    justification: '`take()` and `collect()` are actions, but `filter()` is a transformation.'
+  - text: '`select()`, `count()`, `show()`'
+    verdict: partially_correct
+    justification: '`count()` and `show()` are actions, but `select()` is a transformation.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-018
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer calls `df.groupBy("country").count()`.
+
+    Is this an action or a transformation?
+  answers:
+  - text: A transformation that returns a DataFrame; no job runs until an action is called on it.
+    verdict: correct
+    justification: '`groupBy(...).count()` returns a new DataFrame of counts; it is a transformation and nothing runs until an action.'
+  - text: An action that returns a dictionary to the driver.
+    verdict: incorrect
+    justification: It returns a DataFrame, not a dictionary.
+  - text: Neither; it is a configuration change.
+    verdict: incorrect
+    justification: It is a DataFrame transformation, not a configuration change.
+  - text: An action, because it contains `count`.
+    verdict: incorrect
+    justification: The name contains "count", but `GroupedData.count()` returns a DataFrame, unlike `DataFrame.count()`.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-019
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer explains the benefit of the lineage graph built from transformations.
+
+    Which statement is correct?
+  answers:
+  - text: The lineage stores every intermediate result on disk.
+    verdict: incorrect
+    justification: Lineage records transformations, not stored copies of intermediate results.
+  - text: The lineage forces every transformation to run immediately.
+    verdict: incorrect
+    justification: Lineage supports lazy evaluation; it does not force transformations to run.
+  - text: The lineage is only used to print the schema.
+    verdict: incorrect
+    justification: Lineage is used for fault tolerance and optimization, not just for the schema.
+  - text: The lineage lets Spark recompute lost partitions and optimize execution before running anything.
+    verdict: correct
+    justification: The lineage describes how each dataset is derived, so Spark can recompute lost partitions and optimize the whole plan before running it.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-020
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer writes a Python UDF that reads a global variable `x`. Under Spark Connect, `x` is changed after the UDF is used in a DataFrame but before `show()` is called.
+
+    Which value does the UDF use?
+  answers:
+  - text: Neither; Spark Connect does not allow UDFs to reference global variables.
+    verdict: incorrect
+    justification: UDFs can reference global variables in Spark Connect; the value is captured at execution.
+  - text: The original value, because UDFs are always serialized when defined.
+    verdict: true_but_irrelevant
+    justification: Serializing UDFs when they are defined is Spark Classic behaviour, not Spark Connect.
+  - text: The new value, because Spark Connect serializes the UDF lazily at execution time.
+    verdict: correct
+    justification: In Spark Connect, Python UDFs are serialized lazily at execution time, so the UDF sees the value of `x` when `show()` runs.
+  - text: A random value, because UDF serialization is non-deterministic.
+    verdict: incorrect
+    justification: Serialization is deterministic; the value is the one at execution time.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 1.6-021
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A filter is defined after a projection in code, but in the physical plan the filter is applied at the data source scan.
+
+    Which optimization made this possible?
+  answers:
+  - text: Predicate pushdown by the optimizer, enabled because evaluation is lazy and the whole plan is known
+    verdict: correct
+    justification: Because the whole plan is known before execution, the optimizer can push the filter down to the data source scan.
+  - text: Eager evaluation of the filter on the driver
+    verdict: incorrect
+    justification: Filters are not evaluated eagerly on the driver.
+  - text: Broadcasting the filter condition to the data source
+    verdict: incorrect
+    justification: Filter conditions are not broadcast; they are pushed into the scan.
+  - text: Caching the source table
+    verdict: incorrect
+    justification: Caching does not move a filter into the scan.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.6-022
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer calls `df.show()` on a DataFrame with 10 million rows.
+
+    What does `show()` do by default?
+  answers:
+  - text: Writes all rows to a temporary table
+    verdict: incorrect
+    justification: '`show()` does not write to a table.'
+  - text: Prints all 10 million rows
+    verdict: incorrect
+    justification: '`show()` prints only 20 rows by default.'
+  - text: Prints the first 20 rows to the console, truncating long strings
+    verdict: correct
+    justification: '`show()` prints 20 rows by default and truncates strings longer than 20 characters.'
+  - text: Returns a pandas DataFrame with 20 rows
+    verdict: incorrect
+    justification: '`show()` prints rows and returns `None`; `toPandas()` returns a pandas DataFrame.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.show.html
+- id: 1.6-023
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer wants just the first row of a DataFrame as a `Row` object.
+
+    Which action returns that?
+  answers:
+  - text: '`df.select(1)`'
+    verdict: incorrect
+    justification: '`select(1)` returns a DataFrame with a literal column.'
+  - text: '`df.first()`'
+    verdict: correct
+    justification: '`first()` is an action that returns the first row as a `Row`.'
+  - text: '`df.limit(1)`'
+    verdict: incorrect
+    justification: '`limit(1)` returns a DataFrame, not a Row.'
+  - text: '`df.top()`'
+    verdict: incorrect
+    justification: DataFrames have no `top()` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.first.html
+- id: 1.6-024
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Why is calling `count()` after every transformation during development a bad idea for large datasets?
+  answers:
+  - text: '`count()` disables the optimizer for later transformations.'
+    verdict: incorrect
+    justification: '`count()` does not disable the optimizer.'
+  - text: '`count()` changes the schema of the DataFrame.'
+    verdict: incorrect
+    justification: '`count()` returns a number and does not change the schema.'
+  - text: '`count()` caches the DataFrame on the driver.'
+    verdict: incorrect
+    justification: '`count()` does not cache anything.'
+  - text: Each `count()` is an action that triggers a full job, so the pipeline is recomputed many times.
+    verdict: correct
+    justification: Each `count()` is an action that runs a full job over the lineage, so counting after every step recomputes the pipeline repeatedly.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-025
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer wants to iterate through all rows on the driver without loading the entire DataFrame into driver memory at once.
+
+    Which method helps?
+  answers:
+  - text: '`df.toLocalIterator()`'
+    verdict: correct
+    justification: '`toLocalIterator()` returns rows to the driver one partition at a time, so the driver needs memory only for the largest partition.'
+  - text: '`df.collect()`'
+    verdict: incorrect
+    justification: '`collect()` loads all rows into driver memory at once.'
+  - text: '`df.rdd.glom()`'
+    verdict: incorrect
+    justification: '`glom()` returns an RDD of lists per partition; it does not iterate on the driver, and RDD APIs are unavailable in Spark Connect.'
+  - text: '`df.toPandas()`'
+    verdict: incorrect
+    justification: '`toPandas()` loads all rows into one pandas DataFrame on the driver.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toLocalIterator.html
+- id: 1.6-026
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer runs `result = spark.sql("SELECT country, count(*) FROM t GROUP BY country")`.
+
+    What is `result`?
+  answers:
+  - text: A list of rows already returned to the driver
+    verdict: incorrect
+    justification: Rows are only returned to the driver by actions such as `collect()`.
+  - text: A pandas DataFrame
+    verdict: incorrect
+    justification: '`spark.sql` returns a Spark DataFrame, not a pandas DataFrame.'
+  - text: A string containing the query results
+    verdict: incorrect
+    justification: It returns a DataFrame, not a string.
+  - text: A DataFrame representing the query, which is evaluated lazily
+    verdict: correct
+    justification: '`spark.sql` returns a DataFrame for a query; it is evaluated lazily when an action is called.'
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 1.6-027
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer runs `df.cache()` followed by `df.count()`.
+
+    What role does `count()` play?
+  answers:
+  - text: It is a transformation that does nothing until `show()` is called.
+    verdict: incorrect
+    justification: '`count()` on a DataFrame is an action, not a transformation.'
+  - text: It removes the DataFrame from the cache.
+    verdict: incorrect
+    justification: '`count()` does not remove data from the cache.'
+  - text: It is an action that materializes the DataFrame so the cache is populated.
+    verdict: correct
+    justification: '`cache()` is lazy; `count()` is an action that computes every partition, so the cache gets populated.'
+  - text: It is required to define the storage level.
+    verdict: incorrect
+    justification: The storage level is defined by `cache()`/`persist()`, not by `count()`.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-028
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which statement about transformations is correct?
+  answers:
+  - text: Transformations modify the original DataFrame in place.
+    verdict: incorrect
+    justification: DataFrames are immutable; transformations never modify them in place.
+  - text: Transformations create a new DataFrame from an existing one and are not executed until an action requires a result.
+    verdict: correct
+    justification: Transformations return a new DataFrame and are only executed when an action needs a result.
+  - text: Transformations return results to the driver immediately.
+    verdict: incorrect
+    justification: Transformations return DataFrames and run nothing; returning data to the driver is what actions do.
+  - text: Transformations always trigger a shuffle.
+    verdict: incorrect
+    justification: Only wide transformations shuffle; narrow ones such as `filter` do not.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-029
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: Which action returns all rows of a DataFrame to the driver as a list?
+  answers:
+  - text: '`limit()`'
+    verdict: incorrect
+    justification: '`limit()` is a transformation that returns a DataFrame.'
+  - text: '`describe()`'
+    verdict: incorrect
+    justification: '`describe()` returns a DataFrame of summary statistics.'
+  - text: '`collect()`'
+    verdict: correct
+    justification: '`collect()` returns all rows to the driver as a list of `Row` objects.'
+  - text: '`show()`'
+    verdict: incorrect
+    justification: '`show()` prints rows and returns `None`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html
+- id: 1.6-030
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A notebook builds a long chain of 40 transformations, then calls `write.saveAsTable()`.
+
+    How many times does Spark scan the source data for this single write, assuming no caching and no self-joins?
+  answers:
+  - text: Once, as part of the single job that the write triggers
+    verdict: correct
+    justification: The 40 transformations form one plan, and the write triggers a single job that reads the source data once.
+  - text: Twice, once to plan and once to write
+    verdict: incorrect
+    justification: Planning does not read the data; only the write's job scans it.
+  - text: Forty times, once per transformation
+    verdict: incorrect
+    justification: Transformations do not run individually; they are pipelined into one job.
+  - text: Zero times, because the plan is executed on metadata only
+    verdict: incorrect
+    justification: The write must process the actual data, not just metadata.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.6-031
+  category: apache_spark_architecture_and_components
+  objective: '1.6'
+  question: |-
+    A data engineer calls `df.head(3)`.
+
+    What is returned?
+  answers:
+  - text: A new DataFrame with 3 rows
+    verdict: incorrect
+    justification: '`limit(3)` returns a new DataFrame; `head(3)` returns a list.'
+  - text: A list of the first 3 `Row` objects
+    verdict: correct
+    justification: '`head(3)` is an action that returns a list of the first 3 `Row` objects.'
+  - text: The first 3 column names
+    verdict: incorrect
+    justification: Column names come from `df.columns`, not `head`.
+  - text: A pandas DataFrame with 3 rows
+    verdict: incorrect
+    justification: '`head` does not return a pandas DataFrame.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.head.html

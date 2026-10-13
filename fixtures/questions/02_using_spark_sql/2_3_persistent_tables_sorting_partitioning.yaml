@@ -1,0 +1,689 @@
+# Objective 2.3: Save data to persistent tables while applying sorting and partitioning to optimize data retrieval.
+- id: 2.3-001
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants to save a DataFrame as a persistent table bucketed into 42 buckets by `name` and sorted by `age` within each bucket.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.partitionBy(42, "name").orderBy("age").saveAsTable("people_bucketed")`'
+    verdict: incorrect
+    justification: '`partitionBy` takes column names and creates directories; `DataFrameWriter` has no `orderBy`.'
+  - text: '`df.write.bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed")`'
+    verdict: correct
+    justification: '`bucketBy(42, "name").sortBy("age").saveAsTable(...)` creates a persistent table with 42 buckets sorted by `age`, as in the Spark docs.'
+  - text: '`df.write.bucketBy(42, "name").sortBy("age").parquet("/mnt/people")`'
+    verdict: partially_correct
+    justification: The bucketing and sorting calls are right, but they only work with `saveAsTable`; a path-based `parquet()` write does not support them.
+  - text: '`df.write.sortBy("age").bucketBy("name", 42).save("/mnt/people")`'
+    verdict: incorrect
+    justification: '`bucketBy` takes the number of buckets first, and bucketing does not work with a path-based `save`.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-002
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer tries to use `bucketBy` and `sortBy` with `df.write.parquet(path)`.
+
+    Why does this not work?
+  answers:
+  - text: Bucketing and sorting are only applicable to persistent tables written with `saveAsTable`.
+    verdict: correct
+    justification: The Spark docs state bucketing and sorting apply only to persistent tables, so they need `saveAsTable`.
+  - text: Parquet does not support sorted data.
+    verdict: incorrect
+    justification: Parquet can store sorted data; the restriction is about tables versus paths.
+  - text: '`sortBy` must be called before `bucketBy` for path-based writes.'
+    verdict: incorrect
+    justification: The call order does not matter; path-based writes do not support bucketing at all.
+  - text: Bucketing is only supported for CSV files.
+    verdict: incorrect
+    justification: Bucketing is not limited to CSV; it works with file-based table formats such as Parquet.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-003
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer chooses between `partitionBy` and `bucketBy` for a column with an unbounded number of unique values.
+
+    Which is recommended by the Spark documentation?
+  answers:
+  - text: '`partitionBy`, because it creates one directory per value'
+    verdict: incorrect
+    justification: One directory per value is exactly why `partitionBy` is a poor fit for high-cardinality columns.
+  - text: Neither; high-cardinality columns cannot be used for layout
+    verdict: incorrect
+    justification: High-cardinality columns can be used with bucketing.
+  - text: '`bucketBy`, because it distributes data across a fixed number of buckets'
+    verdict: correct
+    justification: The Spark docs recommend `bucketBy` for unbounded cardinality, because it spreads data over a fixed number of buckets.
+  - text: '`sortBy` alone, because it creates buckets automatically'
+    verdict: incorrect
+    justification: '`sortBy` only sorts within buckets and requires `bucketBy`; it does not create buckets.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-004
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants a persistent table partitioned by `favorite_color` and bucketed by `name` into 42 buckets.
+
+    Which code is valid?
+  answers:
+  - text: '`df.write.bucketBy(42, "name", "favorite_color").partitionBy().saveAsTable("users_pb")`'
+    verdict: incorrect
+    justification: '`partitionBy()` needs column names, and passing `favorite_color` to `bucketBy` would bucket by it instead of partitioning by it.'
+  - text: '`df.write.partitionBy("favorite_color").bucketBy(42, "name").parquet("/mnt/users")`'
+    verdict: partially_correct
+    justification: Combining partitioning and bucketing is allowed, but bucketing requires `saveAsTable`, not a path-based `parquet()` write.
+  - text: Partitioning and bucketing cannot be combined in one table.
+    verdict: incorrect
+    justification: The Spark docs show a table that is both partitioned and bucketed.
+  - text: '`df.write.partitionBy("favorite_color").bucketBy(42, "name").saveAsTable("users_pb")`'
+    verdict: correct
+    justification: 'Partitioning and bucketing can be combined on a persistent table: `partitionBy(...).bucketBy(...).saveAsTable(...)`.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-005
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer saves a DataFrame with `df.write.saveAsTable("t")` in Apache Spark without a `path` option, and later drops the table.
+
+    What happens to the data?
+  answers:
+  - text: The data remains in place and must be deleted manually.
+    verdict: true_but_irrelevant
+    justification: Keeping the data after a drop is how tables with a custom `path` (external tables) behave, not this one.
+  - text: The table cannot be dropped because data exists.
+    verdict: incorrect
+    justification: Tables with data can be dropped.
+  - text: The data at the default table path under the warehouse directory is removed as well.
+    verdict: correct
+    justification: In Apache Spark, a table saved without a custom path is stored in the warehouse directory, and dropping it also removes that data.
+  - text: The data is moved to a trash folder for 30 days.
+    verdict: incorrect
+    justification: Spark has no trash folder for dropped tables.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-006
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer creates a table with `df.write.option("path", "/mnt/ext/t").saveAsTable("t")` in Apache Spark and later drops it.
+
+    What happens to the files at `/mnt/ext/t`?
+  answers:
+  - text: They are truncated but the directory is kept.
+    verdict: incorrect
+    justification: The files are not truncated.
+  - text: They are deleted together with the table metadata.
+    verdict: true_but_irrelevant
+    justification: Deleting the data together with the metadata is how tables at the default warehouse path behave.
+  - text: They are converted to a managed table.
+    verdict: incorrect
+    justification: Dropping a table does not convert it to a managed table.
+  - text: They are not removed, because the table uses a custom path.
+    verdict: correct
+    justification: With a custom `path`, dropping the table removes only the metadata; the files at `/mnt/ext/t` stay.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-007
+  category: using_spark_sql
+  objective: '2.3'
+  question: What is the key difference between `saveAsTable` and `createOrReplaceTempView`?
+  answers:
+  - text: '`saveAsTable` only lasts for the current session.'
+    verdict: incorrect
+    justification: It is the temporary view that lasts only for the session; persistent tables survive restarts.
+  - text: '`saveAsTable` materializes the data and registers a persistent table in the metastore, while a temporary view is only a session-scoped name for a query.'
+    verdict: correct
+    justification: '`saveAsTable` writes the data and registers a persistent table in the metastore; a temp view is a session-scoped name for a query that stores no data.'
+  - text: Both store the data permanently.
+    verdict: incorrect
+    justification: Temporary views do not store data at all.
+  - text: '`createOrReplaceTempView` writes data to the warehouse directory.'
+    verdict: incorrect
+    justification: Temporary views write nothing to the warehouse directory.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-008
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A team on Databricks creates new tables that are filtered by different columns over time.
+
+    Which data layout technique does Databricks recommend for all new tables?
+  answers:
+  - text: Liquid clustering
+    verdict: correct
+    justification: Databricks recommends liquid clustering for all new tables; clustering keys can be changed as query patterns change.
+  - text: Bucketing with `bucketBy`
+    verdict: incorrect
+    justification: '`bucketBy` is an Apache Spark table feature, not Databricks'' recommended layout for Delta tables.'
+  - text: Hive-style partitioning on every filter column
+    verdict: incorrect
+    justification: Partitioning on many filter columns causes over-partitioning and small files; liquid clustering replaces partitioning.
+  - text: Z-ordering combined with partitioning
+    verdict: incorrect
+    justification: Liquid clustering replaces both Z-ordering and partitioning.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-009
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer on Databricks wants to create a table from a DataFrame with liquid clustering on `customer_id`.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.sortBy("customer_id").saveAsTable("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`sortBy` is for bucketed tables and does not enable liquid clustering.'
+  - text: '`df.write.partitionBy("customer_id").clustered().saveAsTable("main.sales.orders")`'
+    verdict: incorrect
+    justification: There is no `clustered()` method, and partitioning is not compatible with liquid clustering.
+  - text: '`df.write.clusterBy("customer_id").saveAsTable("main.sales.orders")`'
+    verdict: correct
+    justification: '`df.write.clusterBy("customer_id").saveAsTable(...)` creates a liquid clustered table from a DataFrame.'
+  - text: '`df.write.bucketBy(1, "customer_id").saveAsTable("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`bucketBy` creates Hive-style buckets, not liquid clustering.'
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-010
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer writes the following SQL to create a liquid clustered table from an existing table.
+
+    Which statement is valid?
+  answers:
+  - text: '`CREATE TABLE table2 AS SELECT * FROM table1 ZORDER BY (col0)`'
+    verdict: incorrect
+    justification: '`ZORDER BY` is an `OPTIMIZE` option and does not create liquid clustering.'
+  - text: '`CREATE TABLE table2 CLUSTER BY (col0) AS SELECT * FROM table1`'
+    verdict: correct
+    justification: In a CTAS, `CLUSTER BY` must come right after the table name, before `AS SELECT`.
+  - text: '`CREATE CLUSTERED TABLE table2 (col0) FROM table1`'
+    verdict: incorrect
+    justification: '`CREATE CLUSTERED TABLE ... FROM` is not valid syntax.'
+  - text: '`CREATE TABLE table2 AS SELECT * FROM table1 CLUSTER BY (col0)`'
+    verdict: incorrect
+    justification: Databricks documents that `CLUSTER BY` must appear after the table name, not in the `SELECT`.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-011
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A table already uses liquid clustering. The engineer tries to add `PARTITIONED BY` and `ZORDER` to it.
+
+    What does the Databricks documentation say?
+  answers:
+  - text: Liquid clustering is not compatible with partitioning or Z-ordering.
+    verdict: correct
+    justification: Databricks states liquid clustering is not compatible with partitioning or Z-ordering.
+  - text: Partitioning overrides the clustering keys.
+    verdict: incorrect
+    justification: Partitioning cannot be combined with liquid clustering at all.
+  - text: Z-ordering is applied automatically on top of liquid clustering.
+    verdict: incorrect
+    justification: Z-ordering is not applied on top of clustering.
+  - text: Liquid clustering requires partitioning on the same column.
+    verdict: incorrect
+    justification: Liquid clustering does not require partitioning; it replaces it.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-012
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A team wants to change the clustering keys of a liquid clustered table as query patterns change.
+
+    What is an advantage of liquid clustering here?
+  answers:
+  - text: Keys can only be changed by recreating the table with a new name.
+    verdict: incorrect
+    justification: No new table is needed to change keys.
+  - text: All existing data is rewritten immediately when keys change.
+    verdict: incorrect
+    justification: Existing data is not rewritten immediately; new layout is applied incrementally.
+  - text: Keys can never be changed after table creation.
+    verdict: incorrect
+    justification: Keys can be changed with `ALTER TABLE ... CLUSTER BY`.
+  - text: Clustering keys can be redefined without rewriting existing data.
+    verdict: correct
+    justification: Liquid clustering lets you redefine clustering keys without rewriting existing data.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-013
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    After enabling liquid clustering on a table, the engineer wants existing data to be clustered incrementally.
+
+    Which command should be run?
+  answers:
+  - text: '`VACUUM main.sales.orders`'
+    verdict: true_but_irrelevant
+    justification: '`VACUUM` removes old unreferenced files; it does not cluster data.'
+  - text: '`REFRESH TABLE main.sales.orders`'
+    verdict: incorrect
+    justification: '`REFRESH TABLE` refreshes cached metadata; it does not rewrite data.'
+  - text: '`ANALYZE TABLE main.sales.orders CLUSTER`'
+    verdict: incorrect
+    justification: '`ANALYZE TABLE ... CLUSTER` is not valid; `ANALYZE TABLE` computes statistics.'
+  - text: '`OPTIMIZE main.sales.orders`'
+    verdict: correct
+    justification: After enabling liquid clustering, `OPTIMIZE` clusters the data incrementally.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-014
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A query filters a Delta table on `event_date`, and Databricks skips most files.
+
+    Which information does Databricks use to skip files?
+  answers:
+  - text: Bucket numbers stored in the file names
+    verdict: incorrect
+    justification: Delta data skipping does not use bucket numbers in file names.
+  - text: Per-file statistics, such as minimum and maximum values, collected automatically on write
+    verdict: correct
+    justification: Delta Lake collects per-file statistics (min/max, null counts) on write, and Databricks uses them to skip files that cannot match the filter.
+  - text: A full scan of each file before the query starts
+    verdict: incorrect
+    justification: Skipping avoids scanning files; it does not scan each file first.
+  - text: The order of rows in the DataFrame at query time
+    verdict: incorrect
+    justification: Skipping relies on file statistics stored in the transaction log, not on the row order at query time.
+  source_url: https://docs.databricks.com/aws/en/tables/data-skipping
+- id: 2.3-015
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants each output file to be sorted by `ts` without paying for a global sort.
+
+    Which code achieves this?
+  answers:
+  - text: '`df.orderBy("ts").write.mode("overwrite").saveAsTable("events")`'
+    verdict: partially_correct
+    justification: '`orderBy` also gives sorted files, but it performs an expensive global sort, which the engineer wanted to avoid.'
+  - text: '`df.write.option("sort", "ts").saveAsTable("events")`'
+    verdict: incorrect
+    justification: There is no `sort` write option.
+  - text: '`df.sortWithinPartitions("ts").write.mode("overwrite").saveAsTable("events")`'
+    verdict: correct
+    justification: '`sortWithinPartitions` sorts rows inside each partition without a global-sort shuffle, so each output file is sorted.'
+  - text: '`df.write.sortBy("ts").parquet("/mnt/events")`'
+    verdict: incorrect
+    justification: '`sortBy` only works together with `bucketBy` and `saveAsTable`, not with a path-based write.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.sortWithinPartitions.html
+- id: 2.3-016
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A team wants to query a persistent table created by another Spark application last week.
+
+    Why is this possible, unlike with temporary views?
+  answers:
+  - text: Persistent tables still exist after the application restarts, as long as the same metastore is used.
+    verdict: correct
+    justification: Persistent tables are registered in the metastore, so they are still there after the application restarts, as long as it uses the same metastore.
+  - text: Persistent tables are stored in the driver's memory.
+    verdict: incorrect
+    justification: Persistent tables are stored in storage, not in driver memory.
+  - text: Persistent tables are recreated automatically from the original DataFrame code.
+    verdict: incorrect
+    justification: Tables are not recreated from code; their data is stored.
+  - text: Temporary views are also kept across applications.
+    verdict: incorrect
+    justification: Temporary views disappear when their session ends.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-017
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer needs a DataFrame for a persistent table named `people`.
+
+    Which code returns it?
+  answers:
+  - text: '`spark.sql.table("people")`'
+    verdict: incorrect
+    justification: '`spark.sql` is a method, not an object with `table`.'
+  - text: '`spark.catalog.load("people")`'
+    verdict: incorrect
+    justification: '`spark.catalog` has no `load` method that returns a DataFrame.'
+  - text: '`spark.table("people")`'
+    verdict: correct
+    justification: '`spark.table("people")` returns a DataFrame for a persistent table.'
+  - text: '`spark.read.view("people")`'
+    verdict: incorrect
+    justification: '`DataFrameReader` has no `view` method.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-018
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer on Databricks creates a Unity Catalog managed table and later drops it.
+
+    Which statement describes managed tables?
+  answers:
+  - text: Unity Catalog manages both the metadata and the data files of a managed table, so the data lifecycle is tied to the table.
+    verdict: correct
+    justification: Unity Catalog manages the metadata and data files of managed tables, so their data lifecycle follows the table.
+  - text: Managed tables must always be created with a `LOCATION` clause.
+    verdict: incorrect
+    justification: Managed tables are created without `LOCATION`; Unity Catalog chooses the storage location.
+  - text: Managed tables cannot be dropped.
+    verdict: incorrect
+    justification: Managed tables can be dropped.
+  - text: Only the metadata is managed; data files stay forever after a drop.
+    verdict: true_but_irrelevant
+    justification: Keeping data files after a drop describes external tables, not managed ones.
+  source_url: https://docs.databricks.com/aws/en/tables/
+- id: 2.3-019
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A query often filters a large fact table on `sale_date`, which has around 1,000 distinct values and several GB of data per value.
+
+    Why can `partitionBy("sale_date")` speed up these queries?
+  answers:
+  - text: Spark creates an index on every column.
+    verdict: incorrect
+    justification: Partitioning does not create indexes.
+  - text: Spark caches each partition in memory.
+    verdict: incorrect
+    justification: Partitioning does not cache data.
+  - text: Spark sorts every partition by all columns.
+    verdict: incorrect
+    justification: Partitioning does not sort data by all columns.
+  - text: Spark can prune partitions and read only the directories that match the filter.
+    verdict: correct
+    justification: Partitioning by `sale_date` lets Spark prune partitions and read only the matching directories; with large partitions this pays off.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 2.3-020
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer partitions a small 200 MB table by a column with 100,000 distinct values.
+
+    What is the most likely outcome?
+  answers:
+  - text: An error because partitions must be larger than 1 GB
+    verdict: incorrect
+    justification: There is no minimum partition size that causes an error.
+  - text: Many tiny files and directories, which slow down reads and metadata operations
+    verdict: correct
+    justification: A small table split by a high-cardinality column produces many tiny files and directories, which slows reads and metadata operations.
+  - text: Faster reads because each file is tiny
+    verdict: incorrect
+    justification: Many tiny files make reads slower, not faster.
+  - text: Automatic conversion to liquid clustering
+    verdict: incorrect
+    justification: Partitioned tables are not converted to liquid clustering automatically.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 2.3-021
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants to create a partitioned table in SQL.
+
+    Which statement is valid?
+  answers:
+  - text: |-
+      |
+      ```sql
+      CREATE TABLE sales (id INT, amount DOUBLE, country STRING)
+      PARTITION ON country
+      ```
+    verdict: incorrect
+    justification: '`PARTITION ON` is not valid syntax.'
+  - text: |-
+      |
+      ```sql
+      CREATE PARTITIONED TABLE sales BY country
+      (id INT, amount DOUBLE)
+      ```
+    verdict: incorrect
+    justification: '`CREATE PARTITIONED TABLE ... BY` is not valid syntax.'
+  - text: |-
+      |
+      ```sql
+      CREATE TABLE sales PARTITIONED (country)
+      (id INT, amount DOUBLE, country STRING)
+      ```
+    verdict: incorrect
+    justification: The column list must come before `PARTITIONED BY`.
+  - text: |-
+      |
+      ```sql
+      CREATE TABLE sales (id INT, amount DOUBLE, country STRING)
+      PARTITIONED BY (country)
+      ```
+    verdict: correct
+    justification: '`PARTITIONED BY (country)` after the column list creates a partitioned table.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-table-using
+- id: 2.3-022
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A Spark SQL user creates a bucketed table in SQL.
+
+    Which clause defines 4 buckets on `user_id`, sorted by `ts`?
+  answers:
+  - text: '`CLUSTERED BY (user_id) SORTED BY (ts) INTO 4 BUCKETS`'
+    verdict: correct
+    justification: Spark SQL defines bucketing with `CLUSTERED BY (...) SORTED BY (...) INTO n BUCKETS`.
+  - text: '`PARTITIONED BY (user_id) SORTED BY (ts) INTO 4 PARTS`'
+    verdict: incorrect
+    justification: '`PARTITIONED BY` creates partitions, and `INTO n PARTS` is not valid.'
+  - text: '`BUCKETED BY (user_id) ORDER BY (ts) WITH 4 BUCKETS`'
+    verdict: incorrect
+    justification: '`BUCKETED BY ... WITH n BUCKETS` is not valid syntax.'
+  - text: '`DISTRIBUTE BY (user_id) SORT BY (ts) BUCKETS 4`'
+    verdict: incorrect
+    justification: '`DISTRIBUTE BY` and `SORT BY` are query clauses, not table bucketing definitions.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-ddl-create-table-datasource.html
+- id: 2.3-023
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A team bucketed two large tables by `customer_id` into the same number of buckets.
+
+    What benefit can this bring to joins on `customer_id`?
+  answers:
+  - text: The join no longer requires matching keys.
+    verdict: incorrect
+    justification: Keys are still compared; bucketing only avoids moving data.
+  - text: The join becomes a broadcast join regardless of table size.
+    verdict: incorrect
+    justification: Bucketing does not cause a broadcast join.
+  - text: Spark can avoid shuffling the bucketed sides because rows with the same key are already in matching buckets.
+    verdict: correct
+    justification: When both tables are bucketed by the join key into the same number of buckets, Spark can join matching buckets without shuffling.
+  - text: The join runs entirely on the driver.
+    verdict: incorrect
+    justification: Joins run on executors.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.3-024
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer appends a DataFrame to an existing table with `saveAsTable`.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.mode("ignore").saveAsTable("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`ignore` skips the write when the table exists.'
+  - text: '`df.write.mode("append").saveAsTable("main.sales.orders")`'
+    verdict: correct
+    justification: '`mode("append")` with `saveAsTable` adds the rows to the existing table.'
+  - text: '`df.write.saveAsTable("main.sales.orders", append=True)`'
+    verdict: incorrect
+    justification: '`saveAsTable` has no `append` parameter; use `mode("append")`.'
+  - text: '`df.write.insert().saveAsTable("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `insert()` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.saveAsTable.html
+- id: 2.3-025
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer writes to a table that already exists with `df.write.saveAsTable("t")` and no mode.
+
+    What happens?
+  answers:
+  - text: The write is ignored.
+    verdict: true_but_irrelevant
+    justification: Skipping the write is what `ignore` mode does.
+  - text: An error is raised, because the default mode is `errorifexists`.
+    verdict: correct
+    justification: The default save mode `errorifexists` raises an error because the table exists.
+  - text: The table is overwritten.
+    verdict: true_but_irrelevant
+    justification: Overwriting is what `overwrite` mode does.
+  - text: The DataFrame is appended.
+    verdict: true_but_irrelevant
+    justification: Appending is what `append` mode does.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.saveAsTable.html
+- id: 2.3-026
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A Spark SQL query uses `SORT BY` instead of `ORDER BY`.
+
+    What is the difference?
+  answers:
+  - text: '`SORT BY` only works on numeric columns.'
+    verdict: incorrect
+    justification: '`SORT BY` works on any sortable type.'
+  - text: They are identical.
+    verdict: incorrect
+    justification: 'They differ in scope: per partition versus total order.'
+  - text: '`SORT BY` sorts rows within each partition, while `ORDER BY` produces a total order of the result.'
+    verdict: correct
+    justification: '`SORT BY` sorts within each partition; `ORDER BY` returns a totally ordered result.'
+  - text: '`SORT BY` sorts the whole result, while `ORDER BY` only sorts within partitions.'
+    verdict: incorrect
+    justification: The definitions are swapped.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-sortby.html
+- id: 2.3-027
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants Databricks to pick clustering keys automatically based on query patterns.
+
+    Which option does this?
+  answers:
+  - text: '`CLUSTER BY AUTO`'
+    verdict: correct
+    justification: '`CLUSTER BY AUTO` lets Databricks choose and adjust the clustering keys automatically.'
+  - text: '`BUCKET BY AUTO`'
+    verdict: incorrect
+    justification: There is no `BUCKET BY AUTO`.
+  - text: '`ZORDER BY AUTO`'
+    verdict: incorrect
+    justification: There is no `ZORDER BY AUTO`.
+  - text: '`PARTITIONED BY AUTO`'
+    verdict: incorrect
+    justification: There is no `PARTITIONED BY AUTO`.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-028
+  category: using_spark_sql
+  objective: '2.3'
+  question: Which code writes a table partitioned by `year` and `month` on Databricks?
+  answers:
+  - text: '`df.write.partitionBy(["year"], ["month"]).table("main.sales.monthly")`'
+    verdict: incorrect
+    justification: '`partitionBy` takes column names as arguments, and `DataFrameWriter` has no `table` method.'
+  - text: '`df.write.saveAsTable("main.sales.monthly", partitions="year/month")`'
+    verdict: incorrect
+    justification: '`saveAsTable` has no `partitions` parameter.'
+  - text: '`df.partitionBy("year", "month").write.saveAsTable("main.sales.monthly")`'
+    verdict: incorrect
+    justification: '`partitionBy` is a method of `DataFrameWriter`, not of the DataFrame.'
+  - text: '`df.write.partitionBy("year", "month").saveAsTable("main.sales.monthly")`'
+    verdict: correct
+    justification: '`write.partitionBy("year", "month").saveAsTable(...)` creates a table partitioned by both columns.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 2.3-029
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer sorts data by a frequently filtered column before writing a Delta table without clustering.
+
+    Why can this improve query performance?
+  answers:
+  - text: Delta Lake requires sorted data to read files.
+    verdict: incorrect
+    justification: Delta Lake reads unsorted data fine.
+  - text: Similar values end up in the same files, so per-file min/max statistics let more files be skipped.
+    verdict: correct
+    justification: Sorting clusters similar values into the same files, so per-file min/max ranges are narrow and more files can be skipped.
+  - text: Sorting creates an index file.
+    verdict: incorrect
+    justification: Delta Lake does not create index files from sorting.
+  - text: Sorted data is cached automatically.
+    verdict: incorrect
+    justification: Sorting does not cache data.
+  source_url: https://docs.databricks.com/aws/en/tables/data-skipping
+- id: 2.3-030
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer creates a streaming table write with liquid clustering using Structured Streaming.
+
+    Which code is valid on Databricks?
+  answers:
+  - text: |-
+      |
+      ```python
+      (spark.readStream.table("source_table")
+         .writeStream
+         .partitionBy("customer_id")
+         .clustered()
+         .toTable("target_table"))
+      ```
+    verdict: incorrect
+    justification: There is no `clustered()` method, and partitioning is not compatible with liquid clustering.
+  - text: Liquid clustering cannot be used with streaming writes.
+    verdict: incorrect
+    justification: Databricks supports liquid clustering for streaming writes.
+  - text: |-
+      |
+      ```python
+      (spark.readStream.table("source_table")
+         .writeStream
+         .bucketBy(8, "customer_id")
+         .toTable("target_table"))
+      ```
+    verdict: incorrect
+    justification: '`DataStreamWriter` has no `bucketBy`, and no checkpoint location is set.'
+  - text: |-
+      |
+      ```python
+      (spark.readStream.table("source_table")
+         .writeStream
+         .clusterBy("customer_id")
+         .option("checkpointLocation", checkpoint_path)
+         .toTable("target_table"))
+      ```
+    verdict: correct
+    justification: Databricks documents `writeStream.clusterBy(...)` with a checkpoint and `toTable(...)` for liquid clustered streaming writes.
+  source_url: https://docs.databricks.com/aws/en/tables/clustering
+- id: 2.3-031
+  category: using_spark_sql
+  objective: '2.3'
+  question: |-
+    A data engineer wants a persistent table backed by JSON files, created from a query in SQL.
+
+    Which statement does this?
+  answers:
+  - text: '`CREATE TABLE people_json USING json AS SELECT * FROM people`'
+    verdict: correct
+    justification: '`CREATE TABLE ... USING json AS SELECT ...` creates a persistent JSON-backed table from a query.'
+  - text: '`CREATE TABLE people_json AS SELECT * FROM people FORMAT json`'
+    verdict: incorrect
+    justification: '`FORMAT json` is not valid after a `SELECT`; the format is set with `USING`.'
+  - text: '`CREATE JSON TABLE people_json AS SELECT * FROM people`'
+    verdict: incorrect
+    justification: '`CREATE JSON TABLE` is not valid syntax.'
+  - text: '`SAVE people AS TABLE people_json FORMAT json`'
+    verdict: incorrect
+    justification: '`SAVE ... AS TABLE` is not SQL.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html

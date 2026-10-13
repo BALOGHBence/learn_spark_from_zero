@@ -1,0 +1,628 @@
+# Objective 5.1: Explain the Structured Streaming engine in Spark, including its functions, programming model, micro-batch processing, exactly-once semantics, and fault tolerance mechanisms.
+- id: 5.1-001
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer explains Structured Streaming's programming model to a colleague.
+
+    Which description is correct?
+  answers:
+  - text: Each event is processed by a separate Spark application.
+    verdict: incorrect
+    justification: All events are processed by one long-running query, not one application per event.
+  - text: Streaming queries can only be written in SQL.
+    verdict: incorrect
+    justification: Streaming queries can use the DataFrame API as well as SQL.
+  - text: A live data stream is treated as an unbounded table that is continuously appended, and queries on it are expressed like batch queries on a static table.
+    verdict: correct
+    justification: Structured Streaming treats a stream as an unbounded table that keeps growing; queries are written like batch queries on a static table.
+  - text: Streams are stored as RDDs that the user must update manually.
+    verdict: incorrect
+    justification: Users work with DataFrames; Spark manages the incremental updates.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-002
+  category: structured_streaming
+  objective: '5.1'
+  question: On which engine is Structured Streaming built?
+  answers:
+  - text: The RDD-based DStream engine
+    verdict: true_but_irrelevant
+    justification: The DStream API is Spark's legacy streaming API, not the engine of Structured Streaming.
+  - text: The Spark SQL engine
+    verdict: correct
+    justification: Structured Streaming is built on the Spark SQL engine.
+  - text: The pandas API on Spark
+    verdict: incorrect
+    justification: The pandas API on Spark is not a streaming engine.
+  - text: A separate streaming engine outside Spark
+    verdict: incorrect
+    justification: It runs inside Spark, not on a separate engine.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-003
+  category: structured_streaming
+  objective: '5.1'
+  question: How does Structured Streaming process queries by default?
+  answers:
+  - text: With a continuous engine that processes each record individually
+    verdict: true_but_irrelevant
+    justification: Processing records individually is continuous processing, an optional low-latency mode.
+  - text: On the driver only
+    verdict: incorrect
+    justification: Processing runs on the executors.
+  - text: Once per day in one large batch
+    verdict: incorrect
+    justification: Micro-batches run continuously, not once per day.
+  - text: With a micro-batch engine that processes the stream as a series of small batch jobs
+    verdict: correct
+    justification: By default Structured Streaming uses a micro-batch engine that processes the stream as a series of small batch jobs.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-004
+  category: structured_streaming
+  objective: '5.1'
+  question: What end-to-end latency does the Spark documentation state is achievable with the default micro-batch engine?
+  answers:
+  - text: As low as about 100 milliseconds, with exactly-once guarantees
+    verdict: correct
+    justification: The Spark docs state micro-batch processing reaches end-to-end latencies as low as about 100 ms with exactly-once guarantees.
+  - text: At least 1 minute
+    verdict: incorrect
+    justification: Latency can be far below 1 minute.
+  - text: About 1 hour
+    verdict: incorrect
+    justification: Latency can be far below 1 hour.
+  - text: As low as 1 millisecond, with exactly-once guarantees
+    verdict: partially_correct
+    justification: Latency as low as 1 ms is continuous processing, and that mode only gives at-least-once guarantees.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-005
+  category: structured_streaming
+  objective: '5.1'
+  question: Which mechanisms does Structured Streaming use to provide end-to-end exactly-once fault tolerance?
+  answers:
+  - text: Replicating every record three times in memory
+    verdict: incorrect
+    justification: Spark does not replicate every record three times.
+  - text: Storing all data on the driver
+    verdict: incorrect
+    justification: Data is not stored on the driver.
+  - text: Checkpointing and write-ahead logs, combined with replayable sources and idempotent sinks
+    verdict: correct
+    justification: Exactly-once is achieved with checkpointing and write-ahead logs, combined with replayable sources and idempotent sinks.
+  - text: Retrying each record until the sink confirms it twice
+    verdict: incorrect
+    justification: Spark does not retry each record until it is confirmed twice.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-006
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    Continuous Processing was introduced as a low-latency mode in Apache Spark.
+
+    Which guarantee does it provide?
+  answers:
+  - text: No guarantees
+    verdict: incorrect
+    justification: It does give at-least-once guarantees.
+  - text: At-most-once
+    verdict: incorrect
+    justification: Continuous processing is not at-most-once.
+  - text: Exactly-once
+    verdict: true_but_irrelevant
+    justification: Exactly-once is the guarantee of the default micro-batch engine.
+  - text: At-least-once
+    verdict: correct
+    justification: The Spark docs state continuous processing gives at-least-once guarantees.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-007
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer wants to use the continuous processing trigger on Databricks.
+
+    What does the Databricks documentation say?
+  answers:
+  - text: It is the default trigger on Databricks.
+    verdict: incorrect
+    justification: The default trigger runs micro-batches.
+  - text: The continuous trigger is not supported; use real-time mode instead.
+    verdict: correct
+    justification: Databricks marks the continuous trigger as not supported and points to real-time mode instead.
+  - text: It provides exactly-once guarantees on Databricks.
+    verdict: incorrect
+    justification: It is not supported on Databricks at all.
+  - text: It is supported only on serverless compute.
+    verdict: incorrect
+    justification: It is not supported on serverless either.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-008
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A streaming query is started without specifying a trigger.
+
+    How does it behave?
+  answers:
+  - text: It runs micro-batches continuously, as if using a processing time trigger of 0 ms, starting the next batch as soon as the previous one completes.
+    verdict: correct
+    justification: 'With no trigger, Databricks says the query behaves like a processing time trigger of 0 ms: the next micro-batch starts as soon as the previous one finishes.'
+  - text: It runs exactly one micro-batch and stops.
+    verdict: true_but_irrelevant
+    justification: Running available data and stopping is what `availableNow` does, not the default.
+  - text: It waits for 1 minute between batches.
+    verdict: incorrect
+    justification: There is no default 1-minute wait.
+  - text: It does not start until a trigger is configured.
+    verdict: incorrect
+    justification: The query starts with the default trigger.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-009
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer wants a streaming query to process all available data in multiple micro-batches and then stop, as a scheduled incremental job.
+
+    Which trigger does this?
+  answers:
+  - text: '`.trigger(continuous="1 second")`'
+    verdict: incorrect
+    justification: The continuous trigger is not supported on Databricks and never stops by itself.
+  - text: '`.trigger(availableNow=True)`'
+    verdict: correct
+    justification: '`availableNow=True` processes all available data, possibly in several micro-batches, and then stops.'
+  - text: '`.trigger(processingTime="0 seconds")`'
+    verdict: true_but_irrelevant
+    justification: A `processingTime` of 0 seconds is a valid trigger, but the query keeps running instead of stopping.
+  - text: '`.trigger(once=False)`'
+    verdict: incorrect
+    justification: '`once=False` is not a valid way to run incremental batches; `once` is also deprecated.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-010
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer wants a micro-batch to start every 10 seconds to balance cost and latency.
+
+    Which trigger does this?
+  answers:
+  - text: '`.trigger(processingTime="10 seconds")`'
+    verdict: correct
+    justification: '`processingTime="10 seconds"` starts a micro-batch every 10 seconds.'
+  - text: '`.trigger(interval=10)`'
+    verdict: incorrect
+    justification: '`trigger` has no `interval` parameter.'
+  - text: '`.trigger(continuous="10 seconds")`'
+    verdict: incorrect
+    justification: The continuous trigger is not supported on Databricks and is not a micro-batch interval.
+  - text: '`.trigger(availableNow="10 seconds")`'
+    verdict: incorrect
+    justification: '`availableNow` takes a boolean, not an interval.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-011
+  category: structured_streaming
+  objective: '5.1'
+  question: Why does a production streaming query need a checkpoint location?
+  answers:
+  - text: The checkpoint replaces the need for a sink.
+    verdict: incorrect
+    justification: A sink is still required.
+  - text: The checkpoint stores a copy of all output data.
+    verdict: incorrect
+    justification: The checkpoint does not store copies of output data.
+  - text: The checkpoint stores the query's progress and state so it can restart from where it left off after a failure.
+    verdict: correct
+    justification: The checkpoint stores progress and state so the query can resume after a failure.
+  - text: The checkpoint is only used for logging.
+    verdict: incorrect
+    justification: The checkpoint is for recovery, not logging.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-012
+  category: structured_streaming
+  objective: '5.1'
+  question: Which information does a streaming checkpoint track?
+  answers:
+  - text: The driver and executor logs
+    verdict: incorrect
+    justification: Logs are not stored in the checkpoint.
+  - text: The notebook source code
+    verdict: incorrect
+    justification: Source code is not stored in the checkpoint.
+  - text: Only the schema of the sink table
+    verdict: incorrect
+    justification: It stores much more than the sink schema.
+  - text: Information that identifies the query, including processed records (offsets) and state information
+    verdict: correct
+    justification: Databricks says the checkpoint tracks information that identifies the query, including processed records (offsets) and state.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-013
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer starts two different streaming queries with the same checkpoint location.
+
+    What is the problem?
+  answers:
+  - text: Each query needs its own checkpoint location, because a checkpoint identifies one query's progress and state.
+    verdict: correct
+    justification: A checkpoint belongs to one query, so each query needs its own checkpoint location.
+  - text: Nothing; checkpoints can be shared freely.
+    verdict: incorrect
+    justification: Sharing a checkpoint between different queries corrupts progress tracking.
+  - text: Both queries are merged into one.
+    verdict: incorrect
+    justification: Queries are never merged.
+  - text: The second query automatically creates a subfolder.
+    verdict: incorrect
+    justification: Spark does not create subfolders automatically.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-014
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer changes a running query to read from an additional Kafka topic.
+
+    What does the documentation say about checkpoint compatibility?
+  answers:
+  - text: All changes are safe with the same checkpoint.
+    verdict: incorrect
+    justification: Some changes are not compatible with an existing checkpoint.
+  - text: The checkpoint is updated automatically for new topics.
+    verdict: incorrect
+    justification: Checkpoints are not updated automatically for new topics.
+  - text: Changing input sources or subscribed topics generally requires a new checkpoint.
+    verdict: correct
+    justification: Databricks lists changing input sources or subscribed Kafka topics as changes that generally need a new checkpoint.
+  - text: Only changes to filters require a new checkpoint.
+    verdict: incorrect
+    justification: Databricks lists filter changes as generally safe.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-015
+  category: structured_streaming
+  objective: '5.1'
+  question: Which change to a streaming query is generally safe to make while keeping the same checkpoint?
+  answers:
+  - text: Changing the output sink type
+    verdict: incorrect
+    justification: Changing the output sink type requires a new checkpoint.
+  - text: Changing the type of stateful operation
+    verdict: incorrect
+    justification: Changing the type of stateful operation requires a new checkpoint.
+  - text: Changing the state schema
+    verdict: incorrect
+    justification: Changing the state schema requires a new checkpoint.
+  - text: Adding or removing a filter, or changing the trigger interval
+    verdict: correct
+    justification: Databricks lists adding or removing filters and changing trigger intervals as generally safe changes.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-016
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer writes a streaming word count with the same DataFrame operations as a batch word count.
+
+    What does Spark do to run it?
+  answers:
+  - text: Spark converts it into an RDD-based DStream program.
+    verdict: incorrect
+    justification: Structured Streaming does not convert queries into DStreams.
+  - text: The Spark SQL engine runs it incrementally and continuously, updating the result as new data arrives.
+    verdict: correct
+    justification: The Spark SQL engine runs the same query incrementally and continuously, updating results as new data arrives.
+  - text: Spark fails because batch operations are not allowed on streams.
+    verdict: incorrect
+    justification: Most batch DataFrame operations work on streams.
+  - text: Spark runs the full batch query from scratch on all data every minute.
+    verdict: incorrect
+    justification: Spark does not rerun the full query on all data each time.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-017
+  category: structured_streaming
+  objective: '5.1'
+  question: What is required of a source to enable exactly-once processing after a failure?
+  answers:
+  - text: It must be a Delta table.
+    verdict: incorrect
+    justification: Many sources are replayable, not only Delta.
+  - text: It must be stored on the driver.
+    verdict: incorrect
+    justification: Sources are external systems, not stored on the driver.
+  - text: It must deliver each record only once.
+    verdict: incorrect
+    justification: Sources do not need exactly-once delivery; replay plus checkpoints provides that.
+  - text: It must be replayable, so data from the tracked offsets can be read again.
+    verdict: correct
+    justification: A replayable source can re-read data from the recorded offsets after a failure.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-018
+  category: structured_streaming
+  objective: '5.1'
+  question: What is required of a sink to support end-to-end exactly-once semantics?
+  answers:
+  - text: It must be a console sink.
+    verdict: incorrect
+    justification: The console sink is for debugging only.
+  - text: It must be stored in memory.
+    verdict: incorrect
+    justification: Sinks write to external storage, not memory.
+  - text: It must be idempotent, so reprocessing after a failure does not produce duplicates.
+    verdict: correct
+    justification: An idempotent sink makes reprocessing a batch after a failure safe, without duplicates.
+  - text: It must accept only append mode.
+    verdict: incorrect
+    justification: Output mode is not the requirement.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-019
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A team wants to process data that arrives in cloud storage as it lands, with near-real-time latency.
+
+    Which Databricks statement about Structured Streaming fits?
+  answers:
+  - text: Structured Streaming is used for incremental and near real-time workloads, processing new data as it arrives.
+    verdict: correct
+    justification: Databricks describes Structured Streaming for incremental and near real-time workloads that process new data as it arrives.
+  - text: Structured Streaming always reprocesses all data on each run.
+    verdict: incorrect
+    justification: It processes only new data incrementally.
+  - text: Structured Streaming is a deprecated Databricks feature.
+    verdict: incorrect
+    justification: Structured Streaming is current and fully supported.
+  - text: Structured Streaming can only read from Kafka.
+    verdict: incorrect
+    justification: Many sources are supported, including cloud files, Delta tables and Kafka.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/concepts
+- id: 5.1-020
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A micro-batch fails in the middle of writing to the sink. The query is restarted from the same checkpoint.
+
+    What happens?
+  answers:
+  - text: The query skips the failed micro-batch.
+    verdict: incorrect
+    justification: The failed batch is not skipped.
+  - text: The query reprocesses the failed micro-batch using the offsets recorded in the checkpoint.
+    verdict: correct
+    justification: On restart, the query reprocesses the failed micro-batch from the offsets in the checkpoint.
+  - text: The query restarts from the earliest offset of the source.
+    verdict: incorrect
+    justification: The query resumes from the checkpoint, not from the earliest offset.
+  - text: The query cannot be restarted.
+    verdict: incorrect
+    justification: Restarting from the checkpoint is the normal recovery.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-021
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer starts a streaming query in a script and wants the script to block until the query stops.
+
+    Which call does this?
+  answers:
+  - text: '`query.wait()`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `wait` method.'
+  - text: '`spark.streams.block()`'
+    verdict: incorrect
+    justification: '`spark.streams` has no `block` method.'
+  - text: '`query.awaitTermination()`'
+    verdict: correct
+    justification: '`awaitTermination()` blocks until the query stops or fails.'
+  - text: '`query.join()`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `join` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.StreamingQuery.awaitTermination.html
+- id: 5.1-022
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer must stop a running streaming query gracefully from the notebook.
+
+    Which call does this?
+  answers:
+  - text: '`query.cancel(force=True)`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `cancel` method.'
+  - text: '`query.stop()`'
+    verdict: correct
+    justification: '`query.stop()` stops a running streaming query.'
+  - text: '`spark.stop()` only'
+    verdict: partially_correct
+    justification: '`spark.stop()` would end the query, but by stopping the whole session and everything else running in it.'
+  - text: '`query.terminate()`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `terminate` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.StreamingQuery.stop.html
+- id: 5.1-023
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer wants to know whether a streaming query is currently processing data or waiting for new data.
+
+    Which property gives this?
+  answers:
+  - text: '`query.status`'
+    verdict: correct
+    justification: '`query.status` reports whether the query is processing data, waiting for data or waiting for a trigger.'
+  - text: '`query.explain()`'
+    verdict: incorrect
+    justification: '`explain` prints the query plan.'
+  - text: '`query.lastProgress["isActive"]`'
+    verdict: incorrect
+    justification: '`lastProgress` has no `isActive` field; `query.isActive` is a separate property.'
+  - text: '`query.schema`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `schema` attribute.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.StreamingQuery.status.html
+- id: 5.1-024
+  category: structured_streaming
+  objective: '5.1'
+  question: How does Structured Streaming handle event-time data that arrives late?
+  answers:
+  - text: Late data is always added to the next window.
+    verdict: incorrect
+    justification: Late data goes to its event-time window, not the next one.
+  - text: Late data is always dropped immediately.
+    verdict: incorrect
+    justification: Late data is not dropped immediately; it is processed until it falls outside the watermark.
+  - text: Late data stops the query.
+    verdict: incorrect
+    justification: Late data does not stop the query.
+  - text: Because the query result is an updating table, late data can update earlier results, and watermarks limit how long state is kept.
+    verdict: correct
+    justification: Late data updates the matching earlier results in the result table, and watermarks bound how long that state is kept.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-025
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A streaming job should restart automatically after failures in production on Databricks.
+
+    Which practice is recommended?
+  answers:
+  - text: Run it in an interactive notebook and restart it manually
+    verdict: incorrect
+    justification: Manual restarts in an interactive notebook are not recommended for production.
+  - text: Remove the checkpoint so it restarts cleanly
+    verdict: incorrect
+    justification: Removing the checkpoint loses progress and state.
+  - text: Run it with `trigger(once=True)` in a loop in a notebook
+    verdict: incorrect
+    justification: '`trigger(once=True)` is deprecated, and a loop in a notebook is not a production setup.'
+  - text: Run it as a Lakeflow Job with retries, and a checkpoint location so it resumes from where it stopped
+    verdict: correct
+    justification: Databricks recommends running streams as Lakeflow Jobs, configured to restart automatically on failure, with a checkpoint so they resume.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/production
+- id: 5.1-026
+  category: structured_streaming
+  objective: '5.1'
+  question: Which statement about the incremental execution of a streaming aggregation is correct?
+  answers:
+  - text: Spark keeps every input record in memory forever.
+    verdict: incorrect
+    justification: Input records are not kept forever.
+  - text: Spark stores the full stream in the driver.
+    verdict: incorrect
+    justification: State is kept on the executors.
+  - text: Spark keeps only the minimal intermediate state needed to update the result, not the entire input stream.
+    verdict: correct
+    justification: Incremental execution keeps only the intermediate state needed to update the result.
+  - text: Spark recomputes the aggregation from all historical data in each batch.
+    verdict: incorrect
+    justification: Results are updated incrementally, not recomputed from all history.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-027
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A data engineer reads about the deprecated `trigger(once=True)`.
+
+    Which trigger should be used instead for incremental batch processing?
+  answers:
+  - text: '`trigger(availableNow=True)`'
+    verdict: correct
+    justification: Databricks marks `Trigger.Once` as deprecated; `availableNow` processes all available data in batches and stops.
+  - text: '`trigger(processingTime="0 seconds")`'
+    verdict: true_but_irrelevant
+    justification: '`processingTime="0 seconds"` is a valid trigger, but the query keeps running instead of stopping.'
+  - text: '`trigger(continuous="1 second")`'
+    verdict: incorrect
+    justification: The continuous trigger is not supported on Databricks and does not stop.
+  - text: No trigger at all
+    verdict: true_but_irrelevant
+    justification: Without a trigger the query is valid, but it runs indefinitely instead of stopping.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-028
+  category: structured_streaming
+  objective: '5.1'
+  question: On Databricks, which mode is designed for ultra-low-latency operational workloads requiring sub-second processing, such as fraud detection?
+  answers:
+  - text: A daily batch job
+    verdict: incorrect
+    justification: A daily batch is far from sub-second latency.
+  - text: Real-time mode
+    verdict: correct
+    justification: Databricks offers real-time mode for sub-second, operational workloads such as fraud detection.
+  - text: The `availableNow` trigger
+    verdict: incorrect
+    justification: '`availableNow` is for scheduled incremental batches.'
+  - text: Continuous processing
+    verdict: true_but_irrelevant
+    justification: Continuous processing was Apache Spark's low-latency mode, but Databricks does not support it and points to real-time mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/triggers
+- id: 5.1-029
+  category: structured_streaming
+  objective: '5.1'
+  question: Which statement about the result table in Structured Streaming is correct?
+  answers:
+  - text: The result table contains only the latest record.
+    verdict: incorrect
+    justification: The result table holds all results, not only the latest record.
+  - text: The result table is stored in the source.
+    verdict: incorrect
+    justification: The result table is computed by Spark, not stored in the source.
+  - text: The result table is written to the sink only when the query stops.
+    verdict: incorrect
+    justification: Results are written on each trigger, not only when the query stops.
+  - text: Each trigger updates the result table, and the output mode decides which part of it is written to the sink.
+    verdict: correct
+    justification: Each trigger updates the result table, and the output mode decides which rows are written to the sink.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-030
+  category: structured_streaming
+  objective: '5.1'
+  question: |-
+    A team deletes the checkpoint of a running query and restarts it.
+
+    What is the consequence?
+  answers:
+  - text: Nothing changes; the checkpoint is rebuilt from the sink.
+    verdict: incorrect
+    justification: The checkpoint cannot be rebuilt from the sink.
+  - text: The query fails permanently.
+    verdict: incorrect
+    justification: The query starts fresh; it does not fail permanently.
+  - text: The query loses its progress and state and starts as a new query, which may reprocess or skip data depending on the source's starting options.
+    verdict: correct
+    justification: Without its checkpoint, the query starts as a new query; whether data is reprocessed or skipped depends on the source's starting options.
+  - text: The query resumes from the last committed offset.
+    verdict: incorrect
+    justification: Without the checkpoint, the committed offsets are unknown.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 5.1-031
+  category: structured_streaming
+  objective: '5.1'
+  question: Which statement about fault tolerance with replayable sources is correct?
+  answers:
+  - text: Offsets of each micro-batch are recorded, so the engine can restart and reprocess a batch after a failure.
+    verdict: correct
+    justification: The offsets of each micro-batch are recorded, so after a failure the engine can reprocess the batch from the source.
+  - text: Data must be cached on executors to be replayed.
+    verdict: incorrect
+    justification: Replay comes from the source, not from executor caches.
+  - text: Offsets are never recorded, so lost data cannot be reprocessed.
+    verdict: incorrect
+    justification: Offsets are recorded in the checkpoint.
+  - text: The source keeps track of what the sink has written.
+    verdict: incorrect
+    justification: Spark tracks progress itself; the source does not track what the sink wrote.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 5.1-032
+  category: structured_streaming
+  objective: '5.1'
+  question: How does Structured Streaming handle a query restart with an unchanged query and checkpoint after a cluster restart?
+  answers:
+  - text: It always skips data that arrived during the downtime.
+    verdict: incorrect
+    justification: Data that arrived during the downtime is processed after the restart.
+  - text: It continues from the last committed offsets and recovered state, maintaining exactly-once results for supported sources and sinks.
+    verdict: correct
+    justification: With the same query and checkpoint, the query continues from the last committed offsets and recovered state, keeping exactly-once results.
+  - text: It always restarts from the beginning of the stream.
+    verdict: incorrect
+    justification: It does not restart from the beginning.
+  - text: It requires manual offset input.
+    verdict: incorrect
+    justification: No manual offset input is needed.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html

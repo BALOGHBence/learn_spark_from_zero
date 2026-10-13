@@ -1,0 +1,666 @@
+# Objective 1.5: Configure Spark partitioning in distributed data processing, including shuffles and partitions
+- id: 1.5-001
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer wants all joins and aggregations in a session to produce 400 shuffle partitions instead of the default.
+
+    Which code does this?
+  answers:
+  - text: '`spark.conf.set("spark.sql.shuffle.partitions", 400)`'
+    verdict: correct
+    justification: '`spark.sql.shuffle.partitions` sets how many partitions joins and aggregations produce when they shuffle DataFrame data.'
+  - text: '`spark.conf.set("spark.default.parallelism", 400)`'
+    verdict: true_but_irrelevant
+    justification: '`spark.default.parallelism` is a real setting, but it sets the default partition count for RDD operations, not for DataFrame shuffles.'
+  - text: '`spark.conf.set("spark.executor.instances", 400)`'
+    verdict: incorrect
+    justification: '`spark.executor.instances` sets the number of executors, not the number of shuffle partitions.'
+  - text: '`spark.conf.set("spark.sql.files.maxPartitionBytes", 400)`'
+    verdict: true_but_irrelevant
+    justification: '`spark.sql.files.maxPartitionBytes` is real, but it controls how input files are split into partitions when reading, not shuffle output.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-002
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A developer asks for the default value of `spark.sql.shuffle.partitions` in Apache Spark.
+
+    Which value is it?
+  answers:
+  - text: '8'
+    verdict: incorrect
+    justification: 8 is not the default number of shuffle partitions.
+  - text: '64'
+    verdict: incorrect
+    justification: 64 is not a partition count; 64 MB is the default AQE advisory partition size.
+  - text: '200'
+    verdict: correct
+    justification: The default of `spark.sql.shuffle.partitions` is 200.
+  - text: '1000'
+    verdict: incorrect
+    justification: 1000 is not the default.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-003
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer reads a 10 GB Parquet dataset made of a few large files and wants to understand how many input partitions Spark creates.
+
+    Which configuration controls the maximum number of bytes packed into a single partition when reading files?
+  answers:
+  - text: '`spark.sql.shuffle.partitions`, which defaults to 200'
+    verdict: true_but_irrelevant
+    justification: '`spark.sql.shuffle.partitions` is a real setting, but it controls partitions after a shuffle, not input splits.'
+  - text: '`spark.sql.autoBroadcastJoinThreshold`, which defaults to 10 MB'
+    verdict: true_but_irrelevant
+    justification: '`spark.sql.autoBroadcastJoinThreshold` is real, but it decides which tables are broadcast in joins.'
+  - text: '`spark.sql.adaptive.advisoryPartitionSizeInBytes`, which defaults to 64 MB'
+    verdict: true_but_irrelevant
+    justification: '`spark.sql.adaptive.advisoryPartitionSizeInBytes` is real, but it is AQE''s target for post-shuffle partitions, not for reading files.'
+  - text: '`spark.sql.files.maxPartitionBytes`, which defaults to 128 MB'
+    verdict: correct
+    justification: '`spark.sql.files.maxPartitionBytes` (default 128 MB) caps how many bytes are packed into one partition when reading file sources such as Parquet.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-004
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer needs to redistribute a DataFrame into 50 partitions hashed by `customer_id`, so later operations on that key are balanced.
+
+    Which code does this?
+  answers:
+  - text: '`df.coalesce(50, "customer_id")`'
+    verdict: incorrect
+    justification: '`coalesce` only takes a number of partitions; it cannot partition by a column.'
+  - text: '`df.repartition(50, "customer_id")`'
+    verdict: correct
+    justification: '`repartition(50, "customer_id")` hash-partitions the data by `customer_id` into 50 partitions.'
+  - text: '`df.partitionBy(50, "customer_id")`'
+    verdict: incorrect
+    justification: DataFrames have no `partitionBy` method; `partitionBy` exists on `DataFrameWriter` and controls output directories.
+  - text: '`df.repartitionByRange(50)`'
+    verdict: incorrect
+    justification: '`repartitionByRange` partitions by ranges of a sort column, and here no column is given; it does not hash by `customer_id`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 1.5-005
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A DataFrame has 1,000 small partitions after filtering. The engineer wants 100 partitions without a full shuffle.
+
+    Which method should be used?
+  answers:
+  - text: '`df.repartitionByRange(100, "id")`'
+    verdict: incorrect
+    justification: '`repartitionByRange` also shuffles the data.'
+  - text: '`df.sortWithinPartitions("id")`'
+    verdict: incorrect
+    justification: '`sortWithinPartitions` sorts rows inside each partition and does not change the number of partitions.'
+  - text: '`df.repartition(100)`'
+    verdict: partially_correct
+    justification: '`repartition(100)` also produces 100 partitions, but it performs a full shuffle, which the engineer wanted to avoid.'
+  - text: '`df.coalesce(100)`'
+    verdict: correct
+    justification: '`coalesce(100)` merges existing partitions into 100 without a full shuffle (a narrow dependency).'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.coalesce.html
+- id: 1.5-006
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A DataFrame currently has 20 partitions. The engineer calls `df.coalesce(100)`.
+
+    How many partitions does the result have?
+  answers:
+  - text: 100, because `coalesce` creates new empty partitions
+    verdict: incorrect
+    justification: '`coalesce` does not create new empty partitions; use `repartition` to increase the count.'
+  - text: 20, because `coalesce` cannot increase the number of partitions
+    verdict: correct
+    justification: '`coalesce` can only reduce partitions; if more are requested, the DataFrame keeps its current number (20).'
+  - text: 120, because the counts are added
+    verdict: incorrect
+    justification: Partition counts are not added together.
+  - text: 1, because `coalesce` merges everything
+    verdict: incorrect
+    justification: '`coalesce(100)` asks for 100 partitions, not 1; it simply cannot go above the current 20.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.coalesce.html
+- id: 1.5-007
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer calls `df.coalesce(1)` before writing a large DataFrame and the write becomes very slow.
+
+    According to the documentation, why?
+  answers:
+  - text: A drastic coalesce can cause the upstream computation to run on very few nodes, for example on one node for a single partition.
+    verdict: correct
+    justification: The PySpark docs warn that a drastic coalesce such as `coalesce(1)` can make the upstream computation run on very few nodes (one node for one partition), losing parallelism.
+  - text: '`coalesce(1)` disables compression of the output file.'
+    verdict: incorrect
+    justification: '`coalesce` does not change compression settings.'
+  - text: '`coalesce(1)` caches the whole DataFrame before writing.'
+    verdict: incorrect
+    justification: '`coalesce` does not cache the DataFrame.'
+  - text: '`coalesce(1)` triggers a full shuffle of the data to the driver.'
+    verdict: incorrect
+    justification: '`coalesce` avoids a shuffle and does not send data to the driver.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.coalesce.html
+- id: 1.5-008
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer must produce exactly one output file but keeps the upstream computation parallel.
+
+    Which approach does the PySpark documentation suggest instead of `coalesce(1)`?
+  answers:
+  - text: '`repartitionByRange(1)` without a column'
+    verdict: incorrect
+    justification: '`repartitionByRange` requires at least one column.'
+  - text: '`sortWithinPartitions()` followed by `coalesce(1)`'
+    verdict: incorrect
+    justification: Sorting within partitions does not change the parallelism problem of `coalesce(1)`.
+  - text: '`repartition(1)`, which adds a shuffle but lets the upstream partitions be computed in parallel'
+    verdict: correct
+    justification: 'The docs suggest `repartition(1)`: it adds a shuffle, but the upstream partitions are still computed in parallel before the data is gathered into one partition.'
+  - text: '`coalesce(1, shuffle=False)`'
+    verdict: incorrect
+    justification: '`DataFrame.coalesce` takes only the number of partitions and has no `shuffle` parameter, and without a shuffle the upstream would still run in one task.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 1.5-009
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer wants partitions that each contain a contiguous range of `order_date` values, for example before writing sorted output.
+
+    Which method should be used?
+  answers:
+  - text: '`df.repartitionByRange(30, "order_date")`'
+    verdict: correct
+    justification: '`repartitionByRange(30, "order_date")` places contiguous ranges of `order_date` values into each partition.'
+  - text: '`df.sortWithinPartitions("order_date")`'
+    verdict: true_but_irrelevant
+    justification: '`sortWithinPartitions` does sort rows, but only inside the existing partitions; it does not group value ranges into partitions.'
+  - text: '`df.coalesce(30)`'
+    verdict: incorrect
+    justification: '`coalesce` merges existing partitions without regard to `order_date` values.'
+  - text: '`df.repartition(30, "order_date")`'
+    verdict: incorrect
+    justification: '`repartition(30, "order_date")` uses hash partitioning, so each partition gets a mix of values, not contiguous ranges.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartitionByRange.html
+- id: 1.5-010
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer wants to see how many rows ended up in each partition after a repartition.
+
+    Which code helps with this?
+  answers:
+  - text: |-
+      |
+      ```python
+      df.groupBy("partition").count().show()
+      ```
+    verdict: incorrect
+    justification: The DataFrame has no `partition` column unless you create one.
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.functions import spark_partition_id
+      df.groupBy(spark_partition_id().alias("pid")).count().show()
+      ```
+    verdict: correct
+    justification: '`spark_partition_id()` returns the partition id of each row, so grouping by it shows the row count per partition.'
+  - text: |-
+      |
+      ```python
+      df.describe("partition_id").show()
+      ```
+    verdict: incorrect
+    justification: '`describe` computes statistics of existing columns; there is no `partition_id` column.'
+  - text: |-
+      |
+      ```python
+      df.partitions().count().show()
+      ```
+    verdict: incorrect
+    justification: DataFrames have no `partitions()` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.spark_partition_id.html
+- id: 1.5-011
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A team runs a daily aggregation on a small amount of data and notices 200 tiny tasks in the post-shuffle stage, each finishing in milliseconds.
+
+    Which Spark feature, enabled by default, reduces this overhead automatically?
+  answers:
+  - text: Broadcast variables
+    verdict: incorrect
+    justification: Broadcast variables share read-only values with tasks; they do not change partition counts.
+  - text: Dynamic allocation of executors
+    verdict: true_but_irrelevant
+    justification: Dynamic allocation changes the number of executors, not the number of shuffle partitions or tasks.
+  - text: Speculative execution
+    verdict: true_but_irrelevant
+    justification: Speculative execution re-launches slow tasks; it does not reduce the number of tiny tasks.
+  - text: Adaptive query execution coalescing small shuffle partitions based on runtime statistics
+    verdict: correct
+    justification: AQE is on by default and coalesces small post-shuffle partitions using runtime statistics, reducing many tiny tasks to fewer reasonable ones.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-012
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    On Databricks, a data engineer wants Spark to choose the number of shuffle partitions automatically based on the query plan and input size.
+
+    Which setting enables auto-optimized shuffle?
+  answers:
+  - text: '`spark.conf.set("spark.sql.shuffle.partitions", "-1")`'
+    verdict: incorrect
+    justification: '`-1` is not a valid way to enable auto-optimized shuffle.'
+  - text: '`spark.conf.set("spark.default.parallelism", "auto")`'
+    verdict: incorrect
+    justification: '`spark.default.parallelism` is for RDDs and has no `auto` value.'
+  - text: '`spark.conf.set("spark.sql.shuffle.partitions", "auto")`'
+    verdict: correct
+    justification: Databricks documents setting `spark.sql.shuffle.partitions` to `auto` to enable auto-optimized shuffle.
+  - text: '`spark.conf.set("spark.sql.adaptive.enabled", "auto")`'
+    verdict: incorrect
+    justification: '`spark.sql.adaptive.enabled` is a boolean that turns AQE on or off; it does not accept `auto`.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 1.5-013
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A Structured Streaming query on Databricks has been running from a checkpoint. The engineer changes `spark.sql.shuffle.partitions` and restarts from the same checkpoint.
+
+    What does the documentation say?
+  answers:
+  - text: The new value is applied immediately from the next micro-batch.
+    verdict: incorrect
+    justification: The new value is not applied while the same checkpoint is used.
+  - text: Streaming queries ignore shuffle partitions entirely.
+    verdict: incorrect
+    justification: Stateful streaming queries do use shuffle partitions, and the count is stored in the checkpoint.
+  - text: For Structured Streaming, this configuration cannot be changed between query restarts from the same checkpoint location.
+    verdict: correct
+    justification: The Databricks AQE docs state that for Structured Streaming, `spark.sql.shuffle.partitions` cannot be changed between restarts from the same checkpoint; the original value is kept.
+  - text: The checkpoint is rewritten with the new number of partitions.
+    verdict: incorrect
+    justification: The checkpoint is not rewritten with a new partition count when the setting changes.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 1.5-014
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer asks what a shuffle physically involves.
+
+    Which description is correct?
+  answers:
+  - text: Data is copied from executors to the driver and back.
+    verdict: incorrect
+    justification: Shuffle data moves between executors, not to the driver and back.
+  - text: Data is redistributed across partitions, which involves disk I/O, data serialization and network I/O.
+    verdict: correct
+    justification: A shuffle redistributes data across partitions and executors, which involves disk I/O, serialization and network I/O — that is why it is expensive.
+  - text: Data is compressed in memory and kept on the same executor.
+    verdict: incorrect
+    justification: A shuffle moves data across executors; it does not just compress data in place.
+  - text: Data is sorted inside each partition without moving between executors.
+    verdict: incorrect
+    justification: Sorting within a partition without moving data describes `sortWithinPartitions`, not a shuffle.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.5-015
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A query uses an SQL hint to reduce the number of output files.
+
+    Which hint takes only a partition number and reduces partitions like `DataFrame.coalesce`?
+  answers:
+  - text: '`/*+ COALESCE(3) */`'
+    verdict: correct
+    justification: The `COALESCE` hint takes only a partition number and reduces partitions like `DataFrame.coalesce`.
+  - text: '`/*+ SHUFFLE_HASH(3) */`'
+    verdict: incorrect
+    justification: '`SHUFFLE_HASH` is a join strategy hint, not a partitioning hint.'
+  - text: '`/*+ BROADCAST(3) */`'
+    verdict: incorrect
+    justification: '`BROADCAST` is a join strategy hint that takes table names, not a partition number.'
+  - text: '`/*+ REPARTITION_BY_RANGE(3) */`'
+    verdict: incorrect
+    justification: '`REPARTITION_BY_RANGE` needs column names and repartitions by range with a shuffle.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-016
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer writes a SQL query that must hash-repartition the result by column `c` into 3 partitions.
+
+    Which hint does this?
+  answers:
+  - text: '`SELECT /*+ PARTITION(c, 3) */ * FROM t`'
+    verdict: incorrect
+    justification: There is no `PARTITION` hint.
+  - text: '`SELECT /*+ COALESCE(3, c) */ * FROM t`'
+    verdict: incorrect
+    justification: '`COALESCE` only takes a partition number, not columns.'
+  - text: '`SELECT /*+ REPARTITION_BY_HASH(c) */ * FROM t`'
+    verdict: incorrect
+    justification: There is no `REPARTITION_BY_HASH` hint; hash partitioning uses `REPARTITION`.
+  - text: '`SELECT /*+ REPARTITION(3, c) */ * FROM t`'
+    verdict: correct
+    justification: '`REPARTITION(3, c)` hash-repartitions the result by column `c` into 3 partitions.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-017
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A cluster has 160 cores, and a stage after a shuffle has only 20 partitions.
+
+    What is the likely effect?
+  answers:
+  - text: Spark automatically splits the stage into 160 tasks.
+    verdict: incorrect
+    justification: Spark does not split a stage into more tasks than it has partitions.
+  - text: All 160 cores process each partition together.
+    verdict: incorrect
+    justification: A partition is processed by one task on one core; cores do not share a partition.
+  - text: Only 20 tasks can run, so most cores stay idle and the stage is underutilizing the cluster.
+    verdict: correct
+    justification: With 20 partitions only 20 tasks run, so 140 of the 160 cores stay idle — the stage underutilizes the cluster.
+  - text: The job fails because there are fewer partitions than cores.
+    verdict: incorrect
+    justification: Having fewer partitions than cores is allowed; it only wastes capacity.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.5-018
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A stage has 50,000 tiny partitions of a few kilobytes each.
+
+    What is the main problem?
+  answers:
+  - text: Small partitions disable the optimizer.
+    verdict: incorrect
+    justification: Partition size does not disable the optimizer.
+  - text: Per-task scheduling and startup overhead dominates the actual work.
+    verdict: correct
+    justification: With tiny partitions, scheduling and starting each task costs more than the work it does, so overhead dominates.
+  - text: Spark cannot run more than 10,000 tasks per stage.
+    verdict: incorrect
+    justification: Spark can run far more than 10,000 tasks in a stage.
+  - text: Tiny partitions are always written to the driver.
+    verdict: incorrect
+    justification: Small partitions stay on executors; they are not written to the driver.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.5-019
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer confuses `df.repartition("country")` with `df.write.partitionBy("country")`.
+
+    Which statement is correct?
+  answers:
+  - text: '`repartition` controls in-memory partitions of the DataFrame, while `write.partitionBy` creates one output directory per country value.'
+    verdict: correct
+    justification: '`repartition` changes the DataFrame''s in-memory partitioning, while `write.partitionBy` creates one output directory per value of the column.'
+  - text: Both only change the in-memory partitions.
+    verdict: incorrect
+    justification: '`write.partitionBy` changes the output layout on storage, not only in-memory partitions.'
+  - text: '`write.partitionBy` shuffles the data, while `repartition` writes directories.'
+    verdict: incorrect
+    justification: 'It is the other way round: `repartition` shuffles, and `write.partitionBy` creates directories.'
+  - text: Both create one output directory per country value.
+    verdict: incorrect
+    justification: Only `write.partitionBy` creates directories; `repartition` does not write anything.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 1.5-020
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A team wants to reduce the number of partitions a scan creates for many tiny files.
+
+    How does `spark.sql.files.openCostInBytes` influence this?
+  answers:
+  - text: It is the minimum size of a file that Spark will read.
+    verdict: incorrect
+    justification: It does not set a minimum file size; files of any size are read.
+  - text: It controls the size of each output file when writing.
+    verdict: incorrect
+    justification: It affects reading, not output file sizes.
+  - text: It sets the maximum number of files a query can open.
+    verdict: incorrect
+    justification: It does not limit how many files a query can open.
+  - text: It is the estimated cost of opening a file, used when packing multiple files into a partition.
+    verdict: correct
+    justification: '`openCostInBytes` is the estimated cost of opening a file, expressed in bytes; Spark uses it when packing several small files into one partition.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-021
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer calls `df.repartition("country")` without specifying a number.
+
+    How many partitions does the result have?
+  answers:
+  - text: The default number of shuffle partitions, as set by `spark.sql.shuffle.partitions`
+    verdict: correct
+    justification: Without a number, `repartition` by columns uses `spark.sql.shuffle.partitions` as the partition count.
+  - text: One partition per executor
+    verdict: incorrect
+    justification: The partition count is not tied to the number of executors.
+  - text: The same number of partitions as the input
+    verdict: incorrect
+    justification: '`repartition` shuffles to the default shuffle partition count, not the input count.'
+  - text: One partition per distinct country value
+    verdict: incorrect
+    justification: Hash partitioning does not create one partition per distinct value; several values can share a partition.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 1.5-022
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: Which operation is guaranteed not to cause a shuffle?
+  answers:
+  - text: '`df.repartition(10)`'
+    verdict: incorrect
+    justification: '`repartition` always shuffles.'
+  - text: '`df.orderBy("id")`'
+    verdict: incorrect
+    justification: '`orderBy` needs a shuffle for a global sort.'
+  - text: '`df.groupBy("id").count()`'
+    verdict: incorrect
+    justification: '`groupBy().count()` needs a shuffle to bring keys together.'
+  - text: '`df.coalesce(10)` on a DataFrame with 100 partitions'
+    verdict: correct
+    justification: Reducing partitions with `coalesce` is a narrow operation that merges existing partitions without a shuffle.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.5-023
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A query with a join and aggregation suffers from a single huge shuffle partition caused by one very frequent key.
+
+    Which built-in Spark feature can split such skewed partitions automatically during sort-merge joins?
+  answers:
+  - text: '`spark.sql.files.maxPartitionBytes`'
+    verdict: true_but_irrelevant
+    justification: '`maxPartitionBytes` is a real setting for file reads, not for splitting skewed shuffle partitions.'
+  - text: '`coalesce`'
+    verdict: incorrect
+    justification: '`coalesce` merges partitions and would make skew worse, not split it.'
+  - text: Adaptive query execution skew join optimization
+    verdict: correct
+    justification: AQE's skew join optimization detects oversized partitions in sort-merge joins and splits them into smaller tasks automatically.
+  - text: Columnar caching
+    verdict: true_but_irrelevant
+    justification: Columnar caching stores cached data efficiently but does not fix skewed joins.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-024
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A Databricks engineer reads the AQE documentation about post-shuffle partition coalescing.
+
+    What is the default target size that coalesced partitions should be close to?
+  answers:
+  - text: 256 MB, set by `spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes`
+    verdict: true_but_irrelevant
+    justification: 256 MB is the default skew detection threshold, not the coalescing target.
+  - text: 64 MB, set by `spark.sql.adaptive.advisoryPartitionSizeInBytes`
+    verdict: correct
+    justification: Databricks' AQE documentation gives 64 MB as the default target (`advisoryPartitionSizeInBytes`) for coalesced partitions.
+  - text: 128 MB, set by `spark.sql.files.maxPartitionBytes`
+    verdict: true_but_irrelevant
+    justification: 128 MB is the default of `maxPartitionBytes`, which applies to file reads, not to AQE coalescing.
+  - text: 10 MB, set by `spark.sql.autoBroadcastJoinThreshold`
+    verdict: true_but_irrelevant
+    justification: 10 MB is the default broadcast threshold, unrelated to partition coalescing.
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 1.5-025
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer wants to increase the number of partitions of a DataFrame from 4 to 64 to use more cores.
+
+    Which method should be used?
+  answers:
+  - text: '`df.repartition(64)`'
+    verdict: correct
+    justification: '`repartition(64)` can increase the number of partitions through a shuffle.'
+  - text: '`df.coalesce(64)`'
+    verdict: incorrect
+    justification: '`coalesce` cannot increase the number of partitions.'
+  - text: '`df.sortWithinPartitions(64)`'
+    verdict: incorrect
+    justification: '`sortWithinPartitions` sorts rows and takes columns, not a partition count.'
+  - text: '`df.limit(64)`'
+    verdict: incorrect
+    justification: '`limit(64)` limits rows, not partitions.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 1.5-026
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A developer chains `df.repartition(100).repartition(10)`.
+
+    What is the most reasonable assessment?
+  answers:
+  - text: Spark fails because a DataFrame can only be repartitioned once.
+    verdict: incorrect
+    justification: A DataFrame can be repartitioned any number of times.
+  - text: The first repartition causes an unnecessary shuffle; a single repartition or coalesce to the final number would be cheaper.
+    verdict: correct
+    justification: Each `repartition` is a full shuffle; the first one is wasted work because only the final 10 partitions matter.
+  - text: The two calls cancel out and nothing happens.
+    verdict: incorrect
+    justification: Both repartitions are executed; they do not cancel out.
+  - text: The result has 110 partitions.
+    verdict: incorrect
+    justification: 'The last call decides the result: 10 partitions.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.5-027
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A team groups a 2 TB DataFrame by a high-cardinality key and sees executors spill heavily to disk with the default shuffle partition count.
+
+    Which change is most likely to help?
+  answers:
+  - text: Call `coalesce(1)` before the aggregation.
+    verdict: incorrect
+    justification: '`coalesce(1)` before the aggregation would remove almost all parallelism.'
+  - text: Increase `spark.sql.autoBroadcastJoinThreshold`.
+    verdict: true_but_irrelevant
+    justification: A larger broadcast threshold affects joins, not aggregation spill.
+  - text: Increase the number of shuffle partitions so each partition is smaller, or let AQE choose partition sizes.
+    verdict: correct
+    justification: More shuffle partitions make each one smaller so it fits in memory and spills less; AQE can also pick suitable partition sizes.
+  - text: Decrease the number of shuffle partitions to 1.
+    verdict: incorrect
+    justification: One partition would put all 2 TB into a single task, making spills and failures far worse.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-028
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer runs a narrow transformation, `df.select(...)`, on a DataFrame with 30 partitions.
+
+    How many partitions does the result have?
+  answers:
+  - text: 1, because `select` merges partitions
+    verdict: incorrect
+    justification: '`select` does not merge partitions.'
+  - text: It depends on the number of selected columns.
+    verdict: incorrect
+    justification: The number of columns does not affect the number of partitions.
+  - text: 200, the default shuffle partition number
+    verdict: incorrect
+    justification: 200 is the default only after a shuffle; `select` does not shuffle.
+  - text: 30, because narrow transformations keep the existing partitioning
+    verdict: correct
+    justification: Narrow transformations such as `select` keep the existing partitioning, so the result still has 30 partitions.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.5-029
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    Two large DataFrames are both repartitioned by `id` into the same number of partitions before being joined on `id`.
+
+    What benefit can this bring?
+  answers:
+  - text: Rows with the same key are already co-located, so Spark may avoid shuffling them again for the join.
+    verdict: correct
+    justification: If both sides are already hash-partitioned by `id` into the same number of partitions, Spark may reuse that partitioning and avoid another shuffle for the join.
+  - text: The join runs on the driver.
+    verdict: incorrect
+    justification: Joins run on executors, not on the driver.
+  - text: The join no longer needs to compare keys.
+    verdict: incorrect
+    justification: The join still compares keys; co-location only avoids moving data.
+  - text: The join is turned into a broadcast join automatically.
+    verdict: incorrect
+    justification: Repartitioning does not turn a join into a broadcast join.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-030
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A data engineer considers setting `spark.sql.shuffle.partitions` to 10,000 for every job on a small cluster.
+
+    What is the risk?
+  answers:
+  - text: Spark ignores values above 1,000.
+    verdict: incorrect
+    justification: Spark accepts values above 1,000.
+  - text: Every task will spill to disk.
+    verdict: incorrect
+    justification: Many small partitions are less likely to spill, not more.
+  - text: Small jobs produce many tiny tasks, adding scheduling overhead and possibly many small output files.
+    verdict: correct
+    justification: A very high partition count makes small jobs launch many tiny tasks, adding scheduling overhead and possibly writing many small files.
+  - text: Joins cannot be executed with more than 2,000 partitions.
+    verdict: incorrect
+    justification: Joins can use any number of shuffle partitions.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.5-031
+  category: apache_spark_architecture_and_components
+  objective: '1.5'
+  question: |-
+    A query reads Parquet data and immediately writes it to another location with no shuffle.
+
+    What usually determines the number of output files?
+  answers:
+  - text: The number of columns in the DataFrame
+    verdict: incorrect
+    justification: The number of columns does not affect how many files are written.
+  - text: The number of partitions of the DataFrame at write time, which here comes from the input file splits
+    verdict: correct
+    justification: With no shuffle, each partition is written as at least one file, and the partitions come from the input file splits.
+  - text: The number of executors
+    verdict: incorrect
+    justification: The number of executors does not decide the number of output files.
+  - text: The value of `spark.sql.shuffle.partitions`
+    verdict: incorrect
+    justification: '`spark.sql.shuffle.partitions` only matters after a shuffle.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html

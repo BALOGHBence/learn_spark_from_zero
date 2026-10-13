@@ -1,0 +1,622 @@
+# Objective 3.9: Describe different types of variables in Spark, including broadcast variables and accumulators.
+- id: 3.9-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer reads about Spark's shared variables.
+
+    Which two types does Spark support?
+  answers:
+  - text: Global variables and static variables
+    verdict: incorrect
+    justification: Spark has no shared "global" or "static" variable types; normal variables are copied to each task.
+  - text: Checkpoint variables and cache variables
+    verdict: incorrect
+    justification: Checkpoints and caches store data; they are not shared variable types.
+  - text: Broadcast variables and accumulators
+    verdict: correct
+    justification: 'The RDD programming guide lists two shared variable types: broadcast variables and accumulators.'
+  - text: Session variables and temporary views
+    verdict: incorrect
+    justification: Temporary views name queries; they are not shared variables.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: What is a broadcast variable?
+  answers:
+  - text: A variable that executors can update and the driver reads
+    verdict: true_but_irrelevant
+    justification: A variable that executors update and the driver reads describes an accumulator.
+  - text: A read-only variable cached on each machine, instead of shipping a copy of it with every task
+    verdict: correct
+    justification: A broadcast variable is a read-only value cached once on each machine instead of being shipped with every task.
+  - text: A configuration property set for all sessions
+    verdict: incorrect
+    justification: Configuration properties are not broadcast variables.
+  - text: A DataFrame column that is copied to every row
+    verdict: incorrect
+    justification: Broadcast variables are separate values, not DataFrame columns.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer wants to share a 50 MB Python dictionary of exchange rates with all tasks efficiently in Spark Classic.
+
+    Which code creates a broadcast variable?
+  answers:
+  - text: '`rates_bc = broadcast(rates)` from `pyspark.sql.functions`'
+    verdict: true_but_irrelevant
+    justification: '`functions.broadcast` is valid, but it marks a DataFrame for a broadcast join; it does not broadcast a Python dictionary.'
+  - text: '`rates_bc = spark.sparkContext.accumulator(rates)`'
+    verdict: incorrect
+    justification: An accumulator is for adding values from tasks, not for sharing a lookup table.
+  - text: '`rates_bc = spark.broadcast(rates)`'
+    verdict: incorrect
+    justification: SparkSession has no `broadcast` method.
+  - text: '`rates_bc = spark.sparkContext.broadcast(rates)`'
+    verdict: correct
+    justification: In Spark Classic, `sparkContext.broadcast(value)` creates a broadcast variable.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.SparkContext.broadcast.html
+- id: 3.9-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Inside a task, how is the content of a broadcast variable `rates_bc` accessed?
+  answers:
+  - text: '`rates_bc.value`'
+    verdict: correct
+    justification: A broadcast variable's content is read with `.value`.
+  - text: '`rates_bc.get()`'
+    verdict: incorrect
+    justification: Broadcast objects have no `get` method.
+  - text: '`rates_bc[0]`'
+    verdict: incorrect
+    justification: Broadcast objects are not indexable.
+  - text: '`rates_bc.read()`'
+    verdict: incorrect
+    justification: Broadcast objects have no `read` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.Broadcast.html
+- id: 3.9-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Why should the broadcast variable be used in tasks instead of the original Python object it was created from?
+  answers:
+  - text: Because only broadcast variables can be modified by tasks.
+    verdict: incorrect
+    justification: Broadcast variables are read-only.
+  - text: Because tasks cannot read Python objects at all.
+    verdict: incorrect
+    justification: Tasks can read Python objects captured in closures; they are just shipped with every task.
+  - text: Because the original object is deleted after broadcasting.
+    verdict: incorrect
+    justification: The original object is not deleted.
+  - text: So that the value is shipped to each node only once instead of with every task.
+    verdict: correct
+    justification: Using the broadcast variable ensures the value is sent to each node once instead of with every task.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer modifies the original object `v` after creating `bc = sc.broadcast(v)`.
+
+    What does the Spark documentation advise?
+  answers:
+  - text: The broadcast variable is rebuilt for every task.
+    verdict: incorrect
+    justification: The broadcast variable is sent once, not rebuilt per task.
+  - text: The object should not be modified after it is broadcast, so that all nodes get the same value.
+    verdict: correct
+    justification: The docs advise not to modify the original object after broadcasting, so that all nodes see the same value.
+  - text: Changes are applied at the next action.
+    verdict: incorrect
+    justification: Changes are never applied to the broadcast copy.
+  - text: Changes are propagated to executors automatically.
+    verdict: incorrect
+    justification: Changes are not propagated to the executors.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer no longer needs a broadcast variable and wants to free its copies on the executors, while still being able to use it again later.
+
+    Which method does this?
+  answers:
+  - text: '`del bc.value`'
+    verdict: incorrect
+    justification: Deleting the attribute does not free executor copies.
+  - text: '`bc.destroy()`'
+    verdict: true_but_irrelevant
+    justification: '`destroy()` is valid, but it releases the variable permanently, so it cannot be used again.'
+  - text: '`bc.unpersist()`'
+    verdict: correct
+    justification: '`unpersist()` removes the copies on the executors; the variable can still be used and is re-sent if needed.'
+  - text: '`bc.clear()`'
+    verdict: incorrect
+    justification: Broadcast objects have no `clear` method.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer wants to permanently release all resources of a broadcast variable, including on the driver.
+
+    Which method does this?
+  answers:
+  - text: '`bc.destroy()`'
+    verdict: correct
+    justification: '`destroy()` permanently releases all resources of the broadcast variable, including on the driver.'
+  - text: '`bc.unpersist()`'
+    verdict: true_but_irrelevant
+    justification: '`unpersist()` is valid, but it only frees the executor copies, and the variable can still be used.'
+  - text: '`spark.catalog.clearCache()`'
+    verdict: incorrect
+    justification: '`clearCache` clears cached tables, not broadcast variables.'
+  - text: '`bc.value = None`'
+    verdict: incorrect
+    justification: Assigning to `value` does not release anything, and broadcast values are read-only.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: What is an accumulator?
+  answers:
+  - text: A variable that tasks can only add to through an associative and commutative operation, such as counters and sums
+    verdict: correct
+    justification: Accumulators are variables that tasks only add to through an associative and commutative operation, such as counters and sums.
+  - text: A cache of the last action's result
+    verdict: incorrect
+    justification: Accumulators do not cache action results.
+  - text: A variable that every task can read and overwrite
+    verdict: incorrect
+    justification: Tasks cannot read accumulators; they can only add to them.
+  - text: A read-only lookup table copied to every node
+    verdict: true_but_irrelevant
+    justification: A read-only table copied to every node describes a broadcast variable.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer counts malformed records while processing data with `foreach` in Spark Classic.
+
+    Which code creates a numeric accumulator?
+  answers:
+  - text: '`bad = spark.sparkContext.broadcast(0)`'
+    verdict: incorrect
+    justification: A broadcast variable is read-only and cannot count.
+  - text: '`bad = spark.sparkContext.accumulator(0)`'
+    verdict: correct
+    justification: '`sparkContext.accumulator(0)` creates a numeric accumulator that tasks can add to.'
+  - text: '`bad = spark.accumulator(0)`'
+    verdict: incorrect
+    justification: SparkSession has no `accumulator` method.
+  - text: '`bad = 0` as a global variable updated in tasks'
+    verdict: incorrect
+    justification: A global variable is copied to each task, and updates never reach the driver.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.SparkContext.accumulator.html
+- id: 3.9-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Who can read the value of an accumulator?
+  answers:
+  - text: Only the executor that created it
+    verdict: incorrect
+    justification: No single executor owns an accumulator.
+  - text: Only the cluster manager
+    verdict: incorrect
+    justification: The cluster manager does not read accumulators.
+  - text: Only the driver program, using its `value`
+    verdict: correct
+    justification: Only the driver can read an accumulator's value.
+  - text: Every task, at any time
+    verdict: incorrect
+    justification: Tasks can add to an accumulator but cannot read it.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer increments a plain Python variable `counter += 1` inside a function passed to `foreach`. After the action, `counter` on the driver is still 0.
+
+    Why?
+  answers:
+  - text: The variable is only updated after `collect()`.
+    verdict: incorrect
+    justification: '`collect()` does not propagate closure variables.'
+  - text: '`foreach` does not run on any rows.'
+    verdict: incorrect
+    justification: '`foreach` does run on all rows; the updates are just made to copies.'
+  - text: Python variables are reset after each action.
+    verdict: incorrect
+    justification: Variables are not reset; the driver's copy was never changed.
+  - text: Each task works on a serialized copy of the variable; updates on executors are not sent back to the driver.
+    verdict: correct
+    justification: Each task gets a serialized copy of the closure variable, so changes on executors never reach the driver's variable.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    An accumulator is updated inside a transformation (`map`), but no action is called afterwards.
+
+    What is the accumulator's value?
+  answers:
+  - text: It contains the full count, because accumulators run eagerly.
+    verdict: incorrect
+    justification: Accumulator updates in a transformation only happen when an action runs it.
+  - text: It is unchanged, because transformations are lazy and the updates have not run.
+    verdict: correct
+    justification: Transformations are lazy, so without an action the `map` never runs and the accumulator is unchanged.
+  - text: It raises an error when read.
+    verdict: incorrect
+    justification: Reading an accumulator on the driver does not raise an error.
+  - text: It contains a partial count.
+    verdict: incorrect
+    justification: Nothing ran, so there is no partial count.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    Spark gives a stronger guarantee for accumulator updates made inside actions than inside transformations.
+
+    What is the guarantee for actions?
+  answers:
+  - text: Each task's update is applied only once, so restarted tasks do not update the value again.
+    verdict: correct
+    justification: For updates inside actions, Spark applies each task's update only once, even if the task is restarted.
+  - text: Updates are never applied if a task fails once.
+    verdict: incorrect
+    justification: Successful task attempts do apply their updates.
+  - text: Updates are applied on the driver before the task runs.
+    verdict: incorrect
+    justification: Updates are made by tasks as they run and are merged on the driver.
+  - text: Updates are applied exactly twice for fault tolerance.
+    verdict: incorrect
+    justification: Updates are not applied twice.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    An accumulator is updated inside a transformation that runs again because a stage is recomputed.
+
+    What can happen?
+  answers:
+  - text: The accumulator is reset to zero.
+    verdict: incorrect
+    justification: Accumulators are not reset when stages are recomputed.
+  - text: The job fails because of the duplicate update.
+    verdict: incorrect
+    justification: Duplicate updates do not fail the job.
+  - text: The update is always applied exactly once.
+    verdict: true_but_irrelevant
+    justification: The once-only guarantee applies to updates made inside actions, not inside transformations.
+  - text: The update may be applied more than once, so the final value can be inflated.
+    verdict: correct
+    justification: In transformations, re-executed tasks or stages can apply updates again, which inflates the value.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer wants to see a named accumulator's value in the Spark UI.
+
+    Where does it appear?
+  answers:
+  - text: On the Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration.
+  - text: On the Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: On the stage page of the stage that modifies the accumulator
+    verdict: correct
+    justification: Named accumulators appear on the stage page of the stage that modifies them, including per-task values.
+  - text: It cannot be displayed in the UI
+    verdict: incorrect
+    justification: Named accumulators are shown in the UI.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Which operation is a valid use of an accumulator?
+  answers:
+  - text: Counting the number of records that failed parsing during an action
+    verdict: correct
+    justification: Counting failed records during an action is a typical accumulator use.
+  - text: Sharing a lookup table with all tasks
+    verdict: true_but_irrelevant
+    justification: Sharing a read-only lookup table is a broadcast variable's job.
+  - text: Storing the result of a join
+    verdict: incorrect
+    justification: Accumulators hold counters or sums, not join results.
+  - text: Passing configuration to executors
+    verdict: incorrect
+    justification: Configuration is passed through Spark configuration or broadcast variables.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Which operation is a valid use of a broadcast variable?
+  answers:
+  - text: Storing intermediate shuffle data
+    verdict: incorrect
+    justification: Shuffle data is managed by Spark, not by broadcast variables.
+  - text: Counting the number of processed records across tasks
+    verdict: true_but_irrelevant
+    justification: Counting across tasks is an accumulator's job.
+  - text: Sharing a static lookup dictionary that tasks read while transforming records
+    verdict: correct
+    justification: A static lookup dictionary that tasks only read is a typical broadcast variable use.
+  - text: Collecting results from tasks back to the driver
+    verdict: incorrect
+    justification: Results are returned to the driver by actions, not broadcast variables.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer moves code that uses `spark.sparkContext.broadcast(...)` and accumulators to serverless compute.
+
+    What problem should they expect?
+  answers:
+  - text: Only accumulators need a code change.
+    verdict: incorrect
+    justification: Broadcast variables also use the SparkContext, so they need changes too.
+  - text: The code runs unchanged because serverless uses Spark Classic.
+    verdict: incorrect
+    justification: Serverless uses Spark Connect, not Spark Classic.
+  - text: Broadcast variables work, but accumulators are counted twice.
+    verdict: incorrect
+    justification: Neither works, because both require the SparkContext.
+  - text: Serverless compute uses Spark Connect, where the SparkContext and RDD APIs are not available, so this code must be rewritten.
+    verdict: correct
+    justification: Serverless compute supports only Spark Connect APIs, and Spark Connect has no SparkContext, so `sparkContext.broadcast` and accumulators must be rewritten.
+  source_url: https://docs.databricks.com/aws/en/compute/serverless/limitations
+- id: 3.9-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: What is the difference between `sc.broadcast(v)` and `pyspark.sql.functions.broadcast(df)`?
+  answers:
+  - text: '`functions.broadcast(df)` creates an accumulator.'
+    verdict: incorrect
+    justification: '`functions.broadcast` does not create accumulators.'
+  - text: '`sc.broadcast(v)` shares a Python value with tasks, while `functions.broadcast(df)` marks a DataFrame to be broadcast in a join.'
+    verdict: correct
+    justification: '`sc.broadcast` shares a value with tasks; `functions.broadcast(df)` is a join hint for a DataFrame.'
+  - text: They are aliases for the same function.
+    verdict: incorrect
+    justification: They are different functions with different purposes.
+  - text: '`sc.broadcast(v)` is only for DataFrames.'
+    verdict: incorrect
+    justification: '`sc.broadcast` shares Python values; DataFrames are hinted with `functions.broadcast`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.broadcast.html
+- id: 3.9-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer replaces a broadcast lookup in a UDF with a join against a small DataFrame.
+
+    Why is this often a good choice in the DataFrame API?
+  answers:
+  - text: A join with a small DataFrame can be optimized as a broadcast join by Spark, and it avoids Python UDF overhead.
+    verdict: correct
+    justification: A join with a small DataFrame lets Spark plan a broadcast join, and it avoids Python UDF overhead.
+  - text: Broadcast variables are not allowed in UDFs.
+    verdict: incorrect
+    justification: Broadcast variables can be used in UDFs; the join is just usually more efficient.
+  - text: Joins never shuffle data.
+    verdict: incorrect
+    justification: Joins can shuffle; a broadcast join avoids shuffling the large side.
+  - text: Joins work only with Python dictionaries.
+    verdict: incorrect
+    justification: Joins work on DataFrames, not Python dictionaries.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: How does Spark distribute broadcast variables efficiently?
+  answers:
+  - text: It sends a full copy with each task.
+    verdict: incorrect
+    justification: Shipping a copy with every task is exactly what broadcasting avoids.
+  - text: It stores the variable in a table that executors query.
+    verdict: incorrect
+    justification: Executors do not query a table for broadcast values.
+  - text: It uses efficient broadcast algorithms to reduce communication cost.
+    verdict: correct
+    justification: Spark distributes broadcast variables with efficient broadcast algorithms to reduce communication cost.
+  - text: It sends the variable to the cluster manager, which forwards it per row.
+    verdict: incorrect
+    justification: The cluster manager does not distribute broadcast variables.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer increments an accumulator inside `df.foreach(...)` and then reads it on the driver.
+
+    When is the value reliable?
+  answers:
+  - text: Before calling the action
+    verdict: incorrect
+    justification: Before the action, the tasks have not run yet.
+  - text: Never, because accumulators are approximations
+    verdict: incorrect
+    justification: Accumulators are exact, not approximations.
+  - text: Only while tasks are still running
+    verdict: incorrect
+    justification: While tasks are running, updates are incomplete.
+  - text: After the action has completed
+    verdict: correct
+    justification: The value is reliable after the action has completed and all task updates are merged.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer wants a custom accumulator type, such as one that collects a set of error codes, in PySpark.
+
+    How is this done?
+  answers:
+  - text: By using a broadcast variable of a set
+    verdict: incorrect
+    justification: Broadcast variables are read-only and cannot collect values from tasks.
+  - text: By subclassing `AccumulatorParam` and passing it when creating the accumulator
+    verdict: correct
+    justification: In PySpark, custom accumulator types are created by subclassing `AccumulatorParam`.
+  - text: Custom accumulator types are not possible in PySpark
+    verdict: incorrect
+    justification: PySpark supports custom accumulators through `AccumulatorParam`.
+  - text: By using `collect_set` inside `foreach`
+    verdict: incorrect
+    justification: '`collect_set` is a DataFrame aggregate and cannot be used inside `foreach`.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A UDF references a large lookup table, and the Spark UI shows tasks are slow to start because the serialized task size is large.
+
+    What does the Spark tuning guide suggest?
+  answers:
+  - text: Use a broadcast variable so the large object is sent to each executor once instead of with every task.
+    verdict: correct
+    justification: The tuning guide suggests broadcasting large objects used by tasks, so each executor receives them once.
+  - text: Increase the number of shuffle partitions.
+    verdict: incorrect
+    justification: Shuffle partitions do not affect the size of serialized tasks.
+  - text: Call `collect()` on the lookup table inside each task.
+    verdict: incorrect
+    justification: Tasks cannot call `collect()`; that runs on the driver.
+  - text: Use an accumulator for the lookup table.
+    verdict: incorrect
+    justification: Accumulators cannot hold a lookup table for tasks to read.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 3.9-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer asks whether tasks can update a broadcast variable to share results with other tasks.
+
+    What is the answer?
+  answers:
+  - text: Yes, but only in Scala.
+    verdict: incorrect
+    justification: They are read-only in every language.
+  - text: Yes, updates are merged on the driver at the end.
+    verdict: incorrect
+    justification: Broadcast variables are not merged on the driver.
+  - text: No, broadcast variables are read-only; use an accumulator or an action for results.
+    verdict: correct
+    justification: Broadcast variables are read-only; results must come back through accumulators or actions.
+  - text: Yes, updates are visible to tasks on the same executor.
+    verdict: incorrect
+    justification: Tasks cannot update a broadcast variable.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer creates `acc = sc.accumulator(0)` and calls `acc.add(5)` inside tasks of an action that processes 4 partitions, each task adding once.
+
+    What does `acc.value` show on the driver after the action?
+  answers:
+  - text: '4'
+    verdict: incorrect
+    justification: 4 is the number of tasks, not the sum.
+  - text: '20'
+    verdict: correct
+    justification: Four tasks each add 5, so the accumulator shows 20 on the driver.
+  - text: '5'
+    verdict: incorrect
+    justification: 5 is a single task's contribution.
+  - text: '0'
+    verdict: incorrect
+    justification: The action ran, so the value changed.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.Accumulator.html
+- id: 3.9-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: Why are accumulators restricted to associative and commutative operations?
+  answers:
+  - text: They are stored on disk, which requires sorting.
+    verdict: incorrect
+    justification: Accumulators are not stored on disk or sorted.
+  - text: They must be compatible with SQL syntax.
+    verdict: incorrect
+    justification: Accumulators are unrelated to SQL syntax.
+  - text: They are only used for string concatenation.
+    verdict: incorrect
+    justification: Accumulators are typically numeric.
+  - text: Updates from many tasks are merged in any order, so the result must not depend on the order.
+    verdict: correct
+    justification: Updates from many tasks are merged in arbitrary order, so the operation must give the same result in any order.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer compares broadcast variables with closures.
+
+    What happens to a large object referenced in a closure without broadcasting?
+  answers:
+  - text: It is automatically converted into a broadcast variable in all cases.
+    verdict: incorrect
+    justification: Closure variables are not automatically broadcast.
+  - text: It is stored only on the driver and read remotely.
+    verdict: incorrect
+    justification: Tasks receive a copy; they do not read from the driver remotely.
+  - text: It is ignored by Spark.
+    verdict: incorrect
+    justification: Spark does not ignore closure variables.
+  - text: It is serialized and shipped with the tasks that use it, which can be costly if it is large.
+    verdict: correct
+    justification: Objects in a closure are serialized and shipped with each task that uses them, which is costly for large objects.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer counts records with an accumulator in a `map` transformation and then calls `count()` twice on the result without caching.
+
+    What value might the accumulator show?
+  answers:
+  - text: Exactly the number of records
+    verdict: true_but_irrelevant
+    justification: Getting exactly the number of records would require the transformation to run only once, for example with caching.
+  - text: Twice the number of records, because the transformation runs again for the second action
+    verdict: correct
+    justification: The accumulator is updated in a transformation that runs for each action, so two counts without caching double the value.
+  - text: Zero
+    verdict: incorrect
+    justification: The actions run the transformation, so the value is not zero.
+  - text: Half the number of records
+    verdict: incorrect
+    justification: Recomputation adds updates; it does not halve them.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 3.9-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.9'
+  question: |-
+    A data engineer reads a broadcast variable's value on the driver after creating it.
+
+    Is this allowed?
+  answers:
+  - text: Yes, but only after an action.
+    verdict: incorrect
+    justification: No action is needed to read it.
+  - text: No, the value is deleted from the driver after broadcasting.
+    verdict: incorrect
+    justification: The driver keeps the value.
+  - text: Yes, `value` can be read on the driver as well as in tasks.
+    verdict: correct
+    justification: '`.value` can be read on the driver as well as in tasks.'
+  - text: No, only tasks can read broadcast values.
+    verdict: incorrect
+    justification: The driver can read the value.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.Broadcast.html

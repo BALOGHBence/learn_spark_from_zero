@@ -1,0 +1,653 @@
+# Objective 3.8: Create and invoke user-defined functions with or without stateful operators, including StateStores.
+- id: 3.8-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer creates a Python UDF that returns the length of a string as an integer and applies it to column `name`.
+
+    Which code is correct?
+  answers:
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.functions import udf
+
+      @udf
+      def name_len(s) -> int:
+          return len(s)
+
+      df.withColumn("name_len", name_len.collect("name"))
+      ```
+    verdict: incorrect
+    justification: '`@udf` without a return type defaults to StringType, and UDFs have no `collect` method.'
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.functions import udf
+
+      def name_len(s):
+          return len(s)
+
+      df.withColumn("name_len", name_len(df.name))
+      ```
+    verdict: incorrect
+    justification: The function is not wrapped with `udf`, so calling it on a Column runs plain Python `len` on a Column object and fails.
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.functions import udf
+      from pyspark.sql.types import IntegerType
+
+      @udf(returnType=IntegerType())
+      def name_len(s):
+          return len(s) if s is not None else None
+
+      df.withColumn("name_len", name_len("name"))
+      ```
+    verdict: correct
+    justification: '`@udf(returnType=IntegerType())` wraps the function as a UDF with an integer result, and it handles `None`; calling it with a column name applies it.'
+  - text: |-
+      |
+      ```python
+      from pyspark.sql.functions import udf
+
+      name_len = udf(len, returnType="int")
+      df.withColumn("name_len", name_len.apply("name"))
+      ```
+    verdict: incorrect
+    justification: A UDF is applied by calling it on a column, not with `.apply`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.udf.html
+- id: 3.8-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer defines a Python UDF with `@udf` and no return type.
+
+    What is the default return type?
+  answers:
+  - text: IntegerType
+    verdict: incorrect
+    justification: IntegerType must be declared explicitly.
+  - text: BinaryType
+    verdict: incorrect
+    justification: BinaryType is not the default.
+  - text: The type inferred from the first result
+    verdict: incorrect
+    justification: Spark does not infer the return type from results.
+  - text: StringType
+    verdict: correct
+    justification: Databricks documents that the default return type of a Python UDF is StringType.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer wants to call a Python function from Spark SQL queries in the same session.
+
+    Which code registers it?
+  answers:
+  - text: '`spark.udf.register("strlen", lambda s: len(s), "int")`'
+    verdict: correct
+    justification: '`spark.udf.register(name, function, returnType)` makes the function callable from SQL in the session.'
+  - text: '`spark.catalog.createFunction("strlen", lambda s: len(s))`'
+    verdict: incorrect
+    justification: The catalog has no `createFunction` method for Python lambdas.
+  - text: '`spark.sql.register("strlen", lambda s: len(s))`'
+    verdict: incorrect
+    justification: '`spark.sql` is a method; it has no `register` attribute.'
+  - text: '`udf.register_sql("strlen", len)`'
+    verdict: incorrect
+    justification: There is no `register_sql` method.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: 'After registering `spark.udf.register("strlen", lambda s: len(s), "int")`, how is the UDF used in SQL?'
+  answers:
+  - text: '`SELECT id, CALL strlen(name) AS l FROM users`'
+    verdict: incorrect
+    justification: '`CALL` invokes procedures, not functions inside a `SELECT`.'
+  - text: '`SELECT id, strlen(name) AS l FROM users`'
+    verdict: correct
+    justification: A registered UDF is called by its name like a built-in function.
+  - text: '`SELECT id, python(''strlen'', name) AS l FROM users`'
+    verdict: incorrect
+    justification: There is no `python()` function for calling UDFs.
+  - text: '`SELECT id, udf.strlen(name) AS l FROM users`'
+    verdict: incorrect
+    justification: Registered UDFs are not referenced with a `udf.` prefix.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A SQL query is written as `WHERE s IS NOT NULL AND strlen(s) > 1`, and the UDF fails on nulls.
+
+    Why can the UDF still receive nulls?
+  answers:
+  - text: '`AND` always evaluates the right side first.'
+    verdict: incorrect
+    justification: Spark does not always evaluate the right side first; the order is simply not guaranteed.
+  - text: Null values are converted to strings before reaching the UDF.
+    verdict: incorrect
+    justification: Nulls are passed as `None`, not converted to strings.
+  - text: '`IS NOT NULL` is ignored when UDFs are used.'
+    verdict: incorrect
+    justification: '`IS NOT NULL` is not ignored; it just may be evaluated after the UDF.'
+  - text: Spark SQL does not guarantee the evaluation order of subexpressions, so the null check might not run before the UDF.
+    verdict: correct
+    justification: Databricks documents that Spark SQL does not guarantee the evaluation order of subexpressions, and `AND`/`OR` do not short-circuit, so the UDF may see nulls.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: How can a data engineer make a Python UDF robust against nulls, given Spark's evaluation order?
+  answers:
+  - text: Cache the DataFrame before applying the UDF.
+    verdict: incorrect
+    justification: Caching does not change evaluation order.
+  - text: Handle `None` inside the UDF itself, or use a conditional expression such as `CASE WHEN` around the call.
+    verdict: correct
+    justification: Handle `None` inside the UDF, or use a conditional expression like `CASE WHEN`, so the UDF never depends on evaluation order.
+  - text: Register the UDF twice.
+    verdict: incorrect
+    justification: Registering the UDF twice changes nothing.
+  - text: Filter nulls in a `WHERE` clause before the UDF, which guarantees order.
+    verdict: incorrect
+    justification: A `WHERE` clause does not guarantee that the null check runs before the UDF.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Why are row-at-a-time Python UDFs usually slower than built-in functions?
+  answers:
+  - text: Built-in functions are cached automatically and UDFs are not.
+    verdict: incorrect
+    justification: Built-in functions are faster because they run in the JVM and are optimized, not because they are cached.
+  - text: Python UDFs force a shuffle for every call.
+    verdict: incorrect
+    justification: UDFs do not cause shuffles.
+  - text: Rows must be serialized between the JVM and the Python worker, and the optimizer cannot look inside the UDF.
+    verdict: correct
+    justification: Row-at-a-time Python UDFs serialize each row between the JVM and Python, and the optimizer treats them as black boxes.
+  - text: Python UDFs run only on the driver.
+    verdict: incorrect
+    justification: Python UDFs run in Python workers on the executors.
+  source_url: https://docs.databricks.com/aws/en/udf/
+- id: 3.8-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer needs to uppercase a column. A colleague wrote a Python UDF for it.
+
+    What is the better choice?
+  answers:
+  - text: Use the built-in `upper` function, which runs in the JVM and is optimized by Spark.
+    verdict: correct
+    justification: The built-in `upper` runs in the JVM and is optimized, with no Python overhead.
+  - text: Collect the column to the driver and uppercase it in Python.
+    verdict: incorrect
+    justification: Collecting to the driver removes all parallelism.
+  - text: Rewrite the UDF as a row-at-a-time Scala UDF called from Python.
+    verdict: partially_correct
+    justification: A Scala UDF avoids Python serialization, but the built-in function is simpler and still better optimized.
+  - text: Keep the Python UDF because UDFs are always faster.
+    verdict: incorrect
+    justification: Python UDFs are usually slower than built-in functions.
+  source_url: https://docs.databricks.com/aws/en/udf/
+- id: 3.8-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer wants a Python UDF that uses Arrow for data transfer instead of row-by-row pickling, without rewriting it as a pandas UDF.
+
+    Which option enables this?
+  answers:
+  - text: '`@udf(returnType="int", batch=True)`'
+    verdict: incorrect
+    justification: '`udf` has no `batch` parameter.'
+  - text: '`@udf(returnType="int", useArrow=True)`'
+    verdict: correct
+    justification: '`useArrow=True` enables Arrow-optimized transfer for a regular Python UDF.'
+  - text: '`@pandas_udf("int", arrow=False)`'
+    verdict: incorrect
+    justification: '`pandas_udf` has no `arrow` parameter, and this would be a pandas UDF anyway.'
+  - text: '`@udf(returnType="int", vectorized=True)`'
+    verdict: incorrect
+    justification: '`udf` has no `vectorized` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/user_guide/udfandudtf.html
+- id: 3.8-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Which UDF type processes data in batches as pandas Series using Apache Arrow?
+  answers:
+  - text: A SQL UDF defined with `CREATE FUNCTION ... RETURN`
+    verdict: incorrect
+    justification: SQL UDFs are SQL expressions; they do not use pandas.
+  - text: A row-at-a-time Python UDF defined with `@udf`
+    verdict: incorrect
+    justification: A row-at-a-time UDF processes one row at a time.
+  - text: A pandas UDF defined with `@pandas_udf`
+    verdict: correct
+    justification: Pandas UDFs receive batches of data as pandas Series through Apache Arrow.
+  - text: A Scala UDF called with `expr`
+    verdict: incorrect
+    justification: Scala UDFs run in the JVM without pandas.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 3.8-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer defines `to_upper = udf(lambda s: s.upper(), StringType())`.
+
+    How can it be applied to column `city`?
+  answers:
+  - text: '`df.select(to_upper.apply("city"))`'
+    verdict: incorrect
+    justification: UDFs are not applied with `.apply`.
+  - text: '`df.to_upper("city")`'
+    verdict: incorrect
+    justification: DataFrames have no `to_upper` method.
+  - text: '`df.select(col("city").to_upper())`'
+    verdict: incorrect
+    justification: Columns have no `to_upper` method.
+  - text: '`df.select(to_upper(col("city")).alias("city_upper"))`'
+    verdict: correct
+    justification: A UDF is called on a Column and returns a Column, which can be aliased in `select`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.udf.html
+- id: 3.8-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A UDF returns a struct with fields `first` and `last`.
+
+    How should the return type be declared?
+  answers:
+  - text: As a `StructType` with `StructField("first", StringType())` and `StructField("last", StringType())`
+    verdict: correct
+    justification: A struct result is declared as a `StructType` with one `StructField` per field.
+  - text: As `"tuple"`
+    verdict: incorrect
+    justification: '`"tuple"` is not a Spark data type.'
+  - text: As `MapType()` only
+    verdict: partially_correct
+    justification: A map can hold key-value pairs, but it does not declare named, typed fields the way a struct does.
+  - text: No return type is possible for structs
+    verdict: incorrect
+    justification: Structs are a valid UDF return type.
+  source_url: https://docs.databricks.com/aws/en/udf/
+- id: 3.8-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Which of the following is a stateful operation in Structured Streaming?
+  answers:
+  - text: A `select` that projects columns
+    verdict: incorrect
+    justification: A projection processes each row independently and is stateless.
+  - text: A `withColumn` that adds a constant
+    verdict: incorrect
+    justification: Adding a constant column is stateless.
+  - text: A streaming aggregation such as `groupBy("user").count()`
+    verdict: correct
+    justification: Streaming aggregations keep running counts in state across micro-batches, so they are stateful.
+  - text: A `filter` on a column value
+    verdict: incorrect
+    justification: A filter is stateless.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: What does a stateful streaming query need that a stateless one does not?
+  answers:
+  - text: A static DataFrame to join with
+    verdict: incorrect
+    justification: A static DataFrame is needed only for stream-static joins.
+  - text: A Kafka source
+    verdict: incorrect
+    justification: Any source can be used with stateful queries.
+  - text: An action such as `collect()`
+    verdict: incorrect
+    justification: Streaming queries are started with `writeStream`, not actions such as `collect()`.
+  - text: Incremental updates to intermediate state information across micro-batches
+    verdict: correct
+    justification: Stateful queries maintain and incrementally update intermediate state across micro-batches; stateless queries only track progress.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Where does Structured Streaming keep the intermediate state of stateful operators between micro-batches?
+  answers:
+  - text: In the source system, such as Kafka
+    verdict: incorrect
+    justification: Sources do not keep operator state.
+  - text: In a state store on the executors, which is backed up to the checkpoint location
+    verdict: correct
+    justification: State lives in state stores on the executors and is checkpointed to the checkpoint location.
+  - text: In the driver's memory only
+    verdict: incorrect
+    justification: State is distributed across executors, not kept on the driver.
+  - text: In a temporary view
+    verdict: incorrect
+    justification: Temporary views do not store data.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Which state store provider does Databricks recommend for stateful streams?
+  answers:
+  - text: RocksDB with changelog checkpointing
+    verdict: correct
+    justification: Databricks recommends RocksDB with changelog checkpointing for stateful streams.
+  - text: The driver's in-memory map
+    verdict: incorrect
+    justification: State is not kept in a driver map.
+  - text: A Delta table updated each micro-batch
+    verdict: incorrect
+    justification: A Delta table is not a state store provider.
+  - text: The disk cache
+    verdict: incorrect
+    justification: The disk cache accelerates reads; it is not a state store.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer started a stateful query with the default state store and wants to switch to RocksDB.
+
+    What does the documentation say?
+  answers:
+  - text: The provider can be switched by changing a config and restarting from the same checkpoint.
+    verdict: incorrect
+    justification: Changing the config and reusing the checkpoint is not supported.
+  - text: RocksDB is applied automatically on the next micro-batch.
+    verdict: incorrect
+    justification: RocksDB is not applied automatically to existing state.
+  - text: The state is migrated automatically on restart.
+    verdict: incorrect
+    justification: There is no automatic migration.
+  - text: The state management scheme can't be changed between restarts; the query must restart with a new checkpoint location.
+    verdict: correct
+    justification: Databricks states the state management scheme can't change between restarts; switching requires a new checkpoint location.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer must implement custom per-key session logic with timers in a streaming query on Databricks.
+
+    Which operator does Databricks recommend for arbitrary stateful logic?
+  answers:
+  - text: '`dropDuplicates`'
+    verdict: incorrect
+    justification: '`dropDuplicates` only removes duplicates.'
+  - text: '`mapGroupsWithState`'
+    verdict: partially_correct
+    justification: '`mapGroupsWithState` can implement custom state, but Databricks lists it as a legacy operator and recommends `transformWithState`.'
+  - text: '`transformWithState` (or `transformWithStateInPandas` in Python)'
+    verdict: correct
+    justification: Databricks recommends `transformWithState` (`transformWithStateInPandas` in Python) for arbitrary stateful logic with timers.
+  - text: '`foreachBatch` with a global Python dictionary'
+    verdict: incorrect
+    justification: A Python dictionary on the driver is not fault-tolerant, distributed state.
+  source_url: https://docs.databricks.com/aws/en/stateful-applications/
+- id: 3.8-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: In `transformWithState`, how is state organized?
+  answers:
+  - text: State variables are kept per grouping key and accessed in the user's stateful processor.
+    verdict: correct
+    justification: '`transformWithState` keeps state variables per grouping key, accessed in the stateful processor.'
+  - text: One global state variable is shared by all keys.
+    verdict: incorrect
+    justification: State is kept per key, not as one global variable.
+  - text: State is kept only for the current micro-batch.
+    verdict: incorrect
+    justification: State persists across micro-batches.
+  - text: State is stored in a temporary view.
+    verdict: incorrect
+    justification: State is kept in the state store, not in temporary views.
+  source_url: https://docs.databricks.com/aws/en/stateful-applications/
+- id: 3.8-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: How can a `transformWithState` application limit state size for keys that are no longer active?
+  answers:
+  - text: Restart the query every day.
+    verdict: incorrect
+    justification: Restarting does not clear checkpointed state.
+  - text: Define time-to-live (TTL) for state values so expired state is removed.
+    verdict: correct
+    justification: State values in `transformWithState` support TTL, so state for inactive keys expires.
+  - text: Use `coalesce(1)` on the stream.
+    verdict: incorrect
+    justification: '`coalesce` does not manage state.'
+  - text: Call `unpersist()` on the state.
+    verdict: incorrect
+    justification: State is not a cached DataFrame, so `unpersist` does not apply.
+  source_url: https://docs.databricks.com/aws/en/stateful-applications/
+- id: 3.8-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer reads about `applyInPandasWithState`.
+
+    Which statement is correct?
+  answers:
+  - text: It is a batch-only aggregation with no state.
+    verdict: incorrect
+    justification: It is designed for streaming and keeps state.
+  - text: It applies a Python function to each group of a streaming DataFrame, with access to a `GroupState` object for keeping state across micro-batches.
+    verdict: correct
+    justification: '`applyInPandasWithState` applies a Python function per group with a `GroupState` that persists across micro-batches.'
+  - text: It replaces the need for a checkpoint location.
+    verdict: incorrect
+    justification: A checkpoint location is still required.
+  - text: It runs once per row on the driver.
+    verdict: incorrect
+    justification: It runs on executors, per group.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.applyInPandasWithState.html
+- id: 3.8-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: Which legacy custom stateful operators are not supported when chaining multiple stateful operators on Databricks?
+  answers:
+  - text: '`filter` and `select`'
+    verdict: incorrect
+    justification: '`filter` and `select` are stateless.'
+  - text: '`groupBy().count()` and `window`'
+    verdict: incorrect
+    justification: Windowed aggregations can be chained.
+  - text: '`dropDuplicates` and `distinct`'
+    verdict: incorrect
+    justification: Deduplication is a built-in stateful operator, not a legacy custom one.
+  - text: '`flatMapGroupsWithState` and `applyInPandasWithState`'
+    verdict: correct
+    justification: Databricks lists `flatMapGroupsWithState` and `applyInPandasWithState` as not supported when chaining stateful operators.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: For stateful streaming queries, how many shuffle partitions does Databricks recommend?
+  answers:
+  - text: 1–2 times the number of cores in the cluster
+    verdict: correct
+    justification: Databricks recommends 1–2 times the number of cluster cores as shuffle partitions for stateful queries.
+  - text: One per input file
+    verdict: incorrect
+    justification: Partitions are not tied to input files here.
+  - text: 10 times the number of executors
+    verdict: incorrect
+    justification: 10 times the number of executors is not the recommendation.
+  - text: Always exactly 200
+    verdict: incorrect
+    justification: 200 is the Spark default, not the recommendation for stateful streams.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    Databricks recommends a specific approach for common stateful operations such as aggregations, deduplication and streaming joins.
+
+    Which approach is it?
+  answers:
+  - text: Implement them with `foreachBatch` and a dictionary on the driver.
+    verdict: incorrect
+    justification: A driver-side dictionary is neither distributed nor fault-tolerant.
+  - text: Implement them with Python UDFs and global variables.
+    verdict: incorrect
+    justification: UDFs with global variables are neither stateful nor fault-tolerant.
+  - text: Use the built-in Structured Streaming operators instead of custom stateful logic.
+    verdict: correct
+    justification: Databricks recommends the built-in operators for aggregations, deduplication and streaming joins.
+  - text: Implement them with `transformWithState`.
+    verdict: partially_correct
+    justification: '`transformWithState` can implement them, but Databricks recommends it for custom logic, not for operations the built-in operators already cover.'
+  source_url: https://docs.databricks.com/aws/en/stateful-applications/
+- id: 3.8-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer registers a Python UDF in Unity Catalog so other users can call it in SQL across sessions.
+
+    Which approach is used?
+  answers:
+  - text: '`CREATE FUNCTION catalog.schema.fn(...) RETURNS ... LANGUAGE PYTHON AS $$ ... $$`'
+    verdict: correct
+    justification: '`CREATE FUNCTION ... LANGUAGE PYTHON` registers a Python UDF in Unity Catalog for all users and sessions.'
+  - text: '`spark.udf.register("catalog.schema.fn", fn)`'
+    verdict: true_but_irrelevant
+    justification: '`spark.udf.register` is valid, but it registers a temporary function for the current session only.'
+  - text: '`df.createOrReplaceTempView("fn")`'
+    verdict: incorrect
+    justification: A temporary view is not a function.
+  - text: '`spark.catalog.registerFunction("fn", global=True)`'
+    verdict: incorrect
+    justification: The catalog has no `registerFunction` method with a `global` parameter.
+  source_url: https://docs.databricks.com/aws/en/udf/python
+- id: 3.8-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    On Spark Connect, a Python UDF reads a module-level variable that changes later. The engineer wants the UDF to keep the value at creation time.
+
+    What does Databricks recommend?
+  answers:
+  - text: Use `spark.udf.register` instead of `@udf`.
+    verdict: incorrect
+    justification: '`spark.udf.register` does not change Spark Connect''s lazy serialization.'
+  - text: Declare the variable as `global` inside the UDF.
+    verdict: incorrect
+    justification: '`global` still reads the variable at execution time.'
+  - text: Cache the DataFrame before calling the UDF.
+    verdict: incorrect
+    justification: Caching does not affect when the UDF is serialized.
+  - text: Create the UDF inside a factory function that receives the value as an argument, so it is bound at creation.
+    verdict: correct
+    justification: Databricks recommends a factory function that takes the value as an argument, so each UDF captures its own value at creation.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 3.8-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer applies a UDF whose declared return type is `IntegerType()`, but the Python function returns strings like `"12"`.
+
+    What is the most likely result?
+  answers:
+  - text: The column type is changed to string automatically.
+    verdict: incorrect
+    justification: The declared return type decides the column type.
+  - text: The values do not match the declared type, so the column contains nulls or the query fails, depending on settings.
+    verdict: correct
+    justification: The returned values don't match the declared `IntegerType`, so depending on settings the column becomes null or the query fails.
+  - text: The UDF is skipped.
+    verdict: incorrect
+    justification: The UDF is not skipped.
+  - text: Spark automatically parses the strings into integers.
+    verdict: incorrect
+    justification: Spark does not parse strings returned by UDFs into the declared type.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.udf.html
+- id: 3.8-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A streaming query uses `dropDuplicates(["event_id"])` without a watermark.
+
+    What happens to the state over time?
+  answers:
+  - text: It stays constant at one row per partition.
+    verdict: incorrect
+    justification: State grows with the number of distinct keys.
+  - text: It is stored only in the source system.
+    verdict: incorrect
+    justification: State is kept in the state store.
+  - text: It grows without bound, because Spark must remember all seen keys.
+    verdict: correct
+    justification: Without a watermark, Spark must remember every key it has seen, so the state grows without bound.
+  - text: It is cleared after every micro-batch.
+    verdict: incorrect
+    justification: State persists across micro-batches.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stateful-streaming
+- id: 3.8-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A data engineer chooses between a Python UDF and a pandas UDF for a numeric transformation on 1 billion rows.
+
+    Which is generally faster and why?
+  answers:
+  - text: The Python UDF, because it avoids Arrow serialization.
+    verdict: incorrect
+    justification: Arrow serialization is efficient; it is part of why pandas UDFs are faster.
+  - text: Both are equally fast because they run in Python.
+    verdict: incorrect
+    justification: Both run in Python, but batching and vectorization make pandas UDFs faster.
+  - text: The Python UDF, because it processes one row at a time.
+    verdict: incorrect
+    justification: Processing one row at a time is what makes Python UDFs slower.
+  - text: The pandas UDF, because it processes Arrow batches with vectorized pandas operations.
+    verdict: correct
+    justification: Pandas UDFs process Arrow batches with vectorized pandas operations, which is usually much faster than row-at-a-time UDFs.
+  source_url: https://docs.databricks.com/aws/en/udf/
+- id: 3.8-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A stateful streaming query restarts after a failure.
+
+    How does it recover its state?
+  answers:
+  - text: From the driver logs
+    verdict: incorrect
+    justification: Logs do not contain state.
+  - text: From the checkpoint location, which stores progress and state snapshots
+    verdict: correct
+    justification: The checkpoint stores progress and state, so a restarted query recovers its state from there.
+  - text: From the cache of the previous executors
+    verdict: incorrect
+    justification: Executor caches do not survive failures and are not used for recovery.
+  - text: By reprocessing all data from the earliest offset
+    verdict: incorrect
+    justification: The query resumes from its checkpointed offsets; it does not reprocess everything.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/checkpoints
+- id: 3.8-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.8'
+  question: |-
+    A team needs a simple reusable function, such as masking an email address, that SQL analysts can call. The logic can be written with SQL expressions.
+
+    Which UDF type is usually the best fit on Databricks?
+  answers:
+  - text: A Scala UDF registered from a JAR
+    verdict: incorrect
+    justification: A Scala UDF from a JAR is more complex to build and maintain for simple SQL logic.
+  - text: A pandas UDF with an iterator of Series
+    verdict: partially_correct
+    justification: A pandas UDF works too, but it needs Python and is unnecessary for logic expressible in SQL.
+  - text: A SQL UDF, because it is expressed in SQL and avoids the overhead of a Python process
+    verdict: correct
+    justification: SQL UDFs are written in SQL, are easy for analysts to call, and avoid Python process overhead; Databricks calls built-in functions and SQL UDFs the most efficient options.
+  - text: A row-at-a-time Python UDF
+    verdict: partially_correct
+    justification: A Python UDF works, but it adds Python overhead for logic that SQL can express.
+  source_url: https://docs.databricks.com/aws/en/udf/
