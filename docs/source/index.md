@@ -2,6 +2,8 @@
 
 A hands-on course that takes you from no Apache Spark knowledge to ready for the **Databricks Certified Associate Developer for Apache Spark** exam. You write and run PySpark from your own editor against Databricks serverless compute, and you check what you've learned with a bank of 1,000 exam-style questions.
 
+**Ready to test yourself? [Open the mock exam app](https://baloghbence.github.io/learn_spark_from_zero/mock-exam/)**: a 45-question practice exam in your browser, with nothing to install.
+
 ::::{grid} 1 1 2 2
 :gutter: 3
 
@@ -30,7 +32,7 @@ Sit a full 45-question practice exam in a chat that covers every objective, grad
 :link: 00_getting_started/04_taking_a_mock_exam_in_the_browser
 :link-type: doc
 
-Run the mock exam app locally for a testing screen with a timer, review marks, and an export of your wrong answers.
+Use the hosted app or run it locally for a testing screen with a timer, review marks, and an export of your wrong answers.
 :::
 ::::
 
@@ -46,7 +48,7 @@ The pages target Apache Spark 4.x as it runs on Databricks. Where Databricks beh
 - **Python 3.12, [uv](https://docs.astral.sh/uv/) and the Databricks CLI** on your machine, to run the notebooks locally through Databricks Connect. {doc}`Setting Up Databricks Connect <00_getting_started/01_setting_up_databricks_connect>` walks you through the setup.
 - **A copy of the [course repository](https://github.com/BALOGHBence/learn_spark_from_zero)**, which holds the notebooks, the question bank and the Claude Code skills.
 - **Optional: [Claude Code](https://claude.com/claude-code)**, to run the quizzes and the mock exam.
-- **Optional: [Node.js](https://nodejs.org/) 20 or later**, to run the mock exam app in your browser, as described in {doc}`Taking a Mock Exam in the Browser <00_getting_started/04_taking_a_mock_exam_in_the_browser>`.
+- **Optional: [Node.js](https://nodejs.org/) 20 or later**, to run the mock exam app locally, as described in {doc}`Taking a Mock Exam in the Browser <00_getting_started/04_taking_a_mock_exam_in_the_browser>`.
 
 ## Course Map
 
