@@ -1,0 +1,711 @@
+# Objective 7.2: Create and invoke Pandas UDF.
+- id: 7.2-001
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer defines a pandas UDF that multiplies two columns.
+
+    Which code is correct?
+  answers:
+  - text: |-
+      ```python
+      from pyspark.sql.functions import udf
+
+      @udf("long", pandas=True)
+      def multiply(a, b):
+          return a * b
+
+      df.select(multiply("x", "y"))
+      ```
+    verdict: incorrect
+    justification: '`udf` has no `pandas` parameter; pandas UDFs use `@pandas_udf`.'
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf
+      def multiply(a: pd.DataFrame) -> pd.DataFrame:
+          return a.x * a.y
+
+      df.select(multiply(df))
+      ```
+    verdict: incorrect
+    justification: No return type is given, and passing the whole DataFrame as an argument is not valid.
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("long")
+      def multiply(a: int, b: int) -> int:
+          return a * b
+
+      df.select(multiply("x", "y"))
+      ```
+    verdict: incorrect
+    justification: The type hints must be pandas types; with plain `int` hints Spark cannot infer the pandas UDF type.
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("long")
+      def multiply(a: pd.Series, b: pd.Series) -> pd.Series:
+          return a * b
+
+      df.select(multiply("x", "y"))
+      ```
+    verdict: correct
+    justification: A Series to Series pandas UDF has `pd.Series` type hints and a return type such as `"long"`, and is called with column names.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-002
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: What is a pandas UDF also known as?
+  answers:
+  - text: A row-at-a-time UDF
+    verdict: incorrect
+    justification: Pandas UDFs are the opposite of row-at-a-time UDFs.
+  - text: A scalar SQL UDF
+    verdict: incorrect
+    justification: SQL UDFs are a different UDF type.
+  - text: A vectorized UDF
+    verdict: correct
+    justification: Databricks describes pandas UDFs as vectorized UDFs.
+  - text: A table-valued function
+    verdict: incorrect
+    justification: Table-valued functions are a different concept.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-003
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Which technologies does a pandas UDF use to transfer and process data?
+  answers:
+  - text: JDBC to transfer data and SQL to process it
+    verdict: incorrect
+    justification: JDBC and SQL are unrelated.
+  - text: Apache Arrow to transfer data and pandas to work with the data
+    verdict: correct
+    justification: Pandas UDFs use Apache Arrow to transfer data and pandas to work with it.
+  - text: JSON to transfer data and plain Python loops to process it
+    verdict: incorrect
+    justification: JSON and per-row loops are what pandas UDFs avoid.
+  - text: Py4J to transfer data and NumPy only to work with it
+    verdict: incorrect
+    justification: Pandas UDFs use Arrow for data transfer, not Py4J, and pandas, not only NumPy.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-004
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: According to Databricks, how much faster can pandas UDFs be compared to row-at-a-time Python UDFs?
+  answers:
+  - text: Up to 100x
+    verdict: correct
+    justification: Databricks states pandas UDFs can be up to 100x faster than row-at-a-time Python UDFs.
+  - text: Up to 2x
+    verdict: incorrect
+    justification: The documented gain is much larger than 2x.
+  - text: Exactly the same speed
+    verdict: incorrect
+    justification: Pandas UDFs are faster.
+  - text: Up to 1,000,000x
+    verdict: incorrect
+    justification: 1,000,000x is not the documented figure.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-005
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: How does Spark determine the type of a pandas UDF in current versions?
+  answers:
+  - text: From the Python type hints of the function, such as `pd.Series -> pd.Series`
+    verdict: correct
+    justification: Databricks explains that pandas UDF types are defined by Python type hints.
+  - text: From a `functionType` string that is required
+    verdict: true_but_irrelevant
+    justification: The `functionType` argument is the older style; type hints are the current approach.
+  - text: From the first returned value
+    verdict: incorrect
+    justification: The type is not inferred from returned values.
+  - text: From the name of the function
+    verdict: incorrect
+    justification: The function name does not matter.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-006
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: For a Series to Series pandas UDF, what must the function return?
+  answers:
+  - text: A pandas DataFrame with any number of rows
+    verdict: incorrect
+    justification: It must return a Series, not a DataFrame of arbitrary length.
+  - text: A single scalar value
+    verdict: true_but_irrelevant
+    justification: Returning a scalar is what a Series to scalar UDF does.
+  - text: A pandas Series of the same length as the input
+    verdict: correct
+    justification: A Series to Series UDF must return a Series of the same length as its input.
+  - text: A Python list of any length
+    verdict: incorrect
+    justification: It must return a pandas Series.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-007
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: How does Spark execute a Series to Series pandas UDF?
+  answers:
+  - text: It calls the function once per executor with all data.
+    verdict: incorrect
+    justification: The function is called per batch, not once per executor.
+  - text: It splits the column into batches, calls the function for each batch, and concatenates the results.
+    verdict: correct
+    justification: Spark splits the data into batches, calls the function per batch and concatenates the results.
+  - text: It collects the full column to the driver and calls the function once.
+    verdict: incorrect
+    justification: Data is not collected to the driver.
+  - text: It calls the function once per row.
+    verdict: true_but_irrelevant
+    justification: Calling the function once per row is how a regular Python UDF works.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-008
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A pandas UDF must load a large machine learning model once and then score many batches.
+
+    Which pandas UDF type is designed for initializing state like this?
+  answers:
+  - text: Series to Series
+    verdict: partially_correct
+    justification: A Series to Series UDF can also score batches, but it would load the model again for every batch.
+  - text: A row-at-a-time Python UDF
+    verdict: incorrect
+    justification: A row-at-a-time UDF is slower and has no setup step either.
+  - text: Series to scalar
+    verdict: incorrect
+    justification: Series to scalar UDFs aggregate; they do not score rows.
+  - text: Iterator of Series to Iterator of Series
+    verdict: correct
+    justification: An iterator UDF can initialize state, such as a loaded model, once before processing all batches.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-009
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Which type hint defines an iterator pandas UDF that takes one column?
+  answers:
+  - text: '`Iterator[pd.DataFrame] -> pd.Series`'
+    verdict: incorrect
+    justification: The input is Series batches, and the output must be an iterator.
+  - text: '`List[pd.Series] -> List[pd.Series]`'
+    verdict: incorrect
+    justification: '`List` is not a supported pandas UDF type hint.'
+  - text: '`Iterator[pd.Series] -> Iterator[pd.Series]`'
+    verdict: correct
+    justification: An iterator UDF on one column is declared as `Iterator[pd.Series] -> Iterator[pd.Series]`.
+  - text: '`pd.Series -> Iterator[pd.Series]`'
+    verdict: incorrect
+    justification: The input must also be an iterator.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-010
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer writes an iterator pandas UDF that takes two columns.
+
+    Which type hint is correct?
+  answers:
+  - text: '`pd.Series, pd.Series -> Iterator[pd.Series]`'
+    verdict: incorrect
+    justification: The input must be an iterator of tuples.
+  - text: '`Iterator[Tuple[pd.Series, pd.Series]] -> Iterator[pd.Series]`'
+    verdict: correct
+    justification: Multiple input columns are declared as `Iterator[Tuple[pd.Series, ...]] -> Iterator[pd.Series]`.
+  - text: '`Iterator[pd.Series, pd.Series] -> pd.Series`'
+    verdict: incorrect
+    justification: '`Iterator` takes a single type argument, and the output must be an iterator.'
+  - text: '`Tuple[Iterator[pd.Series]] -> Iterator[pd.Series]`'
+    verdict: incorrect
+    justification: The tuple goes inside the iterator, not around it.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-011
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Which code is a correct iterator pandas UDF that adds 1 to every value?
+  answers:
+  - text: |-
+      ```python
+      from typing import Iterator
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("long")
+      def plus_one(batches: Iterator[pd.Series]) -> Iterator[pd.Series]:
+          for s in batches:
+              yield s + 1
+      ```
+    verdict: correct
+    justification: An iterator UDF loops over the batches and yields one result Series per batch.
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("long")
+      def plus_one(s: pd.Series) -> Iterator[pd.Series]:
+          yield s + 1
+      ```
+    verdict: incorrect
+    justification: The input type hint must be `Iterator[pd.Series]` for an iterator UDF.
+  - text: |-
+      ```python
+      from pyspark.sql.functions import udf
+
+      @udf("long")
+      def plus_one(batches):
+          for s in batches:
+              yield s + 1
+      ```
+    verdict: incorrect
+    justification: A regular `@udf` processes rows, not batches.
+  - text: |-
+      ```python
+      from typing import Iterator
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("long")
+      def plus_one(batches: Iterator[pd.Series]) -> Iterator[pd.Series]:
+          return batches + 1
+      ```
+    verdict: incorrect
+    justification: An iterator cannot be added to a number; each batch must be processed and yielded.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-012
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer needs a custom aggregation, such as a weighted mean, usable with `groupBy().agg()`.
+
+    Which pandas UDF type fits?
+  answers:
+  - text: Iterator of Series to Iterator of Series
+    verdict: incorrect
+    justification: Iterator UDFs return one value per row.
+  - text: Iterator of multiple Series to Iterator of Series
+    verdict: incorrect
+    justification: Iterator UDFs return one value per row.
+  - text: Series to Series
+    verdict: incorrect
+    justification: Series to Series returns one value per row, not an aggregate.
+  - text: Series to scalar, with a type hint like `pd.Series -> float`
+    verdict: correct
+    justification: A Series to scalar UDF aggregates a Series to one value and can be used in `groupBy().agg()`.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-013
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Which code defines and uses a Series to scalar pandas UDF for the mean of `v` per `id`?
+  answers:
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("double")
+      def mean_udf(v: pd.Series) -> float:
+          return v.mean()
+
+      df.groupBy("id").apply(mean_udf("v"))
+      ```
+    verdict: incorrect
+    justification: '`GroupedData.apply` is for grouped-map functions, not scalar aggregates.'
+  - text: |-
+      ```python
+      from pyspark.sql.functions import udf
+
+      @udf("double")
+      def mean_udf(v):
+          return sum(v) / len(v)
+
+      df.groupBy("id").agg(mean_udf("v"))
+      ```
+    verdict: incorrect
+    justification: A regular Python UDF cannot be used as an aggregate function.
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("double")
+      def mean_udf(v: pd.Series) -> pd.Series:
+          return v.mean()
+
+      df.groupBy("id").agg(mean_udf("v"))
+      ```
+    verdict: incorrect
+    justification: The hint `-> pd.Series` makes it a Series to Series UDF, which `agg` rejects.
+  - text: |-
+      ```python
+      import pandas as pd
+      from pyspark.sql.functions import pandas_udf
+
+      @pandas_udf("double")
+      def mean_udf(v: pd.Series) -> float:
+          return v.mean()
+
+      df.groupBy("id").agg(mean_udf("v"))
+      ```
+    verdict: correct
+    justification: '`pd.Series -> float` declares a Series to scalar UDF, which can be used in `groupBy().agg()`.'
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-014
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: With which APIs can a Series to scalar pandas UDF be used?
+  answers:
+  - text: Only SQL queries
+    verdict: incorrect
+    justification: It works in DataFrame APIs as well as SQL.
+  - text: Only `withColumn`
+    verdict: incorrect
+    justification: It is not limited to `withColumn`.
+  - text: '`select`, `withColumn`, `groupBy().agg()` and `pyspark.sql.Window`'
+    verdict: correct
+    justification: Databricks lists `select`, `withColumn`, `groupBy().agg()` and `Window` for Series to scalar UDFs.
+  - text: Only `mapInPandas`
+    verdict: incorrect
+    justification: '`mapInPandas` takes plain Python functions, not this UDF type.'
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-015
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: What is the default maximum number of records per Arrow batch for pandas UDFs?
+  answers:
+  - text: 10,000
+    verdict: correct
+    justification: Databricks documents 10,000 records per Arrow batch as the default.
+  - text: Unlimited
+    verdict: incorrect
+    justification: There is a default batch limit.
+  - text: 1,000
+    verdict: incorrect
+    justification: 1,000 is not the default.
+  - text: 100,000
+    verdict: incorrect
+    justification: 100,000 is not the default.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-016
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A pandas UDF processes very wide rows and runs out of memory per batch.
+
+    Which configuration reduces the number of records in each Arrow batch?
+  answers:
+  - text: '`spark.executor.cores`'
+    verdict: true_but_irrelevant
+    justification: Executor cores affect parallelism, not batch size.
+  - text: '`spark.sql.execution.arrow.maxRecordsPerBatch`'
+    verdict: correct
+    justification: '`spark.sql.execution.arrow.maxRecordsPerBatch` limits the records in each Arrow batch.'
+  - text: '`spark.sql.files.maxPartitionBytes`'
+    verdict: true_but_irrelevant
+    justification: '`maxPartitionBytes` affects file read splits.'
+  - text: '`spark.sql.shuffle.partitions`'
+    verdict: true_but_irrelevant
+    justification: Shuffle partitions affect partition sizes, not Arrow batch sizes.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-017
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer applies a function to each group, where the function receives all rows of a group as a pandas DataFrame and returns a pandas DataFrame.
+
+    Which API does this?
+  answers:
+  - text: '`df.groupBy("id").applyInPandas(func, schema="id long, v double")`'
+    verdict: correct
+    justification: '`groupBy().applyInPandas(func, schema)` calls the function with each group as a pandas DataFrame and combines the results.'
+  - text: '`df.mapInPandas(func).groupBy("id")`'
+    verdict: incorrect
+    justification: '`mapInPandas` works per partition, not per group, and grouping afterwards does nothing useful.'
+  - text: '`df.groupBy("id").apply(func).toPandas()`'
+    verdict: incorrect
+    justification: '`toPandas` collects the result to the driver; grouped maps should use `applyInPandas`.'
+  - text: '`df.groupBy("id").agg(pandas_udf(func))`'
+    verdict: incorrect
+    justification: '`agg` expects aggregate expressions, not a function that returns DataFrames.'
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-018
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: What must be provided when calling `groupBy().applyInPandas()`?
+  answers:
+  - text: A broadcast variable with the groups
+    verdict: incorrect
+    justification: No broadcast variable is needed.
+  - text: The number of groups
+    verdict: incorrect
+    justification: The number of groups is determined by the data.
+  - text: Only the Python function
+    verdict: incorrect
+    justification: The output schema is also required.
+  - text: The Python function and the schema of the output DataFrame
+    verdict: correct
+    justification: Databricks states you must provide the Python function and the output schema (a `StructType` or string).
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-019
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: What is a risk of `groupBy().applyInPandas()` with skewed groups?
+  answers:
+  - text: Large groups are automatically split into batches of 10,000 rows.
+    verdict: incorrect
+    justification: Groups are not split into batches.
+  - text: All data of a group is loaded into memory before the function is applied, so large groups can cause out-of-memory errors.
+    verdict: correct
+    justification: Databricks warns that all data for a group is loaded into memory, so skewed groups can cause OOM; `maxRecordsPerBatch` does not apply to groups.
+  - text: Skewed groups are dropped.
+    verdict: incorrect
+    justification: No groups are dropped.
+  - text: The function runs on the driver for large groups.
+    verdict: incorrect
+    justification: The function runs on executors.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-020
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer wants to transform an iterator of pandas DataFrames for each partition, for example to filter rows with custom pandas logic.
+
+    Which API does this?
+  answers:
+  - text: '`df.applyInPandas(func)`'
+    verdict: incorrect
+    justification: DataFrames have no `applyInPandas`; it is on grouped data.
+  - text: '`df.foreachBatch(func)`'
+    verdict: incorrect
+    justification: '`foreachBatch` is a streaming sink method.'
+  - text: '`df.mapInPandas(func, schema=df.schema)`'
+    verdict: correct
+    justification: '`mapInPandas` transforms an iterator of pandas DataFrames per partition, with an output schema.'
+  - text: '`df.groupBy().agg(func)`'
+    verdict: incorrect
+    justification: '`agg` takes aggregate expressions.'
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-021
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: How do pandas function APIs differ from pandas UDFs regarding type hints?
+  answers:
+  - text: Pandas function APIs require Scala type annotations.
+    verdict: incorrect
+    justification: Scala annotations are not involved.
+  - text: Type hints are forbidden in pandas function APIs.
+    verdict: incorrect
+    justification: Type hints are allowed.
+  - text: There is no difference; both require hints.
+    verdict: incorrect
+    justification: 'They differ: pandas UDFs rely on hints, function APIs do not require them.'
+  - text: Python type hints are optional in pandas function APIs.
+    verdict: correct
+    justification: Databricks notes type hints are optional in pandas function APIs.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-022
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    Two DataFrames must be grouped by the same key and processed together with pandas.
+
+    Which API is designed for this cogrouped map pattern?
+  answers:
+  - text: '`df1.groupBy("id").cogroup(df2.groupBy("id")).applyInPandas(func, schema)`'
+    verdict: correct
+    justification: Cogrouped map groups both DataFrames by key with `cogroup` and passes each pair of groups to `applyInPandas`.
+  - text: '`pandas_udf(func)(df1, df2)`'
+    verdict: incorrect
+    justification: A pandas UDF is applied to columns, not to two DataFrames.
+  - text: '`df1.unionByName(df2).applyInPandas(func)`'
+    verdict: incorrect
+    justification: DataFrames have no `applyInPandas`, and a union mixes both inputs together.
+  - text: '`df1.join(df2).mapInPandas(func)`'
+    verdict: incorrect
+    justification: '`join` without keys does not group the data, and `mapInPandas` works per partition.'
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-023
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer registers a pandas UDF for use in SQL.
+
+    Which code does this?
+  answers:
+  - text: '`multiply.createOrReplaceTempView("multiply")`'
+    verdict: incorrect
+    justification: UDFs have no `createOrReplaceTempView`.
+  - text: '`spark.sql("REGISTER PANDAS UDF multiply")`'
+    verdict: incorrect
+    justification: There is no `REGISTER PANDAS UDF` statement.
+  - text: '`spark.udf.register("multiply", multiply)` where `multiply` is a pandas UDF'
+    verdict: correct
+    justification: '`spark.udf.register` also registers pandas UDFs for SQL.'
+  - text: '`spark.catalog.registerPandas("multiply")`'
+    verdict: incorrect
+    justification: The catalog has no `registerPandas` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.pandas_udf.html
+- id: 7.2-024
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: A Series to Series pandas UDF can be used with which DataFrame APIs?
+  answers:
+  - text: Only `mapInPandas`
+    verdict: incorrect
+    justification: '`mapInPandas` takes plain functions.'
+  - text: '`select` and `withColumn`'
+    verdict: correct
+    justification: Databricks states that Series to Series UDFs are used with APIs such as `select` and `withColumn`.
+  - text: Only `groupBy().agg()`
+    verdict: true_but_irrelevant
+    justification: Use with `groupBy().agg()` is for Series to scalar UDFs.
+  - text: Only `foreachBatch`
+    verdict: incorrect
+    justification: '`foreachBatch` is for streaming writes.'
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-025
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer tests a pandas UDF function locally before using it in Spark.
+
+    Why is this possible?
+  answers:
+  - text: The underlying Python function operates on regular pandas data, so it can be called with local pandas Series.
+    verdict: correct
+    justification: The function works on regular pandas data, so it can be tested locally with pandas Series, as the Databricks examples show.
+  - text: The function must be compiled first.
+    verdict: incorrect
+    justification: Python functions need no compilation.
+  - text: Pandas UDFs can only run on a cluster.
+    verdict: incorrect
+    justification: The underlying function can run without a cluster.
+  - text: Spark copies the function to a local Spark session automatically.
+    verdict: incorrect
+    justification: No local Spark session is created.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-026
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Which statement about returning data from an iterator pandas UDF is correct?
+  answers:
+  - text: Each output batch can have any length, independent of the input.
+    verdict: incorrect
+    justification: Individual batch sizes can vary, but the total length must match.
+  - text: It must return exactly one batch.
+    verdict: incorrect
+    justification: It yields one batch per input batch.
+  - text: The total length of all output batches must equal the total length of the input.
+    verdict: correct
+    justification: Databricks states the total output length of an iterator UDF must equal the total input length.
+  - text: It must return a single scalar.
+    verdict: incorrect
+    justification: Only Series to scalar UDFs return a scalar.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-027
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A pandas UDF returns a struct of two fields per row.
+
+    How can the return type and Python output be declared?
+  answers:
+  - text: Return a pandas Series of dictionaries with no return type.
+    verdict: incorrect
+    justification: The return type must be declared.
+  - text: Struct outputs are not supported by pandas UDFs.
+    verdict: incorrect
+    justification: Struct outputs are supported.
+  - text: Return a list of tuples with return type `"list"`.
+    verdict: incorrect
+    justification: '`"list"` is not a Spark type, and tuples are not the expected output.'
+  - text: Declare a struct return type such as `"a long, b double"` and return a pandas DataFrame with columns `a` and `b`.
+    verdict: correct
+    justification: For a struct return type, a pandas UDF returns a pandas DataFrame whose columns match the struct fields.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.pandas_udf.html
+- id: 7.2-028
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: Why are pandas UDFs generally faster than row-at-a-time Python UDFs?
+  answers:
+  - text: They cache all results on the driver.
+    verdict: incorrect
+    justification: Results are not cached on the driver.
+  - text: They transfer data in Arrow batches and use vectorized pandas operations instead of serializing and processing one row at a time.
+    verdict: correct
+    justification: Pandas UDFs move data in Arrow batches and use vectorized pandas operations instead of per-row serialization.
+  - text: They skip the Python worker processes entirely.
+    verdict: incorrect
+    justification: They run in Python worker processes.
+  - text: They run in the JVM instead of Python.
+    verdict: incorrect
+    justification: They still run in Python.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas
+- id: 7.2-029
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: When using `mapInPandas`, what does the function receive and return?
+  answers:
+  - text: It receives one row and returns one row.
+    verdict: incorrect
+    justification: It processes batches, not single rows.
+  - text: It receives a Spark DataFrame and returns a pandas DataFrame.
+    verdict: incorrect
+    justification: It receives pandas DataFrames, not a Spark DataFrame.
+  - text: It receives an iterator of pandas DataFrames and returns an iterator of pandas DataFrames.
+    verdict: correct
+    justification: The `mapInPandas` function receives an iterator of pandas DataFrames and yields pandas DataFrames.
+  - text: It receives a single pandas Series and returns a scalar.
+    verdict: true_but_irrelevant
+    justification: Taking a Series and returning a scalar is what a Series to scalar UDF does.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-function-apis
+- id: 7.2-030
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer compares `@pandas_udf` with a pandas UDF used in a `Window` aggregation, `mean_udf("v").over(w)`.
+
+    Which pandas UDF type is required for this?
+  answers:
+  - text: Grouped map with `applyInPandas`
+    verdict: incorrect
+    justification: '`applyInPandas` is a grouped-map function API, not a window function.'
+  - text: Iterator of Series to Iterator of Series
+    verdict: incorrect
+    justification: Iterator UDFs are not aggregate functions.
+  - text: Series to Series
+    verdict: incorrect
+    justification: Series to Series UDFs are not aggregate functions.
+  - text: Series to scalar
+    verdict: correct
+    justification: Window aggregations with `.over(w)` need a Series to scalar pandas UDF.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.pandas_udf.html
+- id: 7.2-031
+  category: using_pandas_api_on_spark
+  objective: '7.2'
+  question: |-
+    A data engineer's iterator pandas UDF opens a connection before processing batches and must always close it, even if an error occurs.
+
+    Which pattern does the Databricks documentation suggest?
+  answers:
+  - text: Wrap the batch loop in `try`/`finally` or use a context manager so resources are released at the end.
+    verdict: correct
+    justification: Databricks recommends `try`/`finally` or context managers in iterator UDFs so resources are released at the end.
+  - text: Store the connection in a broadcast variable.
+    verdict: incorrect
+    justification: Connections cannot be serialized as broadcast variables.
+  - text: Open and close the connection on the driver before calling the UDF.
+    verdict: incorrect
+    justification: Connections opened on the driver are not available inside executor tasks.
+  - text: Use a Series to Series UDF, which closes resources automatically.
+    verdict: incorrect
+    justification: Series to Series UDFs do not manage resources automatically.
+  source_url: https://docs.databricks.com/aws/en/udf/pandas

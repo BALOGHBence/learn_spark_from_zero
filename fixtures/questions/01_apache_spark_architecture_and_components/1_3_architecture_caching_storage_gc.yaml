@@ -1,0 +1,665 @@
+# Objective 1.3: Describe the architecture of Apache Spark™, including DataFrame and Dataset concepts, SparkSession lifecycle, caching, storage levels, and garbage collection.
+- id: 1.3-001
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A Python developer reads about Spark's typed Dataset API and wants to use it in PySpark.
+
+    Which statement is correct?
+  answers:
+  - text: The typed Dataset API is available in Scala and Java; Python uses DataFrames instead.
+    verdict: correct
+    justification: The Spark SQL guide states that the Dataset API is available in Scala and Java, and Python has no Dataset support; PySpark users work with DataFrames, which give most of the same benefits.
+  - text: Python supports Datasets only for streaming queries.
+    verdict: incorrect
+    justification: Python has no Dataset API for streaming either; streaming in PySpark also uses DataFrames.
+  - text: Python supports Datasets through the `pyspark.sql.Dataset` class.
+    verdict: incorrect
+    justification: PySpark has no `pyspark.sql.Dataset` class.
+  - text: Datasets are available in all languages, but only on Databricks.
+    verdict: incorrect
+    justification: Dataset availability depends on the language, not on Databricks; Python has no typed Dataset API anywhere.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.3-002
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer explains what a DataFrame is in Spark.
+
+    Which description is correct?
+  answers:
+  - text: A single in-memory pandas table stored on the driver
+    verdict: incorrect
+    justification: A Spark DataFrame is distributed across executors; a single in-memory table on the driver describes a pandas DataFrame.
+  - text: A file format that Spark uses to store data on disk
+    verdict: incorrect
+    justification: A DataFrame is an in-memory abstraction; file formats such as Parquet are separate from it.
+  - text: An untyped list of Python objects with no schema
+    verdict: incorrect
+    justification: DataFrames always have a schema with named, typed columns.
+  - text: A distributed collection of data organized into named columns, conceptually like a table in a relational database
+    verdict: correct
+    justification: A DataFrame is a distributed collection of data organized into named columns, conceptually equivalent to a table in a relational database.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.3-003
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A Scala developer asks how DataFrames and Datasets relate in the Scala API.
+
+    Which statement is correct?
+  answers:
+  - text: In Scala, Datasets are RDDs without a schema.
+    verdict: incorrect
+    justification: Datasets have a schema and use the Spark SQL engine; they are not schemaless RDDs.
+  - text: In Scala, a Dataset is a DataFrame that can only hold strings.
+    verdict: incorrect
+    justification: Datasets can hold any type with an encoder, such as case classes; a DataFrame is a Dataset of `Row`, not a string-only DataFrame.
+  - text: In Scala, a DataFrame is a Dataset of `Row` objects (`Dataset[Row]`).
+    verdict: correct
+    justification: In the Scala API, `DataFrame` is simply a type alias for `Dataset[Row]`.
+  - text: In Scala, DataFrames and Datasets cannot be converted into each other.
+    verdict: incorrect
+    justification: DataFrames and Datasets convert easily in Scala, for example with `df.as[T]` and `ds.toDF()`.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.3-004
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A DataFrame named `df` is transformed with `df2 = df.filter("amount > 0")`.
+
+    What happens to `df`?
+  answers:
+  - text: It is cached automatically so `df2` can reference it.
+    verdict: incorrect
+    justification: Transformations do not cache anything automatically; `df2` refers to `df` through its lineage.
+  - text: It is unchanged, because DataFrames are immutable and transformations return a new DataFrame.
+    verdict: correct
+    justification: 'DataFrames are immutable: `filter` returns a new DataFrame `df2`, and `df` keeps its original definition.'
+  - text: It is modified in place to contain only rows with a positive amount.
+    verdict: incorrect
+    justification: DataFrames are never modified in place.
+  - text: It is deleted from memory and replaced by `df2`.
+    verdict: incorrect
+    justification: Creating `df2` does not delete `df`; both remain usable.
+  source_url: https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_df.html
+- id: 1.3-005
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A PySpark script calls `SparkSession.builder.appName("etl").getOrCreate()` in an environment where a SparkSession already exists.
+
+    What does `getOrCreate()` do?
+  answers:
+  - text: It always creates a brand-new SparkSession with a new SparkContext.
+    verdict: incorrect
+    justification: It reuses an existing session rather than always creating a new one.
+  - text: It fails because only one call to the builder is allowed.
+    verdict: incorrect
+    justification: Calling the builder multiple times is allowed; `getOrCreate()` just returns the active session.
+  - text: It returns the existing SparkSession instead of creating a new one.
+    verdict: correct
+    justification: '`getOrCreate()` returns the existing SparkSession if there is one, otherwise it creates a new one with the builder''s options.'
+  - text: It stops the existing session and replaces it.
+    verdict: incorrect
+    justification: It does not stop or replace the existing session.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.builder.getOrCreate.html
+- id: 1.3-006
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer calls `spark.newSession()` and registers a temporary view in the new session.
+
+    Which statement about the new session is correct?
+  answers:
+  - text: It has its own SQL configuration, temporary views and registered functions, but shares the underlying SparkContext and table cache.
+    verdict: correct
+    justification: '`newSession()` returns a session with its own SQL configuration, temporary views and UDFs, but it shares the SparkContext and the table cache with the original session.'
+  - text: It starts a new SparkContext with its own executors.
+    verdict: incorrect
+    justification: No new SparkContext or executors are started; the SparkContext is shared.
+  - text: It shares temporary views with the original session.
+    verdict: incorrect
+    justification: Temporary views are session-scoped, so they are not shared between the sessions.
+  - text: It is a copy of the original session including all its temporary views.
+    verdict: incorrect
+    justification: The new session starts without the original session's temporary views.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.newSession.html
+- id: 1.3-007
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A batch application finishes its work and the developer wants to release cluster resources.
+
+    Which call ends the SparkSession lifecycle?
+  answers:
+  - text: '`spark.close_session()`'
+    verdict: incorrect
+    justification: '`close_session()` is not a SparkSession method.'
+  - text: '`spark.stop()`'
+    verdict: correct
+    justification: '`spark.stop()` stops the SparkSession and its underlying SparkContext, ending the application and releasing its resources.'
+  - text: '`spark.sparkContext.cancelAllJobs()`'
+    verdict: true_but_irrelevant
+    justification: '`cancelAllJobs()` cancels running jobs, but the session and its executors keep running.'
+  - text: '`spark.catalog.clearCache()`'
+    verdict: true_but_irrelevant
+    justification: '`clearCache()` removes cached tables, which can free memory, but it does not end the session or release cluster resources.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.stop.html
+- id: 1.3-008
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A standalone PySpark application must create its SparkSession with the application name `nightly_etl`.
+
+    Which code does this?
+  answers:
+  - text: '`spark = SparkSession.builder.name("nightly_etl").build()`'
+    verdict: incorrect
+    justification: The builder method is `appName`, not `name`, and the session is created with `getOrCreate()`, not `build()`.
+  - text: '`spark = SparkSession("nightly_etl").start()`'
+    verdict: incorrect
+    justification: '`SparkSession` is not constructed directly with a name and has no `start()` method.'
+  - text: '`spark = SparkSession.create(name="nightly_etl")`'
+    verdict: incorrect
+    justification: '`SparkSession` has no `create` class method.'
+  - text: '`spark = SparkSession.builder.appName("nightly_etl").getOrCreate()`'
+    verdict: correct
+    justification: '`SparkSession.builder.appName(...).getOrCreate()` is the standard way to create (or get) a session with an application name.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.builder.getOrCreate.html
+- id: 1.3-009
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer calls `df.cache()` on a DataFrame.
+
+    Which storage level is used?
+  answers:
+  - text: '`OFF_HEAP`'
+    verdict: incorrect
+    justification: '`OFF_HEAP` must be requested explicitly and needs off-heap memory configured.'
+  - text: '`MEMORY_AND_DISK_DESER`'
+    verdict: correct
+    justification: In PySpark, `DataFrame.cache()` persists with the default storage level `MEMORY_AND_DISK_DESER`.
+  - text: '`DISK_ONLY`'
+    verdict: incorrect
+    justification: '`DISK_ONLY` must be requested explicitly with `persist`.'
+  - text: '`MEMORY_ONLY`'
+    verdict: incorrect
+    justification: '`MEMORY_ONLY` is the default for RDD `cache()`, not for DataFrames.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.cache.html
+- id: 1.3-010
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer calls `df.cache()` and then immediately checks the Storage page in the Spark UI, but nothing appears there.
+
+    Why?
+  answers:
+  - text: '`cache()` stores data on the driver, which the Storage page does not display.'
+    verdict: incorrect
+    justification: Cached data is stored on the executors, not on the driver.
+  - text: '`cache()` is ignored unless the storage level is specified.'
+    verdict: incorrect
+    justification: '`cache()` works without arguments using the default storage level.'
+  - text: Caching is lazy; the data is stored only when an action computes the DataFrame.
+    verdict: correct
+    justification: '`cache()` only marks the DataFrame for caching; partitions are stored when an action computes the DataFrame, so the Storage page is empty until then.'
+  - text: The Storage page only shows RDDs, never DataFrames.
+    verdict: incorrect
+    justification: The Storage page shows cached DataFrames as well as RDDs.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-011
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A team wants a DataFrame to be kept only on executor local disks because memory is tight.
+
+    Which code achieves this?
+  answers:
+  - text: |-
+      ```python
+      from pyspark import StorageLevel
+      df.persist(StorageLevel.DISK_ONLY)
+      ```
+    verdict: correct
+    justification: '`persist(StorageLevel.DISK_ONLY)` keeps the partitions only on executor disks.'
+  - text: |-
+      ```python
+      df.cache("DISK_ONLY")
+      ```
+    verdict: incorrect
+    justification: '`cache()` takes no arguments and always uses the default storage level.'
+  - text: |-
+      ```python
+      df.persist(storage="disk")
+      ```
+    verdict: incorrect
+    justification: '`persist` takes a `StorageLevel` object, not a `storage="disk"` keyword.'
+  - text: |-
+      ```python
+      df.persist().onDisk()
+      ```
+    verdict: incorrect
+    justification: '`persist()` returns a DataFrame that has no `onDisk()` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.persist.html
+- id: 1.3-012
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer needs a storage level that keeps two replicas of each cached partition in memory and spills to disk if needed.
+
+    Which storage level is it?
+  answers:
+  - text: '`DISK_ONLY_3`'
+    verdict: incorrect
+    justification: '`DISK_ONLY_3` stores three replicas on disk only, not in memory.'
+  - text: '`MEMORY_ONLY`'
+    verdict: incorrect
+    justification: '`MEMORY_ONLY` keeps one copy in memory and does not spill or replicate.'
+  - text: '`MEMORY_AND_DISK_DESER`'
+    verdict: incorrect
+    justification: '`MEMORY_AND_DISK_DESER` spills to disk but keeps only one replica.'
+  - text: '`MEMORY_AND_DISK_2`'
+    verdict: correct
+    justification: '`MEMORY_AND_DISK_2` stores each partition in memory, spills to disk when needed, and replicates it on two nodes.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.StorageLevel.html
+- id: 1.3-013
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A DataFrame is persisted with a storage level that only uses memory. Some partitions do not fit.
+
+    What happens to those partitions?
+  answers:
+  - text: The job fails with an out-of-memory error.
+    verdict: incorrect
+    justification: Not fitting in memory does not fail the job; the partitions are simply not cached.
+  - text: They are not cached and are recomputed from lineage when needed.
+    verdict: correct
+    justification: With a memory-only level, partitions that do not fit are not cached and are recomputed from lineage whenever they are needed.
+  - text: They are written to disk automatically.
+    verdict: incorrect
+    justification: Writing to disk only happens with storage levels that include disk, such as `MEMORY_AND_DISK`.
+  - text: They are stored on the driver instead.
+    verdict: incorrect
+    justification: Cached partitions are never stored on the driver.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-014
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A pipeline no longer needs a cached DataFrame and the engineer wants to free its memory explicitly.
+
+    Which call should be used?
+  answers:
+  - text: '`df.drop()`'
+    verdict: incorrect
+    justification: '`drop()` removes columns; it does not touch the cache.'
+  - text: '`df.uncache()`'
+    verdict: incorrect
+    justification: DataFrames have no `uncache()` method.
+  - text: '`df.unpersist()`'
+    verdict: correct
+    justification: '`unpersist()` removes the DataFrame''s blocks from memory and disk.'
+  - text: '`df.persist(None)`'
+    verdict: incorrect
+    justification: '`persist(None)` is not a valid way to clear the cache.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.unpersist.html
+- id: 1.3-015
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A DataFrame was persisted with `MEMORY_ONLY`. Later, the engineer calls `df.persist(StorageLevel.DISK_ONLY)` on the same DataFrame without unpersisting it first.
+
+    What does the documentation say about this?
+  answers:
+  - text: '`persist` can only assign a new storage level if the DataFrame does not have a storage level set yet.'
+    verdict: correct
+    justification: The PySpark documentation states that `persist` can only assign a new storage level if the DataFrame does not have one yet, so you must `unpersist()` first to change it.
+  - text: The DataFrame is stored at both storage levels.
+    verdict: incorrect
+    justification: A DataFrame has only one storage level at a time.
+  - text: The call fails only if the DataFrame has already been computed.
+    verdict: incorrect
+    justification: The restriction is about an already set storage level, not about whether the data was computed.
+  - text: The DataFrame is moved from memory to disk immediately.
+    verdict: incorrect
+    justification: The data is not moved to disk; the existing storage level stays in place.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.persist.html
+- id: 1.3-016
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer caches a DataFrame in one SparkSession and queries it through another SparkSession that uses the same cluster.
+
+    According to the PySpark documentation, what is true about cached data?
+  answers:
+  - text: Cached data is private to the session that cached it.
+    verdict: incorrect
+    justification: Cached data is not private to one session.
+  - text: Cached data is copied into each new session.
+    verdict: incorrect
+    justification: The cache is shared, not copied, between sessions.
+  - text: Cached data is deleted when a second session is created.
+    verdict: incorrect
+    justification: Creating another session does not delete cached data.
+  - text: Cached data is shared across all Spark sessions on the cluster.
+    verdict: correct
+    justification: The PySpark documentation notes that cached data is shared across all Spark sessions on the cluster, because the cache belongs to the shared SparkContext.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.cache.html
+- id: 1.3-017
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    An executor spends a large share of task time in garbage collection, as shown in the Spark UI.
+
+    Which change is most likely to reduce garbage collection pressure?
+  answers:
+  - text: Reduce the number of objects held in memory, for example by caching less data or using serialized storage.
+    verdict: correct
+    justification: GC cost grows with the number of objects; caching less or storing data in serialized form reduces the objects the JVM must track.
+  - text: Increase the number of objects cached in deserialized form.
+    verdict: incorrect
+    justification: Caching more deserialized objects increases GC pressure.
+  - text: Call `collect()` more often to move data to the driver.
+    verdict: incorrect
+    justification: '`collect()` moves data to the driver, which shifts memory pressure to the driver and does not fix executor GC.'
+  - text: Disable lazy evaluation.
+    verdict: incorrect
+    justification: Lazy evaluation cannot be disabled, and it is not related to GC pressure.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.3-018
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer wants to know which garbage collector is used by default in Spark 4.
+
+    Which statement does the Spark tuning guide make?
+  answers:
+  - text: Spark uses its own garbage collector that replaces the JVM's.
+    verdict: incorrect
+    justification: Spark relies on the JVM's garbage collectors; it does not replace them.
+  - text: Spark disables garbage collection on executors.
+    verdict: incorrect
+    justification: Garbage collection cannot be disabled in the JVM.
+  - text: Spark uses JDK 17 by default, which makes G1GC the default garbage collector.
+    verdict: correct
+    justification: The Spark 4 tuning guide notes that Spark uses JDK 17 by default, which makes G1GC the default garbage collector.
+  - text: Spark uses the serial garbage collector by default.
+    verdict: incorrect
+    justification: The serial collector is not the default for JDK 17; G1GC is.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.3-019
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A team suspects that long garbage collection pauses slow down its tasks.
+
+    Where in the Spark UI can the engineer check GC time per executor?
+  answers:
+  - text: The SQL / DataFrame page, which shows GC time per query
+    verdict: incorrect
+    justification: The SQL / DataFrame page shows plan metrics, not per-executor GC time.
+  - text: The Storage page, which lists GC time per cached DataFrame
+    verdict: incorrect
+    justification: The Storage page shows cached data, not GC time.
+  - text: The Environment page, which lists the GC settings only
+    verdict: partially_correct
+    justification: The Environment page shows JVM and GC settings, but not the GC time spent per executor.
+  - text: The Executors page, which shows GC time for each executor
+    verdict: correct
+    justification: The Executors page shows GC time per executor alongside task time, so you can spot excessive GC.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.3-020
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A DataFrame is used by several downstream actions in the same job.
+
+    Why can caching it improve performance?
+  answers:
+  - text: Caching skips the optimizer for later actions.
+    verdict: incorrect
+    justification: Caching does not skip the optimizer; later queries still get optimized plans that read from the cache.
+  - text: Without caching, each action recomputes the DataFrame from its source and lineage.
+    verdict: correct
+    justification: Each action recomputes the DataFrame's full lineage unless it is cached, so caching avoids repeated work across several actions.
+  - text: Caching reduces the number of columns in the DataFrame.
+    verdict: incorrect
+    justification: Caching does not change the columns of a DataFrame.
+  - text: Without caching, Spark cannot run more than one action per DataFrame.
+    verdict: incorrect
+    justification: Spark can run any number of actions on a DataFrame; without caching it just recomputes it.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-021
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A small DataFrame used once in a pipeline is cached "just in case".
+
+    What is the main drawback?
+  answers:
+  - text: It makes the DataFrame mutable.
+    verdict: incorrect
+    justification: DataFrames stay immutable whether or not they are cached.
+  - text: It uses memory and adds caching work without any reuse benefit.
+    verdict: correct
+    justification: Caching a DataFrame used once costs memory and extra work to store it, with no reuse to pay that back.
+  - text: It prevents Spark from writing the DataFrame to a table.
+    verdict: incorrect
+    justification: A cached DataFrame can still be written to a table.
+  - text: It forces every subsequent transformation to run on the driver.
+    verdict: incorrect
+    justification: Caching does not move execution to the driver; transformations still run on executors.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-022
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer inspects the schema of a DataFrame created from a list of Row objects.
+
+    Which statement about DataFrame schemas is correct?
+  answers:
+  - text: Schemas are only available after the DataFrame is cached.
+    verdict: incorrect
+    justification: The schema is known before any caching, for example via `df.printSchema()`.
+  - text: Spark always treats every column as a string.
+    verdict: incorrect
+    justification: Spark infers proper types; it does not treat every column as a string (that only happens for CSV read without schema inference).
+  - text: DataFrames do not have schemas; only Datasets do.
+    verdict: incorrect
+    justification: DataFrames do have schemas; in Scala a DataFrame is a Dataset of Row with a schema.
+  - text: Every DataFrame has a schema that defines column names and data types, which Spark can infer or the user can define.
+    verdict: correct
+    justification: Every DataFrame has a schema of column names and types; Spark can infer it (for example from Row objects) or you can provide it.
+  source_url: https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_df.html
+- id: 1.3-023
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A Scala team prefers Datasets over DataFrames for one application.
+
+    Which benefit do Datasets provide in Scala?
+  answers:
+  - text: Execution without any optimizer, which avoids planning overhead
+    verdict: incorrect
+    justification: Datasets do use the Spark SQL optimizer and execution engine.
+  - text: Automatic caching of every intermediate result
+    verdict: incorrect
+    justification: Datasets are not cached automatically.
+  - text: Compile-time type safety with strongly typed objects, together with the Spark SQL optimized execution engine
+    verdict: correct
+    justification: Scala Datasets give compile-time type safety with strongly typed objects while still running on the optimized Spark SQL engine.
+  - text: Support for Python lambdas on the JVM
+    verdict: incorrect
+    justification: Datasets are a Scala/Java API; they do not run Python lambdas.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.3-024
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A developer asks what the entry point to all Spark SQL and DataFrame functionality is in modern Spark applications.
+
+    Which class is it?
+  answers:
+  - text: '`SparkSession`'
+    verdict: correct
+    justification: '`SparkSession` is the unified entry point for Spark SQL and DataFrame functionality in modern Spark.'
+  - text: '`HiveContext`'
+    verdict: partially_correct
+    justification: '`HiveContext` was the old entry point with Hive support; today `SparkSession` with Hive support replaces it.'
+  - text: '`StreamingContext`'
+    verdict: incorrect
+    justification: '`StreamingContext` was the entry point of the legacy DStream API, not of Spark SQL.'
+  - text: '`SQLContext`'
+    verdict: partially_correct
+    justification: '`SQLContext` was the entry point in old Spark versions and remains only for backward compatibility; `SparkSession` replaced it.'
+  source_url: https://spark.apache.org/docs/latest/sql-getting-started.html
+- id: 1.3-025
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    In Spark Classic, a data engineer needs the low-level SparkContext from an existing SparkSession.
+
+    How can it be accessed?
+  answers:
+  - text: '`spark.conf.sparkContext`'
+    verdict: incorrect
+    justification: '`spark.conf` is the runtime configuration interface and has no `sparkContext` attribute.'
+  - text: '`spark.getContext()`'
+    verdict: incorrect
+    justification: SparkSession has no `getContext()` method.
+  - text: '`spark.sparkContext`'
+    verdict: correct
+    justification: In Spark Classic, `spark.sparkContext` returns the underlying SparkContext of a session.
+  - text: '`SparkContext.fromSession(spark)`'
+    verdict: incorrect
+    justification: SparkContext has no `fromSession` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.html
+- id: 1.3-026
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A developer compares `MEMORY_ONLY` and `MEMORY_AND_DISK` storage levels.
+
+    What is the difference?
+  answers:
+  - text: '`MEMORY_AND_DISK` stores data on the driver''s disk.'
+    verdict: incorrect
+    justification: Spilled partitions go to executor local disks, not the driver's disk.
+  - text: '`MEMORY_AND_DISK` spills partitions that do not fit in memory to disk, while `MEMORY_ONLY` recomputes them when needed.'
+    verdict: correct
+    justification: '`MEMORY_AND_DISK` writes partitions that do not fit in memory to disk, while `MEMORY_ONLY` drops them and recomputes them when needed.'
+  - text: '`MEMORY_ONLY` keeps two replicas, while `MEMORY_AND_DISK` keeps one.'
+    verdict: incorrect
+    justification: Neither level replicates; replicated levels end in `_2`.
+  - text: '`MEMORY_ONLY` is not supported for DataFrames.'
+    verdict: incorrect
+    justification: '`MEMORY_ONLY` can be used with `DataFrame.persist`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.StorageLevel.html
+- id: 1.3-027
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer wants to make cached data fault tolerant without recomputation if one executor is lost.
+
+    Which option does Spark provide?
+  answers:
+  - text: Setting the storage level to `NONE`
+    verdict: incorrect
+    justification: '`NONE` means no caching at all.'
+  - text: Calling `cache()` twice on the same DataFrame
+    verdict: incorrect
+    justification: Calling `cache()` twice does not create a second copy.
+  - text: Caching the DataFrame on the driver as well
+    verdict: incorrect
+    justification: Cached data is not stored on the driver.
+  - text: A replicated storage level such as `MEMORY_AND_DISK_2`, which stores each partition on two nodes
+    verdict: correct
+    justification: Replicated storage levels such as `MEMORY_AND_DISK_2` store each partition on two nodes, so losing one executor does not require recomputation.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-028
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer on Databricks reads about both "Spark cache" and "disk cache".
+
+    Which statement is correct?
+  answers:
+  - text: The disk cache automatically keeps copies of remote Parquet data on local storage, while the Spark cache is controlled with `cache()` or `persist()`.
+    verdict: correct
+    justification: The Databricks disk cache automatically copies remote Parquet data files to workers' local storage, while the Spark cache is controlled explicitly with `cache()` or `persist()`.
+  - text: The disk cache stores data on the driver only.
+    verdict: incorrect
+    justification: The disk cache uses local storage on worker nodes, not the driver.
+  - text: The disk cache and the Spark cache are two names for `df.cache()`.
+    verdict: incorrect
+    justification: 'They are different mechanisms: the disk cache is automatic and stores files locally, the Spark cache is explicit.'
+  - text: The Spark cache works only for Delta tables, while the disk cache works for any DataFrame.
+    verdict: incorrect
+    justification: The Spark cache works for any DataFrame, not only Delta tables.
+  source_url: https://docs.databricks.com/aws/en/optimizations/disk-cache
+- id: 1.3-029
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer reads that Spark tries to give each application a balance between performance and convenience in how it serializes data.
+
+    Why does serialization matter for Spark performance?
+  answers:
+  - text: Serialization is only used when writing to CSV files.
+    verdict: incorrect
+    justification: Serialization happens for shuffles, caching and task results, not only for CSV writes.
+  - text: Serialization only happens on the driver and does not affect tasks.
+    verdict: incorrect
+    justification: Serialization happens in tasks on executors, especially during shuffles.
+  - text: Data must be serialized when it is shuffled across the network or cached in serialized form, so slow or bulky serialization slows jobs down.
+    verdict: correct
+    justification: Data is serialized whenever it is shuffled over the network or cached in serialized form, so slow or bulky serialization slows jobs and uses more memory.
+  - text: Spark never serializes data because all processing is in memory.
+    verdict: incorrect
+    justification: In-memory processing still requires serialization for network transfer and serialized caching.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.3-030
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer calls `df.cache()` and then `df.count()`, and later calls `df.filter(...).count()`.
+
+    What happens during the second count?
+  answers:
+  - text: Spark recomputes the DataFrame from the source because filters bypass the cache.
+    verdict: incorrect
+    justification: Filters on a cached DataFrame use the cache; they do not bypass it.
+  - text: Spark reads the cached partitions instead of recomputing the DataFrame from source.
+    verdict: correct
+    justification: After `count()` materializes the cache, later queries on `df`, including filters on it, read the cached partitions instead of recomputing from the source.
+  - text: Spark writes the filtered result back into the cache, replacing the original.
+    verdict: incorrect
+    justification: The filtered result is a new DataFrame and is not written into the cache.
+  - text: Spark fails because a cached DataFrame cannot be filtered.
+    verdict: incorrect
+    justification: Cached DataFrames can be filtered like any other DataFrame.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.3-031
+  category: apache_spark_architecture_and_components
+  objective: '1.3'
+  question: |-
+    A data engineer creates a DataFrame from a list of tuples and a list of column names.
+
+    Which code does this?
+  answers:
+  - text: '`spark.createDataFrame([(1, "a"), (2, "b")], ["id", "label"])`'
+    verdict: correct
+    justification: '`spark.createDataFrame(data, ["id", "label"])` builds a DataFrame from a list of tuples with the given column names.'
+  - text: '`spark.parallelize([(1, "a"), (2, "b")]).columns("id", "label")`'
+    verdict: incorrect
+    justification: '`parallelize` is a SparkContext method that creates an RDD, and RDDs have no `columns(...)` method.'
+  - text: '`spark.read.list([(1, "a"), (2, "b")], ["id", "label"])`'
+    verdict: incorrect
+    justification: '`DataFrameReader` has no `list` method; `spark.read` is for external data sources.'
+  - text: '`spark.DataFrame([(1, "a"), (2, "b")], columns=["id", "label"])`'
+    verdict: incorrect
+    justification: '`SparkSession` has no `DataFrame` constructor method; use `createDataFrame`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_df.html

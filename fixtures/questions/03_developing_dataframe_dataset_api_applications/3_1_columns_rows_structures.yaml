@@ -1,0 +1,667 @@
+# Objective 3.1: Manipulate columns, rows, and table structures by adding, dropping, splitting, renaming column names, applying filters, and exploding arrays.
+- id: 3.1-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer needs to rename the column `cust_id` to `customer_id` in DataFrame `df`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumnRenamed("customer_id", "cust_id")`'
+    verdict: incorrect
+    justification: 'The arguments are swapped: this would rename a `customer_id` column to `cust_id`, and since no such column exists, nothing happens.'
+  - text: '`df.withColumn("customer_id", "cust_id")`'
+    verdict: incorrect
+    justification: '`withColumn` expects a Column as the second argument, not a string, and it would add a column rather than rename one.'
+  - text: '`df.withColumnRenamed("cust_id", "customer_id")`'
+    verdict: correct
+    justification: '`withColumnRenamed(existing, new)` takes the current name first, so this renames `cust_id` to `customer_id`.'
+  - text: '`df.renameColumn("cust_id", "customer_id")`'
+    verdict: incorrect
+    justification: DataFrames have no `renameColumn` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumnRenamed.html
+- id: 3.1-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer wants to rename several columns at once: `fn` to `first_name` and `ln` to `last_name`.
+
+    Which code does this in a single call?
+  answers:
+  - text: '`df.withColumnsRenamed({"fn": "first_name", "ln": "last_name"})`'
+    verdict: correct
+    justification: '`withColumnsRenamed` takes a dictionary of old → new names and renames several columns in one call.'
+  - text: '`df.renameColumns(fn="first_name", ln="last_name")`'
+    verdict: incorrect
+    justification: DataFrames have no `renameColumns` method.
+  - text: '`df.toDF({"fn": "first_name", "ln": "last_name"})`'
+    verdict: incorrect
+    justification: '`toDF` takes the new names of all columns as positional arguments, not a mapping.'
+  - text: '`df.withColumnRenamed(["fn", "ln"], ["first_name", "last_name"])`'
+    verdict: incorrect
+    justification: '`withColumnRenamed` renames one column and takes two strings, not lists.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumnsRenamed.html
+- id: 3.1-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer adds a column `total` equal to `price * quantity`.
+
+    Which code does this?
+  answers:
+  - text: '`df.select("total" == col("price") * col("quantity"))`'
+    verdict: incorrect
+    justification: '`"total" == Column` builds a comparison expression, not a named column.'
+  - text: '`df.withColumn("total", col("price") * col("quantity"))`'
+    verdict: correct
+    justification: '`withColumn(name, Column)` adds a column computed from a Column expression.'
+  - text: '`df.addColumn("total", "price * quantity")`'
+    verdict: incorrect
+    justification: DataFrames have no `addColumn` method.
+  - text: '`df.withColumn(col("price") * col("quantity"), "total")`'
+    verdict: incorrect
+    justification: 'The arguments are swapped: the column name comes first, then the expression.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumn.html
+- id: 3.1-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer adds a column `source` with the constant value `"web"` to every row.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("source", "web")`'
+    verdict: incorrect
+    justification: '`withColumn` requires a Column, so a plain string raises an error.'
+  - text: '`df.withColumn("source", col("web"))`'
+    verdict: incorrect
+    justification: '`col("web")` refers to a column named `web`, which does not exist.'
+  - text: '`df.withColumn(lit("source"), "web")`'
+    verdict: incorrect
+    justification: The first argument must be the column name as a string, and the value must be a Column.
+  - text: '`df.withColumn("source", lit("web"))`'
+    verdict: correct
+    justification: '`lit("web")` creates a constant Column, which `withColumn` adds to every row.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.lit.html
+- id: 3.1-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer needs to remove the columns `tmp1` and `tmp2` from a DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`df.select(-col("tmp1"), -col("tmp2"))`'
+    verdict: incorrect
+    justification: Negating a Column does not exclude it; `-col(...)` means arithmetic negation.
+  - text: '`df.drop("tmp1", "tmp2")`'
+    verdict: correct
+    justification: '`drop` accepts several column names and removes them.'
+  - text: '`df.drop(["tmp1", "tmp2"], axis=1)`'
+    verdict: incorrect
+    justification: '`axis` is pandas syntax; Spark''s `drop` has no `axis` parameter.'
+  - text: '`df.dropColumns("tmp1", "tmp2")`'
+    verdict: incorrect
+    justification: DataFrames have no `dropColumns` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.drop.html
+- id: 3.1-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer calls `df.drop("does_not_exist")` on a DataFrame without that column.
+
+    What happens?
+  answers:
+  - text: All columns are dropped.
+    verdict: incorrect
+    justification: Only the named columns are affected.
+  - text: An `AnalysisException` is raised.
+    verdict: incorrect
+    justification: Dropping a missing column does not raise an error.
+  - text: The call is a no-op and returns a DataFrame with the same columns.
+    verdict: correct
+    justification: The PySpark docs state that `drop` is a no-op if the schema does not contain the given column.
+  - text: The first column is dropped instead.
+    verdict: incorrect
+    justification: Spark does not drop a different column instead.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.drop.html
+- id: 3.1-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A column `full_name` contains values like `"Ada Lovelace"`. The engineer needs a `first_name` column.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("first_name", split(col("full_name"), " ").getItem(0))`'
+    verdict: correct
+    justification: '`split` returns an array, and `getItem(0)` returns its first element, the first name.'
+  - text: '`df.withColumn("first_name", substring_index("full_name", 0))`'
+    verdict: incorrect
+    justification: '`substring_index` needs a delimiter and a count; this call is invalid and would not return the first word.'
+  - text: '`df.withColumn("first_name", col("full_name").split(" ")[0])`'
+    verdict: incorrect
+    justification: A Column has no Python `split` method; use `pyspark.sql.functions.split`.
+  - text: '`df.withColumn("first_name", split(col("full_name"), " ")[1])`'
+    verdict: true_but_irrelevant
+    justification: '`[1]` is valid code, but it returns the second element, the last name.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.split.html
+- id: 3.1-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: What does `split(col("tags"), ",")` return for the value `"a,b,c"`?
+  answers:
+  - text: Three rows with one tag each
+    verdict: true_but_irrelevant
+    justification: Getting one row per tag requires `explode` on the array that `split` returns.
+  - text: A string `"a b c"`
+    verdict: incorrect
+    justification: '`split` returns an array, not a string joined with spaces.'
+  - text: Three separate string columns
+    verdict: incorrect
+    justification: '`split` returns one array column, not several columns.'
+  - text: An array column containing `["a", "b", "c"]`
+    verdict: correct
+    justification: '`split` returns one array column, here `["a", "b", "c"]`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.split.html
+- id: 3.1-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A DataFrame has a column `items` of type array. The engineer needs one row per array element.
+
+    Which code does this?
+  answers:
+  - text: '`df.select("order_id", split("items").alias("item"))`'
+    verdict: incorrect
+    justification: '`split` turns a string into an array; it does not create rows.'
+  - text: '`df.withColumn("item", col("items").getItem("*"))`'
+    verdict: incorrect
+    justification: '`getItem("*")` is not valid; `getItem` takes an index or a key.'
+  - text: '`df.select("order_id", explode("items").alias("item"))`'
+    verdict: correct
+    justification: '`explode` returns one row per array element; `select` keeps `order_id` next to each item.'
+  - text: '`df.select("order_id", flatten("items").alias("item"))`'
+    verdict: incorrect
+    justification: '`flatten` merges nested arrays into one array; it does not create rows.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html
+- id: 3.1-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer explodes an array column, but rows whose array is null or empty disappear from the output. They must keep those rows with a null element instead.
+
+    Which function should be used?
+  answers:
+  - text: '`posexplode`'
+    verdict: incorrect
+    justification: '`posexplode` adds positions but still drops null or empty arrays.'
+  - text: '`explode_outer`'
+    verdict: correct
+    justification: '`explode_outer` keeps rows whose array is null or empty and returns null for the element.'
+  - text: '`explode`'
+    verdict: incorrect
+    justification: '`explode` drops rows whose array is null or empty, which is the current problem.'
+  - text: '`array_distinct`'
+    verdict: incorrect
+    justification: '`array_distinct` removes duplicates within an array; it does not create rows.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode_outer.html
+- id: 3.1-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer needs both the array element and its position in the array as separate columns.
+
+    Which function provides this?
+  answers:
+  - text: '`posexplode`'
+    verdict: correct
+    justification: '`posexplode` returns two columns, the position (`pos`) and the element (`col`), one row per element.'
+  - text: '`explode`'
+    verdict: incorrect
+    justification: '`explode` returns only the elements, not their positions.'
+  - text: '`element_at`'
+    verdict: incorrect
+    justification: '`element_at` returns one element at a given position.'
+  - text: '`array_position`'
+    verdict: incorrect
+    justification: '`array_position` returns the position of a given value; it does not create rows.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.posexplode.html
+- id: 3.1-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A DataFrame has 3 rows. Their `items` arrays have 2, 0 and 4 elements. The engineer runs `df.select(explode("items"))`.
+
+    How many rows are returned?
+  answers:
+  - text: '3'
+    verdict: incorrect
+    justification: 3 is the number of input rows; explode returns one row per element.
+  - text: '7'
+    verdict: incorrect
+    justification: 7 would count the empty array as a row, but `explode` drops it (`explode_outer` would keep it).
+  - text: '4'
+    verdict: incorrect
+    justification: 4 is only the largest array.
+  - text: '6'
+    verdict: correct
+    justification: '`explode` creates one row per element and drops rows with empty arrays: 2 + 0 + 4 = 6.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html
+- id: 3.1-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer must keep only orders with `amount` greater than 100 and `status` equal to `"PAID"`.
+
+    Which code is correct?
+  answers:
+  - text: '`df.filter(col("amount") > 100 and col("status") == "PAID")`'
+    verdict: incorrect
+    justification: Python's `and` cannot be used on Columns; it raises an error.
+  - text: '`df.filter("amount > 100", "status = ''PAID''")`'
+    verdict: incorrect
+    justification: '`filter` takes a single condition; to use SQL strings, write `"amount > 100 AND status = ''PAID''"`.'
+  - text: '`df.filter(col("amount") > 100 & col("status") == "PAID")`'
+    verdict: incorrect
+    justification: Without parentheses, `100 & col("status")` is evaluated first, producing a wrong or invalid expression.
+  - text: '`df.filter((col("amount") > 100) & (col("status") == "PAID"))`'
+    verdict: correct
+    justification: Conditions are combined with `&`, and each comparison needs parentheses because `&` binds more tightly than `>` and `==`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.filter.html
+- id: 3.1-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: Which statement about `filter` and `where` on DataFrames is correct?
+  answers:
+  - text: '`where` is an alias for `filter`; both accept a Column condition or a SQL expression string.'
+    verdict: correct
+    justification: '`where` is an alias for `filter`; both accept a Column condition or a SQL expression string.'
+  - text: '`where` only accepts SQL strings and `filter` only accepts Columns.'
+    verdict: incorrect
+    justification: Both accept Columns and SQL strings.
+  - text: '`where` is an action and `filter` is a transformation.'
+    verdict: incorrect
+    justification: Both are transformations.
+  - text: '`where` removes columns and `filter` removes rows.'
+    verdict: incorrect
+    justification: Both remove rows; columns are removed with `drop` or `select`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.where.html
+- id: 3.1-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer keeps rows whose `country` is `"DE"`, `"FR"` or `"IT"`.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(col("country").contains(["DE", "FR", "IT"]))`'
+    verdict: incorrect
+    justification: '`contains` checks for a substring; it does not take a list of values.'
+  - text: '`df.filter(col("country") in ["DE", "FR", "IT"])`'
+    verdict: incorrect
+    justification: Python's `in` cannot be used with a Column.
+  - text: '`df.filter(col("country").isin("DE", "FR", "IT"))`'
+    verdict: correct
+    justification: '`isin` checks whether the value is in the given list.'
+  - text: '`df.filter(col("country") == ["DE", "FR", "IT"])`'
+    verdict: incorrect
+    justification: Comparing a Column with a Python list does not test membership.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.isin.html
+- id: 3.1-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer keeps only rows where `email` is null.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(isnan("email"))`'
+    verdict: incorrect
+    justification: '`isnan` tests for NaN in numeric columns, not for null strings.'
+  - text: '`df.filter(col("email").isNull())`'
+    verdict: correct
+    justification: '`isNull()` tests for null; comparisons with null never evaluate to true.'
+  - text: '`df.filter(col("email") == None)`'
+    verdict: incorrect
+    justification: '`== None` follows SQL semantics and evaluates to null, so no rows match.'
+  - text: '`df.filter(col("email") == "null")`'
+    verdict: incorrect
+    justification: '`"null"` is a string, not a null value.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.isNull.html
+- id: 3.1-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer wants to select `id` and a new column `amount_eur` computed as `amount * 0.92` using SQL expressions.
+
+    Which code does this?
+  answers:
+  - text: '`df.selectExpr(["id"], amount_eur="amount * 0.92")`'
+    verdict: incorrect
+    justification: '`selectExpr` takes expression strings, not keyword arguments.'
+  - text: '`df.selectExpr("id", "amount * 0.92 AS amount_eur")`'
+    verdict: correct
+    justification: '`selectExpr` takes SQL expression strings, including aliases with `AS`.'
+  - text: '`df.withColumn("id", "amount * 0.92 AS amount_eur")`'
+    verdict: incorrect
+    justification: '`withColumn` takes a column name and a Column, not a SQL string; it would also overwrite `id`.'
+  - text: '`df.select("id", "amount * 0.92 AS amount_eur")`'
+    verdict: incorrect
+    justification: '`select` with a string treats it as a column name, so `"amount * 0.92 AS amount_eur"` is not parsed as an expression.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.selectExpr.html
+- id: 3.1-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A column `price` is stored as a string. The engineer converts it to a double.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("price", col("price").astype(float).collect())`'
+    verdict: incorrect
+    justification: '`astype` returns a Column, but `collect()` is not a Column method; this mixes up APIs.'
+  - text: '`df.cast("price", "double")`'
+    verdict: incorrect
+    justification: DataFrames have no `cast` method; casting is done on a Column.
+  - text: '`df.withColumn("price", double(col("price")))`'
+    verdict: incorrect
+    justification: There is no `double` function in `pyspark.sql.functions`.
+  - text: '`df.withColumn("price", col("price").cast("double"))`'
+    verdict: correct
+    justification: '`cast("double")` converts the column to `DoubleType`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.cast.html
+- id: 3.1-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer adds a column `size` that is `"large"` when `amount > 1000` and `"small"` otherwise.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("size", when(col("amount") > 1000).then("large").else("small"))`'
+    verdict: incorrect
+    justification: '`when` takes the value as its second argument; there are no `then`/`else` methods.'
+  - text: '`df.withColumn("size", if(col("amount") > 1000, "large", "small"))`'
+    verdict: incorrect
+    justification: '`if` is a Python keyword and cannot be called like a function.'
+  - text: '`df.withColumn("size", when(col("amount") > 1000, "large").otherwise("small"))`'
+    verdict: correct
+    justification: '`when(condition, value).otherwise(other)` is PySpark''s conditional expression.'
+  - text: '`df.withColumn("size", case(col("amount") > 1000, "large", "small"))`'
+    verdict: incorrect
+    justification: There is no `case` function; `CASE WHEN` exists only in SQL expressions.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.when.html
+- id: 3.1-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A DataFrame has columns `_c0`, `_c1`, `_c2`. The engineer wants to rename them all to `id`, `name`, `age`.
+
+    Which code does this?
+  answers:
+  - text: '`df.toDF("id", "name", "age")`'
+    verdict: correct
+    justification: '`toDF(*names)` renames all columns at once by position.'
+  - text: '`df.rename(["id", "name", "age"])`'
+    verdict: incorrect
+    justification: DataFrames have no `rename` method (that is pandas).
+  - text: '`df.columns("id", "name", "age")`'
+    verdict: incorrect
+    justification: '`columns` is an attribute (a list), not a method.'
+  - text: '`df.withColumnRenamed("_c*", ["id", "name", "age"])`'
+    verdict: incorrect
+    justification: '`withColumnRenamed` does not support wildcards or lists.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toDF.html
+- id: 3.1-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer selects `amount` but wants the output column to be named `total_amount`.
+
+    Which code does this?
+  answers:
+  - text: '`df.select(col("amount").name)`'
+    verdict: incorrect
+    justification: '`.name` refers to a method used for aliasing; it must be called with the new name, and here it is not.'
+  - text: '`df.select(col("amount").alias("total_amount"))`'
+    verdict: correct
+    justification: '`alias("total_amount")` names the output column.'
+  - text: '`df.select(col("amount").rename("total_amount"))`'
+    verdict: incorrect
+    justification: Columns have no `rename` method.
+  - text: '`df.select("amount" AS "total_amount")`'
+    verdict: incorrect
+    justification: '`AS` is SQL syntax and is not valid in Python.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.alias.html
+- id: 3.1-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer combines `first_name` and `last_name` into `full_name`, separated by a space.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("full_name", col("first_name") + " " + col("last_name"))`'
+    verdict: incorrect
+    justification: '`+` on string Columns performs arithmetic, producing null instead of concatenating.'
+  - text: '`df.withColumn("full_name", join(" ", ["first_name", "last_name"]))`'
+    verdict: incorrect
+    justification: There is no `join` function for columns in PySpark.
+  - text: '`df.withColumn("full_name", concat(" ", "first_name", "last_name", sep=True))`'
+    verdict: incorrect
+    justification: '`concat` has no `sep` parameter, and `" "` would be read as a column name.'
+  - text: '`df.withColumn("full_name", concat_ws(" ", "first_name", "last_name"))`'
+    verdict: correct
+    justification: '`concat_ws(sep, *cols)` joins the columns with the separator.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.concat_ws.html
+- id: 3.1-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer wants to add two derived columns in one call.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumns("tax", col("amount") * 0.2, "net", col("amount") * 0.8)`'
+    verdict: incorrect
+    justification: '`withColumns` takes a dictionary, not alternating positional arguments.'
+  - text: '`df.withColumn(["tax", "net"], [col("amount") * 0.2, col("amount") * 0.8])`'
+    verdict: incorrect
+    justification: '`withColumn` takes one name and one Column, not lists.'
+  - text: '`df.withColumns({"tax": col("amount") * 0.2, "net": col("amount") * 0.8})`'
+    verdict: correct
+    justification: '`withColumns` takes a dictionary of column names to Column expressions.'
+  - text: '`df.addColumns(tax=col("amount") * 0.2, net=col("amount") * 0.8)`'
+    verdict: incorrect
+    justification: DataFrames have no `addColumns` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumns.html
+- id: 3.1-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A column `address` is a struct with fields `city` and `zip`. The engineer needs a top-level `city` column.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("city", col("address").getField("city"))`'
+    verdict: correct
+    justification: '`getField("city")` extracts a field from a struct column.'
+  - text: '`df.withColumn("city", split("address", ".")[0])`'
+    verdict: incorrect
+    justification: A struct is not a string; `split` cannot be applied to it.
+  - text: '`df.withColumn("city", explode("address.city"))`'
+    verdict: incorrect
+    justification: '`explode` is for arrays and maps, not for a struct field.'
+  - text: '`df.withColumn("city", col("address")["zip"])`'
+    verdict: true_but_irrelevant
+    justification: '`col("address")["zip"]` is valid, but it extracts the `zip` field, not `city`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.getField.html
+- id: 3.1-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer wants to flatten all fields of a struct column `address` into top-level columns.
+
+    Which code does this?
+  answers:
+  - text: '`df.select("id", flatten("address"))`'
+    verdict: incorrect
+    justification: '`flatten` works on arrays of arrays, not structs.'
+  - text: '`df.select("id", explode("address"))`'
+    verdict: incorrect
+    justification: '`explode` does not work on structs.'
+  - text: '`df.select("id", "address.*")`'
+    verdict: correct
+    justification: '`"address.*"` expands all fields of the struct into top-level columns.'
+  - text: '`df.select("id", "address[*]")`'
+    verdict: incorrect
+    justification: '`address[*]` is not valid syntax.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.select.html
+- id: 3.1-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer extracts the numeric part from values like `"order-12345"` in column `ref`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("order_no", split("ref", "-").getItem(0))`'
+    verdict: incorrect
+    justification: Splitting on `-` and taking element 0 returns `"order"`.
+  - text: '`df.withColumn("order_no", regexp_extract("ref", r"order-(\d+)", 1))`'
+    verdict: correct
+    justification: Group index 1 returns the first capturing group, the digits.
+  - text: '`df.withColumn("order_no", regexp_replace("ref", r"\d+", ""))`'
+    verdict: incorrect
+    justification: '`regexp_replace` with `\d+` removes the digits, leaving `"order-"`.'
+  - text: '`df.withColumn("order_no", regexp_extract("ref", r"order-(\d+)", 0))`'
+    verdict: partially_correct
+    justification: The pattern is right, but group 0 returns the whole match `"order-12345"`, not just the number.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.regexp_extract.html
+- id: 3.1-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer keeps only rows whose array column `tags` contains more than 3 elements.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(size("tags") > 3)`'
+    verdict: correct
+    justification: '`size` returns the number of elements in an array.'
+  - text: '`df.filter(count("tags") > 3)`'
+    verdict: incorrect
+    justification: '`count` is an aggregate function and cannot be used in a row filter like this.'
+  - text: '`df.filter(col("tags").len() > 3)`'
+    verdict: incorrect
+    justification: Columns have no `len()` method.
+  - text: '`df.filter(length("tags") > 3)`'
+    verdict: incorrect
+    justification: '`length` returns the length of a string or binary value, not an array size.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.size.html
+- id: 3.1-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer keeps rows where the array column `tags` contains the value `"sale"`.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(col("tags").contains("sale").count() > 0)`'
+    verdict: incorrect
+    justification: '`contains` is a string function, and `count()` is not a Column method.'
+  - text: '`df.filter(col("tags").isin("sale"))`'
+    verdict: incorrect
+    justification: '`isin` compares the whole array value with the given values; it does not look inside the array.'
+  - text: '`df.filter(col("tags") == "sale")`'
+    verdict: incorrect
+    justification: Comparing an array with a string is not a membership test.
+  - text: '`df.filter(array_contains("tags", "sale"))`'
+    verdict: correct
+    justification: '`array_contains` checks whether an array contains a value.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.array_contains.html
+- id: 3.1-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer keeps rows with `age` from 18 to 65 inclusive.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(col("age").range(18, 65))`'
+    verdict: incorrect
+    justification: Columns have no `range` method.
+  - text: '`df.filter(col("age").between(18, 65, inclusive=False))`'
+    verdict: incorrect
+    justification: '`between` has no `inclusive` parameter.'
+  - text: '`df.filter(18 < col("age") < 65)`'
+    verdict: incorrect
+    justification: Python chained comparisons do not work with Columns.
+  - text: '`df.filter(col("age").between(18, 65))`'
+    verdict: correct
+    justification: '`between(18, 65)` is inclusive on both ends.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.between.html
+- id: 3.1-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer calls `df.withColumn("amount", col("amount") * 100)` where `amount` already exists.
+
+    What happens?
+  answers:
+  - text: The existing `amount` column is replaced by the new values.
+    verdict: correct
+    justification: '`withColumn` with an existing name replaces that column.'
+  - text: The column is renamed to `amount_1`.
+    verdict: incorrect
+    justification: The column is not renamed.
+  - text: An error is raised because the column exists.
+    verdict: incorrect
+    justification: Replacing an existing column is allowed.
+  - text: A second column named `amount` is added.
+    verdict: incorrect
+    justification: Spark does not add a duplicate column; it replaces the existing one.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumn.html
+- id: 3.1-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    A data engineer calls `df.withColumnRenamed("old_name", "new_name")` but `old_name` does not exist.
+
+    What happens?
+  answers:
+  - text: A new empty column `new_name` is added.
+    verdict: incorrect
+    justification: No new column is added.
+  - text: The first column is renamed.
+    verdict: incorrect
+    justification: No other column is renamed.
+  - text: The call is a no-op and returns the DataFrame unchanged.
+    verdict: correct
+    justification: The PySpark docs state `withColumnRenamed` is a no-op if the schema does not contain the column.
+  - text: An `AnalysisException` is raised immediately.
+    verdict: incorrect
+    justification: No exception is raised.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.withColumnRenamed.html
+- id: 3.1-032
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.1'
+  question: |-
+    Values in the `code` column have leading and trailing spaces. The engineer removes them.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("code", substring("code", 1, -1))`'
+    verdict: incorrect
+    justification: '`substring` with a negative length does not trim; it returns an empty string.'
+  - text: '`df.withColumn("code", trim(col("code")))`'
+    verdict: correct
+    justification: '`trim` removes leading and trailing spaces.'
+  - text: '`df.withColumn("code", col("code").strip())`'
+    verdict: incorrect
+    justification: Columns have no `strip` method.
+  - text: '`df.withColumn("code", regexp_extract("code", " ", 0))`'
+    verdict: incorrect
+    justification: Extracting `" "` with a regex returns a space, not the trimmed value.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.trim.html

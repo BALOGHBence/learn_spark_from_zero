@@ -1,0 +1,655 @@
+# Objective 4.1: Implement performance tuning strategies & optimize cluster utilization, including partitioning, repartitioning, coalescing, identifying data skew, and reducing shuffling
+- id: 4.1-001
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    In a stage's summary metrics, the max task duration is 20 minutes while the 75th percentile is 40 seconds.
+
+    What does this indicate?
+  answers:
+  - text: 'Data skew: a few tasks process much more data than the rest'
+    verdict: correct
+    justification: A max task duration far above the 75th percentile means a few tasks process much more data — data skew.
+  - text: Too much garbage collection on all executors
+    verdict: incorrect
+    justification: GC problems on all executors would slow all tasks, not just a few.
+  - text: A driver bottleneck
+    verdict: incorrect
+    justification: A driver bottleneck shows as gaps between jobs, not as one slow task within a stage.
+  - text: Perfectly balanced partitions
+    verdict: incorrect
+    justification: Balanced partitions give similar task durations.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage-page
+- id: 4.1-002
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: According to the Databricks Spark UI guide, which rule of thumb suggests skew in a stage?
+  answers:
+  - text: The stage reads more than 1 GB of input.
+    verdict: incorrect
+    justification: The input size does not indicate skew.
+  - text: The stage has more than 200 tasks.
+    verdict: incorrect
+    justification: The task count does not indicate skew.
+  - text: The median task duration is above 1 second.
+    verdict: incorrect
+    justification: A median above 1 second says nothing about skew.
+  - text: The max task duration is 50% or more above the 75th percentile duration.
+    verdict: correct
+    justification: The Databricks guide says that if the max duration is 50% or more above the 75th percentile, the stage may be skewed.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage-page
+- id: 4.1-003
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A stage shows large "Spill (Disk)" values in the Spark UI.
+
+    What does spill mean?
+  answers:
+  - text: Shuffle files were deleted after the stage.
+    verdict: incorrect
+    justification: Spill is not the deletion of shuffle files.
+  - text: Cached data was evicted to the driver.
+    verdict: incorrect
+    justification: Evicted cached data is not moved to the driver.
+  - text: Spark ran low on execution memory and moved data from memory to disk, which is expensive.
+    verdict: correct
+    justification: Spill happens when execution memory runs low and Spark moves data to disk, which is expensive.
+  - text: Data was written to the output table.
+    verdict: incorrect
+    justification: Writing output is shown as Output, not Spill.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage-page
+- id: 4.1-004
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer wants to reduce shuffling for a query that only needs 5 columns from a 200-column Parquet table.
+
+    Which change helps?
+  answers:
+  - text: Use `select("*")` and drop columns at the end.
+    verdict: incorrect
+    justification: Keeping all 200 columns until the end works against column pruning and makes the plan carry unnecessary data.
+  - text: Select only the needed columns early so less data is read and shuffled.
+    verdict: correct
+    justification: Selecting only the needed columns early reduces the data read from Parquet and carried through shuffles.
+  - text: Repartition the full table before filtering.
+    verdict: incorrect
+    justification: Repartitioning the full table adds a shuffle of all columns.
+  - text: Cache the full table first.
+    verdict: incorrect
+    justification: Caching the full table stores all 200 columns, which is wasteful.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-005
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A job writes 2,000 small files because the DataFrame has 2,000 partitions at the end of a filter-heavy pipeline.
+
+    Which change reduces the number of files with the least overhead?
+  answers:
+  - text: Call `coalesce(n)` with a smaller `n` before writing, which merges partitions without a full shuffle.
+    verdict: correct
+    justification: '`coalesce` reduces the number of partitions, and so the number of files, without a full shuffle.'
+  - text: Increase `spark.sql.shuffle.partitions`.
+    verdict: incorrect
+    justification: More shuffle partitions mean more files after a shuffle.
+  - text: Call `repartition(10000)` before writing.
+    verdict: incorrect
+    justification: Repartitioning to 10,000 creates even more files and shuffles everything.
+  - text: Call `cache()` before writing.
+    verdict: incorrect
+    justification: Caching does not change the number of partitions.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.coalesce.html
+- id: 4.1-006
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A DataFrame read from a single large gzip CSV file has one partition, and all downstream work runs as one task.
+
+    Which change improves parallelism?
+  answers:
+  - text: Call `sortWithinPartitions()`.
+    verdict: incorrect
+    justification: '`sortWithinPartitions` does not change the number of partitions.'
+  - text: Increase `spark.sql.autoBroadcastJoinThreshold`.
+    verdict: incorrect
+    justification: The broadcast threshold only affects joins.
+  - text: Call `repartition(n)` after reading to spread the data across more partitions.
+    verdict: correct
+    justification: '`repartition(n)` shuffles the single partition into many, so downstream work runs in parallel.'
+  - text: Call `coalesce(n)` with a larger `n`.
+    verdict: incorrect
+    justification: '`coalesce` cannot increase the number of partitions.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 4.1-007
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: Which of the following can cause a long-running stage with just one task?
+  answers:
+  - text: Using `select` with many columns
+    verdict: incorrect
+    justification: The number of columns does not reduce the number of tasks.
+  - text: A join between two well-partitioned tables
+    verdict: incorrect
+    justification: A join of well-partitioned tables runs many tasks.
+  - text: Reading many Parquet files of 128 MB each
+    verdict: incorrect
+    justification: Many 128 MB Parquet files are split into many tasks.
+  - text: Reading an unsplittable file such as a single gzip file
+    verdict: correct
+    justification: Databricks lists unsplittable files such as gzip among the causes of one-task stages.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/one-spark-task
+- id: 4.1-008
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A window function runs in a single task and is very slow.
+
+    What is the likely reason according to the Databricks Spark UI guide?
+  answers:
+  - text: The window uses `ORDER BY`, which is not allowed.
+    verdict: incorrect
+    justification: '`ORDER BY` is allowed in windows.'
+  - text: The window has no `PARTITION BY`, so all rows go to one partition.
+    verdict: correct
+    justification: Without `PARTITION BY`, all rows of a window go to a single partition, which Databricks lists as a cause of one-task stages.
+  - text: The window function is cached.
+    verdict: incorrect
+    justification: Caching does not cause single-task windows.
+  - text: The window function uses too many partitions.
+    verdict: incorrect
+    justification: The problem is too few partitions, not too many.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/one-spark-task
+- id: 4.1-009
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A query joins a large table with a small dimension table using a sort-merge join, shuffling the large table.
+
+    Which tuning strategy reduces this shuffle?
+  answers:
+  - text: Disable adaptive query execution.
+    verdict: incorrect
+    justification: Disabling AQE removes runtime optimizations such as switching to a broadcast join.
+  - text: Repartition the small table into 1,000 partitions.
+    verdict: incorrect
+    justification: Repartitioning the small table adds work and does not avoid shuffling the large one.
+  - text: Broadcast the small table, for example with `broadcast(dim)`.
+    verdict: correct
+    justification: Broadcasting the small dimension table lets Spark avoid shuffling the large table.
+  - text: Increase the number of shuffle partitions.
+    verdict: incorrect
+    justification: More shuffle partitions still shuffle the large table.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-010
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A join on `customer_id` is slow because a few customer ids have millions of rows. AQE is enabled on Databricks.
+
+    Which built-in mechanism helps?
+  answers:
+  - text: Increasing `spark.sql.broadcastTimeout`
+    verdict: incorrect
+    justification: The broadcast timeout does not address skew.
+  - text: AQE skew join handling, which splits skewed partitions into smaller tasks
+    verdict: correct
+    justification: AQE skew join handling splits skewed partitions into smaller tasks automatically.
+  - text: Disabling AQE so the plan stays fixed
+    verdict: incorrect
+    justification: Disabling AQE removes skew handling.
+  - text: Calling `coalesce(1)` before the join
+    verdict: incorrect
+    justification: '`coalesce(1)` puts everything in one partition and makes things worse.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/aqe
+- id: 4.1-011
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A complex ETL job with many joins and unions spends most of its time shuffling data between nodes.
+
+    Which compute configuration does Databricks recommend for this kind of job?
+  answers:
+  - text: A larger driver with the same small workers
+    verdict: incorrect
+    justification: A larger driver does not reduce shuffle between workers.
+  - text: Many small workers, which maximize network traffic
+    verdict: incorrect
+    justification: Many small workers increase network shuffle.
+  - text: A single node compute resource with no workers
+    verdict: incorrect
+    justification: Single node compute is meant for small, non-distributed workloads.
+  - text: Fewer, larger workers, which reduce the amount of data shuffled across the network
+    verdict: correct
+    justification: Databricks recommends fewer, larger workers for shuffle-heavy ETL, which reduces data shuffled across the network.
+  source_url: https://docs.databricks.com/aws/en/compute/cluster-config-best-practices
+- id: 4.1-012
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A cluster has 100 cores and a stage processes 40 partitions.
+
+    How can the engineer improve cluster utilization for this stage?
+  answers:
+  - text: Increase the number of partitions so there are at least as many tasks as cores, typically 2–3 tasks per core.
+    verdict: correct
+    justification: With fewer partitions than cores, cores sit idle; more partitions (about 2–3 tasks per core) use the cluster fully.
+  - text: Reduce the number of partitions to 10.
+    verdict: incorrect
+    justification: Fewer partitions leave even more cores idle.
+  - text: Add more driver memory.
+    verdict: incorrect
+    justification: Driver memory does not affect task parallelism.
+  - text: Disable lazy evaluation.
+    verdict: incorrect
+    justification: Lazy evaluation cannot be disabled and is unrelated to utilization.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 4.1-013
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    The Spark tuning guide gives a rule of thumb for the level of parallelism.
+
+    What does it recommend?
+  answers:
+  - text: One task per GB of data
+    verdict: incorrect
+    justification: The guide does not size tasks by GB of data.
+  - text: Exactly one task per executor
+    verdict: incorrect
+    justification: One task per executor leaves most cores idle.
+  - text: About 2–3 tasks per CPU core in the cluster
+    verdict: correct
+    justification: The Spark tuning guide recommends about 2–3 tasks per CPU core.
+  - text: 1,000 tasks regardless of cluster size
+    verdict: incorrect
+    justification: A fixed task count ignores the cluster size.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 4.1-014
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A Spark job timeline shows long gaps between jobs while the workers are idle. The code builds hundreds of columns with `withColumn` in a Python loop.
+
+    What is a likely cause and fix?
+  answers:
+  - text: The driver is spending time building a very complex plan; combine the expressions into one `select` or `selectExpr`.
+    verdict: correct
+    justification: Many `withColumn` calls in a loop create a very complex plan; Databricks suggests combining them with `select`/`selectExpr` or SQL.
+  - text: The shuffle partitions are too few; increase them.
+    verdict: incorrect
+    justification: Shuffle partitions do not explain planning gaps.
+  - text: The input files are unsplittable; repartition after reading.
+    verdict: incorrect
+    justification: Unsplittable files cause one-task stages, not gaps between jobs.
+  - text: The executors are out of memory; double the worker memory.
+    verdict: incorrect
+    justification: Memory problems show as failures or spill, not gaps while workers are idle.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-job-gaps
+- id: 4.1-015
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    Gaps in the Spark timeline appear while a notebook runs a long pure-Python loop that does not use Spark.
+
+    What does this mean for the cluster?
+  answers:
+  - text: The gaps are caused by garbage collection on executors.
+    verdict: incorrect
+    justification: The gaps come from driver-side code, not executor GC.
+  - text: The workers are idle during the gaps, because non-Spark code runs only on the driver.
+    verdict: correct
+    justification: Non-Spark Python code runs only on the driver, so workers are idle during those gaps.
+  - text: The loop is automatically converted to Spark tasks.
+    verdict: incorrect
+    justification: Spark does not convert Python loops into tasks.
+  - text: The workers process the Python loop in parallel.
+    verdict: incorrect
+    justification: Plain Python loops are not distributed.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-job-gaps
+- id: 4.1-016
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A driver is overloaded because many streams and queries run concurrently on one all-purpose cluster.
+
+    What does Databricks recommend trying first?
+  answers:
+  - text: Decrease the size of the driver.
+    verdict: incorrect
+    justification: A smaller driver makes the overload worse.
+  - text: Disable the Spark UI.
+    verdict: incorrect
+    justification: The Spark UI is not the cause of driver overload.
+  - text: Remove all worker nodes.
+    verdict: incorrect
+    justification: Removing workers does not reduce driver load.
+  - text: Double the size of the driver and observe the impact.
+    verdict: correct
+    justification: Databricks recommends first doubling the driver size and observing the impact.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-driver-overloaded
+- id: 4.1-017
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A stage is slow but reads little data. The SQL DAG shows a scan reading tens of thousands of tiny files.
+
+    What is the likely problem?
+  answers:
+  - text: Too few columns in the table
+    verdict: incorrect
+    justification: Having few columns is not a performance problem.
+  - text: The driver being undersized
+    verdict: incorrect
+    justification: An undersized driver would not show as a scan of many tiny files.
+  - text: A small-file problem, often caused by partitioning on too many columns or a high-cardinality column
+    verdict: correct
+    justification: Tens of thousands of tiny files point to a small-file problem, often caused by over-partitioning.
+  - text: AQE being enabled
+    verdict: incorrect
+    justification: AQE does not create small files.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/slow-spark-stage-low-io
+- id: 4.1-018
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: Which issues does the Databricks guide list as causes of a slow stage with low I/O?
+  answers:
+  - text: Too much memory per executor
+    verdict: incorrect
+    justification: More memory per executor is not a cause of slowness.
+  - text: Slow UDFs, Cartesian joins, exploding joins and reading or writing many small files
+    verdict: correct
+    justification: Databricks lists slow UDFs, Cartesian and exploding joins and many small files as causes of slow stages with low I/O.
+  - text: Using Parquet instead of CSV
+    verdict: incorrect
+    justification: Parquet is usually faster than CSV.
+  - text: Using Delta Lake tables
+    verdict: incorrect
+    justification: Delta Lake is not a cause of low-I/O slowness.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/slow-spark-stage-low-io
+- id: 4.1-019
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A large DataFrame computed by an expensive join is reused by three separate aggregations.
+
+    Which tuning step avoids recomputing the join three times?
+  answers:
+  - text: Persist the joined DataFrame before running the aggregations, then unpersist it afterwards.
+    verdict: correct
+    justification: Persisting the joined DataFrame lets all three aggregations reuse it; unpersist it afterwards to free memory.
+  - text: Write each aggregation in a separate notebook.
+    verdict: incorrect
+    justification: Separate notebooks would recompute the join in each one.
+  - text: Call `explain()` before each aggregation.
+    verdict: incorrect
+    justification: '`explain()` only shows the plan.'
+  - text: Repartition the joined DataFrame to 1 partition.
+    verdict: incorrect
+    justification: One partition removes parallelism and does not avoid recomputation.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.persist.html
+- id: 4.1-020
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A query filters a large table with `WHERE event_date = '2025-10-01'`. The table is partitioned by `event_date`.
+
+    Why is this query efficient?
+  answers:
+  - text: Spark broadcasts the filter to all files.
+    verdict: incorrect
+    justification: Filters are pushed into the scan, not broadcast.
+  - text: Partitioned tables are always stored in memory.
+    verdict: incorrect
+    justification: Partitioned tables are stored on disk.
+  - text: Spark caches the partition automatically.
+    verdict: incorrect
+    justification: Partitions are not cached automatically.
+  - text: Partition pruning lets Spark read only the matching partition directories.
+    verdict: correct
+    justification: Partition pruning reads only the directories matching `event_date`.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-021
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer applies `distinct()` before a `groupBy` on the same key even though the aggregation already removes duplicates.
+
+    What is the tuning concern?
+  answers:
+  - text: '`distinct()` disables AQE.'
+    verdict: incorrect
+    justification: '`distinct()` does not disable AQE.'
+  - text: '`distinct()` changes the results of the aggregation.'
+    verdict: incorrect
+    justification: The results are the same; the problem is wasted work.
+  - text: '`distinct()` makes the aggregation run on the driver.'
+    verdict: incorrect
+    justification: Both run on executors.
+  - text: The extra `distinct()` adds an unnecessary shuffle.
+    verdict: correct
+    justification: '`distinct()` adds an extra shuffle that the aggregation makes unnecessary.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-022
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: Which of the following are listed by Databricks as possible causes of Spark memory issues?
+  answers:
+  - text: Using DataFrames instead of RDDs
+    verdict: incorrect
+    justification: DataFrames are usually more memory-efficient than RDDs.
+  - text: Too few shuffle partitions, large broadcasts, UDFs, window functions without `PARTITION BY`, skew and streaming state
+    verdict: correct
+    justification: Databricks lists too few shuffle partitions, large broadcasts, UDFs, windows without `PARTITION BY`, skew and streaming state.
+  - text: Using Delta Lake, Parquet and ORC formats
+    verdict: incorrect
+    justification: File formats are not listed as memory issue causes.
+  - text: Enabling AQE and the disk cache
+    verdict: incorrect
+    justification: AQE and the disk cache are not listed as causes.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 4.1-023
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: To verify that a failure is really a memory issue, what does the Databricks guide suggest?
+  answers:
+  - text: Increase the memory per core, for example by switching to a worker type with the same cores and twice the memory, and see if it changes the failure.
+    verdict: correct
+    justification: Databricks suggests doubling the memory per core; if the failure changes or disappears, it is likely a memory issue.
+  - text: Reduce the memory per core by half.
+    verdict: incorrect
+    justification: Reducing memory makes failures more likely and does not verify the cause.
+  - text: Remove all shuffle partitions.
+    verdict: incorrect
+    justification: Shuffle partitions cannot be removed.
+  - text: Run the job with one executor core.
+    verdict: incorrect
+    justification: One core changes parallelism, not the memory-per-core ratio being tested.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 4.1-024
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: Which tuning change helps when a shuffle stage spills heavily because each partition holds several GB?
+  answers:
+  - text: Decrease the number of shuffle partitions.
+    verdict: incorrect
+    justification: Fewer partitions make each one larger and spill more.
+  - text: Use `coalesce(1)` before the shuffle.
+    verdict: incorrect
+    justification: '`coalesce(1)` would put everything into one partition.'
+  - text: Increase the number of shuffle partitions so each partition is smaller.
+    verdict: correct
+    justification: More shuffle partitions make each partition smaller, so it fits in memory and spills less.
+  - text: Increase the broadcast timeout.
+    verdict: incorrect
+    justification: The broadcast timeout is unrelated to spill.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-025
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer wants to inspect Spark's cost estimates for a query plan.
+
+    Which call shows them?
+  answers:
+  - text: '`df.explain(mode="cost")`'
+    verdict: correct
+    justification: '`explain(mode="cost")` shows the optimized plan with cost statistics.'
+  - text: '`df.show(cost=True)`'
+    verdict: incorrect
+    justification: '`show` has no `cost` parameter.'
+  - text: '`df.describe("cost")`'
+    verdict: incorrect
+    justification: '`describe` computes column statistics, not plan costs.'
+  - text: '`df.explain(mode="memory")`'
+    verdict: incorrect
+    justification: '`memory` is not an explain mode.'
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-026
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer chooses worker instance types and asks what local disk on the workers is mainly used for.
+
+    According to Databricks, what is it primarily used for?
+  answers:
+  - text: Holding the driver logs
+    verdict: incorrect
+    justification: Driver logs are on the driver or delivered to a log location.
+  - text: Spills during shuffles and caching
+    verdict: correct
+    justification: Databricks says local disk is primarily used for spills during shuffles and for caching.
+  - text: Storing the notebook source code
+    verdict: incorrect
+    justification: Notebooks are stored in the workspace, not on worker disks.
+  - text: Storing Unity Catalog managed tables permanently
+    verdict: incorrect
+    justification: Managed tables are stored in cloud storage, not on worker disks.
+  source_url: https://docs.databricks.com/aws/en/compute/cluster-config-best-practices
+- id: 4.1-027
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer writes a table partitioned by `country`, and each country's data ends up in hundreds of tiny files.
+
+    Which change reduces the files per output partition?
+  answers:
+  - text: '`df.coalesce(1000).write.partitionBy("country").saveAsTable(...)`'
+    verdict: incorrect
+    justification: '`coalesce(1000)` keeps many partitions, each still holding several countries.'
+  - text: '`df.write.partitionBy("country").option("files", 1).saveAsTable(...)`'
+    verdict: incorrect
+    justification: There is no `files` write option.
+  - text: '`df.repartition("country").write.partitionBy("country").saveAsTable(...)`'
+    verdict: correct
+    justification: Repartitioning by `country` puts each country's rows into one partition, so each output directory gets few files.
+  - text: '`df.sortWithinPartitions("id").write.partitionBy("country").saveAsTable(...)`'
+    verdict: incorrect
+    justification: Sorting by `id` does not group rows by country.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.repartition.html
+- id: 4.1-028
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer replaces a Python UDF with built-in functions such as `when`, `regexp_extract` and `date_format`.
+
+    Why does this usually improve performance?
+  answers:
+  - text: Built-in functions run on the driver only.
+    verdict: incorrect
+    justification: Built-in functions run on executors.
+  - text: Built-in functions cache results across jobs.
+    verdict: incorrect
+    justification: They do not cache results across jobs.
+  - text: Built-in functions disable shuffles.
+    verdict: incorrect
+    justification: They do not disable shuffles.
+  - text: Built-in functions run inside the JVM, can be optimized by Catalyst and avoid Python serialization overhead.
+    verdict: correct
+    justification: Built-in functions run in the JVM, are optimized by Catalyst and avoid Python serialization.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-029
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A join produces many more rows than either input because of duplicate keys on both sides.
+
+    What does the Databricks guide call this pattern?
+  answers:
+  - text: A broadcast join
+    verdict: incorrect
+    justification: A broadcast join is a strategy, not this pattern.
+  - text: A semi join
+    verdict: incorrect
+    justification: A semi join never adds rows.
+  - text: An exploding join
+    verdict: correct
+    justification: Databricks calls a join that produces far more rows than its inputs, because of duplicate keys, an exploding join.
+  - text: A skew-free join
+    verdict: incorrect
+    justification: '"Skew-free join" is not a term for this pattern.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/slow-spark-stage-low-io
+- id: 4.1-030
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer filters early and only then joins and aggregates.
+
+    Why does Spark often apply such filters early even when they are written later?
+  answers:
+  - text: Spark executes code in reverse order.
+    verdict: incorrect
+    justification: Spark does not run code in reverse.
+  - text: Filters are applied on the driver before reading.
+    verdict: incorrect
+    justification: Filters run on executors, often inside the scan.
+  - text: Filters are always executed first by the cluster manager.
+    verdict: incorrect
+    justification: The cluster manager does not execute filters.
+  - text: The optimizer pushes predicates down towards the data source, reducing the data processed.
+    verdict: correct
+    justification: Lazy evaluation lets the optimizer push predicates down towards the source, so data is filtered early.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-031
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A data engineer uses `df.repartition(200, "user_id")` before a `groupBy("user_id")` that is followed by another `groupBy("user_id", "day")`.
+
+    What is a potential benefit?
+  answers:
+  - text: Data is already hash-partitioned by `user_id`, so later operations on that key may avoid additional shuffles.
+    verdict: correct
+    justification: Hash-partitioning by `user_id` first can satisfy later operations on `user_id`, so Spark may skip extra shuffles.
+  - text: The `groupBy` operations are executed on the driver.
+    verdict: incorrect
+    justification: Grouping runs on executors.
+  - text: The DataFrame becomes cached.
+    verdict: incorrect
+    justification: Repartitioning does not cache.
+  - text: The repartition removes duplicate rows.
+    verdict: incorrect
+    justification: Repartitioning does not remove rows.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 4.1-032
+  category: troubleshooting_and_tuning
+  objective: '4.1'
+  question: |-
+    A job is slow and the engineer starts diagnosing it with the Spark UI.
+
+    What is the recommended first step in the Databricks guide?
+  answers:
+  - text: Increase the number of workers.
+    verdict: incorrect
+    justification: Adding workers before diagnosing may not help and costs more.
+  - text: Identify the longest stage of the job by sorting the job's stages by duration.
+    verdict: correct
+    justification: The Databricks guide starts by finding the longest stage, sorting the job's stages by duration.
+  - text: Read the driver logs from the start of the cluster.
+    verdict: incorrect
+    justification: Logs from the cluster start are not the first step.
+  - text: Restart the cluster.
+    verdict: incorrect
+    justification: Restarting the cluster does not diagnose anything.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage

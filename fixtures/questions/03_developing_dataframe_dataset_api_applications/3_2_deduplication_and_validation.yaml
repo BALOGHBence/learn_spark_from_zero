@@ -1,0 +1,690 @@
+# Objective 3.2: Perform data deduplication and validation operations on DataFrames.
+- id: 3.2-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A DataFrame contains repeated customer records. The engineer wants one row per `customer_id`, regardless of other columns.
+
+    Which code does this?
+  answers:
+  - text: '`df.distinct("customer_id")`'
+    verdict: incorrect
+    justification: '`distinct()` takes no arguments; it always compares whole rows.'
+  - text: '`df.dropDuplicates()`'
+    verdict: partially_correct
+    justification: '`dropDuplicates()` without a subset removes only rows that are identical in every column, so customers with differing details would remain duplicated.'
+  - text: '`df.groupBy("customer_id").distinct()`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `distinct` method; a grouping needs an aggregation.'
+  - text: '`df.dropDuplicates(["customer_id"])`'
+    verdict: correct
+    justification: '`dropDuplicates(["customer_id"])` keeps one row per distinct `customer_id`, whatever the other columns contain.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 3.2-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer wants to remove rows that are identical in every column.
+
+    Which code does this?
+  answers:
+  - text: '`df.dropna(how="all")`'
+    verdict: true_but_irrelevant
+    justification: '`dropna(how="all")` is valid, but it removes rows whose values are all null, not duplicate rows.'
+  - text: '`df.unique()`'
+    verdict: incorrect
+    justification: DataFrames have no `unique()` method.
+  - text: '`df.distinct()`'
+    verdict: correct
+    justification: '`distinct()` removes rows that are identical across all columns.'
+  - text: '`df.dropDuplicates("all")`'
+    verdict: incorrect
+    justification: '`dropDuplicates` takes a list of column names; `"all"` is not a special value (calling it without arguments compares all columns).'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.distinct.html
+- id: 3.2-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: What is the difference between `df.distinct()` and `df.dropDuplicates(["id"])`?
+  answers:
+  - text: '`dropDuplicates` compares all columns except `id`.'
+    verdict: incorrect
+    justification: The subset lists the columns that are compared; it is not an exclusion list.
+  - text: '`distinct()` compares all columns, while `dropDuplicates(["id"])` keeps one row per distinct `id`.'
+    verdict: correct
+    justification: '`distinct()` deduplicates on all columns; `dropDuplicates(["id"])` keeps one row per `id`.'
+  - text: '`distinct()` keeps the last row and `dropDuplicates` keeps the first.'
+    verdict: incorrect
+    justification: Neither method guarantees keeping the first or the last row.
+  - text: They are identical in all cases.
+    verdict: incorrect
+    justification: They differ whenever rows share an `id` but differ elsewhere.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 3.2-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A batch DataFrame has duplicates on `order_id` with different `updated_at` values. The engineer calls `df.dropDuplicates(["order_id"])`.
+
+    Which row is kept for each `order_id`?
+  answers:
+  - text: An arbitrary one; `dropDuplicates` does not guarantee which duplicate is kept.
+    verdict: correct
+    justification: '`dropDuplicates` keeps one row per key but does not guarantee which one, because the data is distributed and shuffled.'
+  - text: The row with the most non-null values.
+    verdict: incorrect
+    justification: Spark does not compare null counts when deduplicating.
+  - text: Always the first row in the input file.
+    verdict: incorrect
+    justification: Input file order is not preserved through the shuffle.
+  - text: Always the row with the latest `updated_at`.
+    verdict: incorrect
+    justification: Nothing in `dropDuplicates` looks at `updated_at`; picking the latest needs a window function or an aggregation.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 3.2-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer must keep, for each `order_id`, the row with the most recent `updated_at`.
+
+    Which approach is deterministic?
+  answers:
+  - text: |-
+      ```python
+      latest = df.distinct().limit(1)
+      ```
+    verdict: incorrect
+    justification: '`limit(1)` returns a single row for the whole DataFrame, not one per `order_id`.'
+  - text: |-
+      ```python
+      w = Window.partitionBy("order_id").orderBy(col("updated_at").desc())
+      latest = (df.withColumn("rn", row_number().over(w))
+                  .filter("rn = 1").drop("rn"))
+      ```
+    verdict: correct
+    justification: '`row_number()` over a window partitioned by `order_id` and ordered by `updated_at` descending deterministically marks the latest row as 1.'
+  - text: |-
+      ```python
+      latest = df.orderBy(col("updated_at").desc()).dropDuplicates(["order_id"])
+      ```
+    verdict: incorrect
+    justification: Spark does not guarantee that `dropDuplicates` keeps the first row of a prior sort.
+  - text: |-
+      ```python
+      latest = df.groupBy("order_id").agg(first("updated_at"))
+      ```
+    verdict: partially_correct
+    justification: It returns one row per `order_id`, but only an arbitrary `updated_at` value — not the latest, and not the rest of the row.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.row_number.html
+- id: 3.2-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer removes rows that contain a null in any column.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(col("*").isNotNull())`'
+    verdict: incorrect
+    justification: '`col("*")` cannot be used with `isNotNull()` to check all columns.'
+  - text: '`df.dropna(thresh=0)`'
+    verdict: incorrect
+    justification: '`thresh=0` keeps every row, since any row has at least 0 non-null values.'
+  - text: '`df.na.drop()`'
+    verdict: correct
+    justification: '`na.drop()` uses `how="any"` by default and removes rows with a null in any column.'
+  - text: '`df.na.drop("all")`'
+    verdict: true_but_irrelevant
+    justification: '`na.drop("all")` is valid, but it removes only rows where every column is null.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropna.html
+- id: 3.2-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer removes only rows in which every column is null.
+
+    Which code does this?
+  answers:
+  - text: '`df.na.drop(how="all")`'
+    verdict: correct
+    justification: '`how="all"` removes a row only when all of its columns are null.'
+  - text: '`df.na.drop()`'
+    verdict: incorrect
+    justification: '`na.drop()` defaults to `how="any"`.'
+  - text: '`df.na.drop(how="any")`'
+    verdict: incorrect
+    justification: '`how="any"` removes rows with at least one null.'
+  - text: '`df.dropDuplicates(how="all")`'
+    verdict: incorrect
+    justification: '`dropDuplicates` has no `how` parameter and does not deal with nulls.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropna.html
+- id: 3.2-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer must drop rows only when `email` or `phone` is null, ignoring nulls in other columns.
+
+    Which code does this?
+  answers:
+  - text: '`df.dropna(columns=["email", "phone"])`'
+    verdict: incorrect
+    justification: The parameter is called `subset`, not `columns`.
+  - text: '`df.dropna("email", "phone")`'
+    verdict: incorrect
+    justification: '`"email"` would be passed as the `how` argument, which only accepts `"any"` or `"all"`.'
+  - text: '`df.filter(col("email").isNull() | col("phone").isNull())`'
+    verdict: true_but_irrelevant
+    justification: That filter is valid, but it keeps the rows with nulls instead of dropping them.
+  - text: '`df.dropna(subset=["email", "phone"])`'
+    verdict: correct
+    justification: '`subset` limits the null check to `email` and `phone`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropna.html
+- id: 3.2-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer calls `df.dropna(thresh=3)`.
+
+    Which rows are kept?
+  answers:
+  - text: Rows with at least 3 non-null values
+    verdict: correct
+    justification: '`thresh=3` keeps rows with at least 3 non-null values.'
+  - text: The first 3 rows
+    verdict: incorrect
+    justification: It has nothing to do with the first rows.
+  - text: Rows with exactly 3 columns
+    verdict: incorrect
+    justification: The number of columns is the same for all rows.
+  - text: Rows with at most 3 null values
+    verdict: incorrect
+    justification: '`thresh` counts non-null values, not nulls.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropna.html
+- id: 3.2-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer replaces nulls in the numeric column `discount` with 0 and nulls in `channel` with `"unknown"`.
+
+    Which code does this in one call?
+  answers:
+  - text: '`df.fillna(["discount", "channel"], [0, "unknown"])`'
+    verdict: incorrect
+    justification: '`fillna` does not take parallel lists of columns and values.'
+  - text: '`df.na.replace(None, {"discount": 0, "channel": "unknown"})`'
+    verdict: incorrect
+    justification: '`na.replace(None, ...)` with a dictionary is not how nulls are filled; use `fillna` with a dictionary.'
+  - text: '`df.fillna({"discount": 0, "channel": "unknown"})`'
+    verdict: correct
+    justification: '`fillna` with a dictionary sets a fill value per column.'
+  - text: '`df.fillna(0, "unknown")`'
+    verdict: incorrect
+    justification: The second positional argument is `subset`, so `"unknown"` would be read as a column name.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.fillna.html
+- id: 3.2-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer calls `df.fillna(0)` on a DataFrame with string and integer columns.
+
+    Which columns are affected?
+  answers:
+  - text: All columns, with strings set to `"0"`
+    verdict: incorrect
+    justification: String columns are not changed by a numeric fill value.
+  - text: None, because a subset must be provided
+    verdict: incorrect
+    justification: '`subset` is optional.'
+  - text: Only the first column
+    verdict: incorrect
+    justification: All numeric columns are filled, not just the first one.
+  - text: Only columns whose type matches the fill value, here the numeric columns
+    verdict: correct
+    justification: '`fillna` only fills columns whose type matches the value; with `0`, only numeric columns change.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.fillna.html
+- id: 3.2-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A column `status` uses `"N/A"` to mean missing. The engineer converts these values to `"unknown"`.
+
+    Which code does this?
+  answers:
+  - text: '`df.fillna("unknown", subset=["N/A"])`'
+    verdict: incorrect
+    justification: '`fillna` replaces nulls, and `subset` lists columns, not values.'
+  - text: '`df.na.replace("N/A", "unknown", subset=["status"])`'
+    verdict: correct
+    justification: '`na.replace("N/A", "unknown", subset=["status"])` replaces that value in the `status` column.'
+  - text: '`df.withColumnRenamed("N/A", "unknown")`'
+    verdict: incorrect
+    justification: '`withColumnRenamed` renames columns, not values.'
+  - text: '`df.na.drop(subset=["N/A"])`'
+    verdict: incorrect
+    justification: '`na.drop` removes rows, and `"N/A"` is not a column name.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.replace.html
+- id: 3.2-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer checks whether `order_id` is unique in a DataFrame.
+
+    Which comparison detects duplicates?
+  answers:
+  - text: '`df.distinct().count() != df.dropDuplicates().count()`'
+    verdict: incorrect
+    justification: '`distinct()` and `dropDuplicates()` without arguments are the same, so both counts are always equal.'
+  - text: '`df.count() != df.select("order_id").distinct().count()`'
+    verdict: correct
+    justification: If the number of rows differs from the number of distinct `order_id` values, some ids repeat.
+  - text: '`df.count() != len(df.columns)`'
+    verdict: incorrect
+    justification: Comparing the row count with the number of columns says nothing about duplicates.
+  - text: '`df.select("order_id").count() != df.count()`'
+    verdict: incorrect
+    justification: Selecting one column keeps all rows, so both counts are always equal.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.count.html
+- id: 3.2-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer wants to list the `order_id` values that occur more than once.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("order_id").count().filter("count > 1")`'
+    verdict: correct
+    justification: Grouping by `order_id`, counting and keeping groups with `count > 1` lists the duplicated ids.
+  - text: '`df.select("order_id").exceptAll(df).filter("count > 1")`'
+    verdict: incorrect
+    justification: '`exceptAll` with mismatched columns fails, and there is no `count` column.'
+  - text: '`df.distinct().groupBy("order_id").filter("count > 1")`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `filter` method; an aggregation is needed first.'
+  - text: '`df.dropDuplicates(["order_id"]).filter("count > 1")`'
+    verdict: incorrect
+    justification: After `dropDuplicates` there is no `count` column, and each id appears once.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.groupBy.html
+- id: 3.2-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer flags rows where `email` does not match a simple email pattern.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(regexp_extract("email") == False)`'
+    verdict: incorrect
+    justification: '`regexp_extract` needs a pattern and a group index, and it extracts text rather than testing a match.'
+  - text: '`df.filter(col("email").like(r"^[^@]+@[^@]+$"))`'
+    verdict: incorrect
+    justification: '`like` uses SQL wildcards (`%`, `_`), not regular expressions, and this filter keeps matches instead of flagging non-matches.'
+  - text: '`df.filter(~col("email").rlike(r"^[^@\s]+@[^@\s]+\.[^@\s]+$"))`'
+    verdict: correct
+    justification: '`rlike` matches a regular expression, and `~` negates it to flag rows that do not match.'
+  - text: '`df.filter(col("email") != r"^[^@]+@[^@]+$")`'
+    verdict: incorrect
+    justification: '`!=` compares the value with the literal pattern string, not as a regex.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.rlike.html
+- id: 3.2-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer finds the rows present in `expected` but missing from `actual`, keeping duplicates.
+
+    Which code does this?
+  answers:
+  - text: '`expected.subtract(actual).distinct().union(actual)`'
+    verdict: incorrect
+    justification: Unioning `actual` back in adds rows that were not missing, and `distinct()` loses duplicates.
+  - text: '`actual.exceptAll(expected)`'
+    verdict: true_but_irrelevant
+    justification: This is valid, but with the order reversed it returns rows in `actual` that are missing from `expected`.
+  - text: '`expected.intersect(actual)`'
+    verdict: true_but_irrelevant
+    justification: '`intersect` is valid, but it returns rows present in both, not the missing ones.'
+  - text: '`expected.exceptAll(actual)`'
+    verdict: correct
+    justification: '`expected.exceptAll(actual)` returns rows in `expected` that are not in `actual`, keeping duplicates.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.exceptAll.html
+- id: 3.2-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: What is the difference between `df1.subtract(df2)` and `df1.exceptAll(df2)`?
+  answers:
+  - text: '`subtract` compares column names and `exceptAll` compares positions.'
+    verdict: incorrect
+    justification: Both compare rows by column position; the difference is how duplicates are handled.
+  - text: '`subtract` preserves duplicates and `exceptAll` removes them.'
+    verdict: incorrect
+    justification: The behaviours are swapped.
+  - text: There is no difference.
+    verdict: incorrect
+    justification: They differ in duplicate handling.
+  - text: '`subtract` returns distinct rows like SQL `EXCEPT DISTINCT`, while `exceptAll` preserves duplicates.'
+    verdict: correct
+    justification: '`subtract` is equivalent to `EXCEPT DISTINCT` (it removes duplicates); `exceptAll` keeps them.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.subtract.html
+- id: 3.2-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer splits a DataFrame into valid rows (`amount >= 0`) and rejected rows for a quarantine table.
+
+    Which code does this correctly, including rows where `amount` is null in the rejected set?
+  answers:
+  - text: |-
+      ```python
+      valid = df.filter(col("amount") >= 0)
+      rejected = df.filter(~(col("amount") >= 0))
+      ```
+    verdict: partially_correct
+    justification: It catches negative amounts, but `~(null)` is still null, so null amounts are lost from both sets.
+  - text: |-
+      ```python
+      valid = df.filter(col("amount") >= 0)
+      rejected = df.filter((col("amount") < 0) | col("amount").isNull())
+      ```
+    verdict: correct
+    justification: A null `amount` makes `amount >= 0` null, so it is in neither filter; the rejected filter must include `isNull()` explicitly.
+  - text: |-
+      ```python
+      valid, rejected = df.randomSplit([0.5, 0.5])
+      ```
+    verdict: incorrect
+    justification: '`randomSplit` splits rows randomly; it does not validate anything.'
+  - text: |-
+      ```python
+      valid = df.filter(col("amount") >= 0)
+      rejected = df.subtract(valid).filter(col("amount") < 0)
+      ```
+    verdict: partially_correct
+    justification: '`subtract` finds the non-valid rows, but the extra filter drops the null rows again, and `subtract` also removes duplicates.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.filter.html
+- id: 3.2-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer runs `df.filter(col("amount") != 0)` on a DataFrame where some `amount` values are null.
+
+    What happens to the null rows?
+  answers:
+  - text: They are converted to 0 and then excluded.
+    verdict: incorrect
+    justification: Nulls are not converted to 0.
+  - text: They cause the filter to fail.
+    verdict: incorrect
+    justification: Nulls do not cause errors in filters.
+  - text: They are excluded, because comparisons with null evaluate to null, which the filter treats as false.
+    verdict: correct
+    justification: Comparing null with 0 returns null, and `filter` keeps only rows where the condition is true, so null rows are excluded.
+  - text: They are included, because null is not equal to 0.
+    verdict: incorrect
+    justification: In SQL semantics null is not "not equal" to 0; the comparison is unknown (null).
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.filter.html
+- id: 3.2-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer counts null values per column for a data quality report.
+
+    Which code does this for the column `email`?
+  answers:
+  - text: '`df.select(count(when(col("email").isNull(), 1)).alias("null_emails"))`'
+    verdict: correct
+    justification: '`count` counts non-null values, so `count(when(isNull, 1))` counts exactly the rows where `email` is null.'
+  - text: '`df.select(count("email").alias("null_emails"))`'
+    verdict: true_but_irrelevant
+    justification: '`count("email")` is valid, but it counts the non-null emails, not the nulls.'
+  - text: '`df.na.count("email")`'
+    verdict: incorrect
+    justification: '`DataFrameNaFunctions` has no `count` method.'
+  - text: '`df.select(sum(col("email") == None).alias("null_emails"))`'
+    verdict: incorrect
+    justification: Comparing with `None` yields null, so the sum does not count nulls.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.count.html
+- id: 3.2-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: Why does `df.select(count("email"))` not return the total number of rows?
+  answers:
+  - text: '`count(column)` counts only non-null values of that column.'
+    verdict: correct
+    justification: '`count(column)` ignores nulls, so it returns the number of non-null values.'
+  - text: '`count(column)` counts only the first partition.'
+    verdict: incorrect
+    justification: '`count` aggregates over all partitions.'
+  - text: '`count(column)` counts distinct values.'
+    verdict: incorrect
+    justification: '`count_distinct` counts distinct values; `count` does not.'
+  - text: '`count(column)` returns the number of columns.'
+    verdict: incorrect
+    justification: '`count` counts values, not columns.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.count.html
+- id: 3.2-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A pipeline must fail if the incoming DataFrame does not have the expected schema.
+
+    Which check is appropriate?
+  answers:
+  - text: Use `df.dropDuplicates()` to normalize the schema.
+    verdict: incorrect
+    justification: '`dropDuplicates` removes rows and does not change the schema.'
+  - text: Call `df.count()` and compare it to the number of expected columns.
+    verdict: incorrect
+    justification: '`count()` returns the number of rows, not columns.'
+  - text: Compare `df.schema` with the expected `StructType` and raise an error if they differ.
+    verdict: correct
+    justification: Comparing `df.schema` with an expected `StructType` in code lets the pipeline fail automatically on a mismatch.
+  - text: Call `df.printSchema()` and inspect the output manually in production.
+    verdict: partially_correct
+    justification: '`printSchema()` shows the schema, but manual inspection is not an automatic check in production.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.schema.html
+- id: 3.2-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer calls `df.dropDuplicates(["first_name", "last_name"])`.
+
+    Which rows are considered duplicates?
+  answers:
+  - text: Rows that are identical across all columns
+    verdict: true_but_irrelevant
+    justification: Comparing all columns is what `dropDuplicates()` without a subset does.
+  - text: Rows with the same combination of `first_name` and `last_name`
+    verdict: correct
+    justification: Rows are duplicates when they have the same combination of the listed columns.
+  - text: Rows with the same value in the first column only
+    verdict: incorrect
+    justification: All listed columns are compared, not only the first one.
+  - text: Rows with the same `first_name` or the same `last_name`
+    verdict: incorrect
+    justification: Matching on only one of the columns is not enough; all listed columns must match.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 3.2-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A CSV source has malformed rows that must stop the job immediately.
+
+    Which read option does this?
+  answers:
+  - text: '`.option("badRecords", "fail")`'
+    verdict: incorrect
+    justification: There is no `badRecords` option with this value.
+  - text: '`.option("mode", "PERMISSIVE")`'
+    verdict: true_but_irrelevant
+    justification: '`PERMISSIVE` is the default mode; it keeps going and sets bad fields to null.'
+  - text: '`.option("mode", "DROPMALFORMED")`'
+    verdict: true_but_irrelevant
+    justification: '`DROPMALFORMED` is valid, but it drops bad rows silently instead of stopping.'
+  - text: '`.option("mode", "FAILFAST")`'
+    verdict: correct
+    justification: '`FAILFAST` raises an exception on the first malformed record.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.2-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer wants to silently discard malformed CSV rows during the read.
+
+    Which option does this?
+  answers:
+  - text: '`.option("mode", "PERMISSIVE")`'
+    verdict: true_but_irrelevant
+    justification: '`PERMISSIVE` keeps malformed rows with nulls.'
+  - text: '`.option("dropInvalid", True)`'
+    verdict: incorrect
+    justification: There is no `dropInvalid` option.
+  - text: '`.option("mode", "FAILFAST")`'
+    verdict: true_but_irrelevant
+    justification: '`FAILFAST` stops the job instead of dropping rows.'
+  - text: '`.option("mode", "DROPMALFORMED")`'
+    verdict: correct
+    justification: '`DROPMALFORMED` silently drops malformed rows.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.2-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: In the default CSV parsing mode, what happens to a field that cannot be parsed into its schema type?
+  answers:
+  - text: In `PERMISSIVE` mode, the field is set to null and the row is kept.
+    verdict: correct
+    justification: In the default `PERMISSIVE` mode, fields that cannot be parsed become null and the row is kept.
+  - text: The whole row is dropped.
+    verdict: true_but_irrelevant
+    justification: Dropping the whole row is `DROPMALFORMED` behaviour.
+  - text: The field keeps its raw string value in the typed column.
+    verdict: incorrect
+    justification: A typed column cannot hold the raw string value.
+  - text: The job fails immediately.
+    verdict: true_but_irrelevant
+    justification: Failing immediately is `FAILFAST` behaviour.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.csv.html
+- id: 3.2-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer on Databricks wants malformed CSV rows to be kept and inspected later instead of silently being nulls.
+
+    Which approach is supported?
+  answers:
+  - text: Use `inferSchema` set to false, which keeps bad rows in a separate DataFrame.
+    verdict: incorrect
+    justification: '`inferSchema` only controls type inference; it does not separate bad rows.'
+  - text: Use `PERMISSIVE` mode with the `columnNameOfCorruptRecord` option (by default the `_corrupt_record` column) or the rescued data column.
+    verdict: correct
+    justification: '`PERMISSIVE` mode with a corrupt record column (`_corrupt_record`) keeps the raw malformed records for inspection; Databricks also offers a rescued data column.'
+  - text: Use `FAILFAST` mode, which stores bad rows in a table.
+    verdict: incorrect
+    justification: '`FAILFAST` stops on the first bad record and stores nothing.'
+  - text: Use `DROPMALFORMED`, which writes bad rows to the driver log.
+    verdict: incorrect
+    justification: '`DROPMALFORMED` discards bad rows; it does not log them for review.'
+  source_url: https://docs.databricks.com/aws/en/query/formats/csv
+- id: 3.2-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A DataFrame has columns `id`, `name` and `ts`. Two rows have the same `id` and `name` but different `ts`.
+
+    What does `df.distinct()` return for them?
+  answers:
+  - text: One row, because `id` and `name` match
+    verdict: true_but_irrelevant
+    justification: Keeping one row per `id` and `name` is what `dropDuplicates(["id", "name"])` would do.
+  - text: One row with `ts` set to null
+    verdict: incorrect
+    justification: '`distinct` never changes values.'
+  - text: Both rows, because they differ in `ts`
+    verdict: correct
+    justification: '`distinct` compares all columns, and the rows differ in `ts`, so both are kept.'
+  - text: No rows, because they are duplicates
+    verdict: incorrect
+    justification: Deduplication keeps one copy of true duplicates; it never removes all of them.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.distinct.html
+- id: 3.2-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer wants the unique set of `product_id` values per `customer_id` as an array.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy("customer_id").agg(collect_list("product_id"))`'
+    verdict: partially_correct
+    justification: '`collect_list` also returns an array per customer, but it keeps duplicates.'
+  - text: '`df.dropDuplicates(["product_id"]).groupBy("customer_id")`'
+    verdict: incorrect
+    justification: Deduplicating `product_id` globally and grouping without an aggregation returns no arrays.
+  - text: '`df.groupBy("customer_id").distinct("product_id")`'
+    verdict: incorrect
+    justification: '`GroupedData` has no `distinct` method.'
+  - text: '`df.groupBy("customer_id").agg(collect_set("product_id"))`'
+    verdict: correct
+    justification: '`collect_set` returns the unique values per group as an array.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.collect_set.html
+- id: 3.2-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer fills missing `phone` values with `mobile`, and if both are missing, with `"none"`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("phone", when(col("phone"), col("mobile")).otherwise("none"))`'
+    verdict: incorrect
+    justification: '`when` needs a boolean condition; a string column is not a valid condition, and the logic is wrong.'
+  - text: '`df.withColumn("phone", col("phone").fillna(col("mobile")))`'
+    verdict: incorrect
+    justification: Columns have no `fillna` method.
+  - text: '`df.withColumn("phone", coalesce(col("phone"), col("mobile"), lit("none")))`'
+    verdict: correct
+    justification: '`coalesce` returns the first non-null of its arguments: `phone`, then `mobile`, then `"none"`.'
+  - text: '`df.coalesce("phone", "mobile", "none")`'
+    verdict: incorrect
+    justification: '`DataFrame.coalesce` changes the number of partitions; it is not the null-handling function.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.coalesce.html
+- id: 3.2-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer wants the deduplicated DataFrame to be deterministic and keep the earliest event per `user_id`.
+
+    Why is `df.orderBy("ts").dropDuplicates(["user_id"])` not a reliable approach?
+  answers:
+  - text: Spark does not guarantee that `dropDuplicates` keeps the first row of a prior sort, because the deduplication can involve a shuffle.
+    verdict: correct
+    justification: '`dropDuplicates` gives no ordering guarantee, and the shuffle it may need can discard the prior sort, so the kept row is not necessarily the earliest.'
+  - text: '`orderBy` is ignored on DataFrames that contain duplicates.'
+    verdict: incorrect
+    justification: '`orderBy` is not ignored; the problem is the missing guarantee in `dropDuplicates`.'
+  - text: '`orderBy` cannot be combined with `dropDuplicates`.'
+    verdict: incorrect
+    justification: '`orderBy` and `dropDuplicates` can be combined; they just don''t guarantee the result.'
+  - text: '`dropDuplicates` always keeps the last row.'
+    verdict: incorrect
+    justification: '`dropDuplicates` does not guarantee keeping the last row either.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.dropDuplicates.html
+- id: 3.2-032
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.2'
+  question: |-
+    A data engineer runs a quick check of value ranges for numeric columns before loading data.
+
+    Which call gives count, mean, stddev, min and max for those columns?
+  answers:
+  - text: '`df.printSchema()`'
+    verdict: incorrect
+    justification: '`printSchema` only shows column names and types.'
+  - text: '`df.describe()`'
+    verdict: correct
+    justification: '`describe()` computes count, mean, stddev, min and max for numeric and string columns.'
+  - text: '`df.dtypes`'
+    verdict: incorrect
+    justification: '`dtypes` lists column types, not statistics.'
+  - text: '`df.explain()`'
+    verdict: incorrect
+    justification: '`explain` shows the query plan, not data statistics.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.describe.html

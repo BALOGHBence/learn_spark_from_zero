@@ -1,0 +1,670 @@
+# Objective 1.2: Identify the role of core components of Apache Spark™'s Architecture, including cluster, driver node, worker nodes/executors, CPU cores, and memory.
+- id: 1.2-001
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A new team member asks which Spark component runs the application's `main()` function and creates the SparkSession.
+
+    Which component is it?
+  answers:
+  - text: The driver program
+    verdict: correct
+    justification: The driver program runs the application's `main()` function, creates the SparkSession (and SparkContext), builds the plans and schedules tasks.
+  - text: The cluster manager
+    verdict: incorrect
+    justification: The cluster manager only allocates resources such as executors; it does not run user code.
+  - text: A worker node's block manager
+    verdict: incorrect
+    justification: The block manager stores and transfers data blocks on a node; it does not run the application's entry point.
+  - text: An executor
+    verdict: incorrect
+    justification: Executors run tasks and store data for the application; they do not run `main()` or create the session.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-002
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer wants to know where the actual computation on data partitions happens in a Spark application.
+
+    Which component runs the tasks?
+  answers:
+  - text: The cluster manager, which runs tasks between scheduling decisions
+    verdict: incorrect
+    justification: The cluster manager only allocates resources; it never runs tasks.
+  - text: Executors, which are processes launched on worker nodes
+    verdict: correct
+    justification: Executors are processes launched on worker nodes that run the tasks, each task processing one partition.
+  - text: The driver, which processes every partition itself
+    verdict: incorrect
+    justification: The driver coordinates and schedules work; it does not process every partition itself.
+  - text: The SparkSession object on the client machine
+    verdict: incorrect
+    justification: The SparkSession is the entry point for building queries; computation is done by tasks on executors, not by the session object.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-003
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    An architect needs to describe the job of the cluster manager in a Spark deployment.
+
+    Which statement is correct?
+  answers:
+  - text: It stores cached DataFrame partitions for all applications.
+    verdict: incorrect
+    justification: Cached partitions are stored by each application's executors, not by the cluster manager.
+  - text: It runs the user's `main()` function.
+    verdict: incorrect
+    justification: The driver program runs `main()`; the cluster manager does not run user code.
+  - text: It is an external service that allocates resources, such as executors, across applications.
+    verdict: correct
+    justification: The cluster manager (standalone, YARN or Kubernetes) is an external service that acquires and allocates resources, such as executors, to applications.
+  - text: It optimizes the logical plan of each query.
+    verdict: incorrect
+    justification: Query optimization is done by Spark SQL's optimizer inside the driver, not by the cluster manager.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-004
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    Two different Spark applications run on the same cluster. One of them caches a DataFrame.
+
+    Can the second application read that cached data directly from the first application's executors?
+  answers:
+  - text: Yes, but only if both applications use the same SparkSession name.
+    verdict: incorrect
+    justification: The session name has no effect; separate applications have separate executors no matter how they are named.
+  - text: Yes. All applications on a cluster share one set of executors and their caches.
+    verdict: incorrect
+    justification: Applications do not share executors or caches; each application has its own executor processes.
+  - text: No, because cached data is stored only on the driver of each application.
+    verdict: partially_correct
+    justification: 'The answer "No" is right, but the reason is wrong: cached data lives on the application''s executors, not on its driver.'
+  - text: No. Each application has its own executor processes, so data cannot be shared between applications without writing it to external storage.
+    verdict: correct
+    justification: Each Spark application gets its own executors, so caches cannot be shared between applications; data must be written to external storage to be shared.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-005
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer configures classic Databricks compute and wonders how executors map to machines.
+
+    Which statement matches how Databricks runs executors?
+  answers:
+  - text: Databricks runs one executor per worker node, so the terms executor and worker are often used interchangeably.
+    verdict: correct
+    justification: Databricks runs one executor per worker node, so in Databricks documentation the terms executor and worker are used interchangeably.
+  - text: Databricks runs one executor per CPU core on every worker node.
+    verdict: incorrect
+    justification: Databricks does not start one executor per core; a single executor per worker uses all of that worker's cores for tasks.
+  - text: Databricks runs a single executor for the whole compute resource.
+    verdict: incorrect
+    justification: A multi-node compute resource has one executor per worker node, so there is more than one executor when there are several workers.
+  - text: Databricks runs all executors on the driver node.
+    verdict: incorrect
+    justification: Executors run on worker nodes; the driver node runs the driver.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-006
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A team creates a Databricks compute resource with a driver node and zero worker nodes, without selecting single node mode, and then runs a Spark aggregation.
+
+    What happens?
+  answers:
+  - text: Databricks automatically adds 2 worker nodes for the duration of the job.
+    verdict: incorrect
+    justification: Databricks does not add workers automatically for a resource configured with zero workers.
+  - text: The aggregation runs normally, because the driver always executes all tasks.
+    verdict: incorrect
+    justification: On multi-node compute the driver does not run tasks itself; that only happens with single node compute, which was not selected.
+  - text: The aggregation runs on the cluster manager instead.
+    verdict: incorrect
+    justification: The cluster manager never runs tasks; it only allocates resources.
+  - text: Spark commands fail, because a multi-node compute resource needs at least one worker node to run Spark jobs.
+    verdict: correct
+    justification: Databricks documents that a multi-node compute resource needs at least one worker to run Spark jobs; with zero workers only non-Spark commands work on the driver.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-007
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A worker node has executors with 4 cores each, and `spark.task.cpus` is left at its default of 1.
+
+    How many tasks can a single such executor run at the same time?
+  answers:
+  - text: It depends only on the number of partitions in the DataFrame.
+    verdict: partially_correct
+    justification: The number of partitions decides how many tasks exist in total, but how many run at the same time on one executor is limited by its cores.
+  - text: '1'
+    verdict: incorrect
+    justification: 1 would only be true if the executor had a single core or each task needed all 4 cores.
+  - text: '4'
+    verdict: correct
+    justification: With 4 cores per executor and 1 CPU per task, an executor can run 4 tasks concurrently, one per core.
+  - text: '8'
+    verdict: incorrect
+    justification: 8 would need 8 cores or 0.5 CPU per task, which is not possible here.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-008
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A developer reads about Spark's unified memory model.
+
+    Which two categories of memory share the unified region inside each executor?
+  answers:
+  - text: Python memory and JVM memory
+    verdict: incorrect
+    justification: Python worker memory is outside the JVM heap; the unified region is about execution versus storage inside the JVM.
+  - text: Execution memory, used for shuffles, joins, sorts and aggregations, and storage memory, used for caching
+    verdict: correct
+    justification: In Spark's unified memory model, execution memory (shuffles, joins, sorts, aggregations) and storage memory (caching) share one region and can borrow from each other.
+  - text: On-heap memory and off-heap memory
+    verdict: true_but_irrelevant
+    justification: Spark does have on-heap and off-heap memory, but that is not the split that defines the unified execution/storage region.
+  - text: Driver memory and executor memory
+    verdict: incorrect
+    justification: Driver and executor memory are separate processes; the unified region is inside each executor's heap.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-009
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    An executor runs a large sort while some cached blocks occupy memory.
+
+    According to Spark's unified memory management, what can happen?
+  answers:
+  - text: Execution can evict cached storage blocks if needed, but only until storage falls below a protected threshold.
+    verdict: correct
+    justification: Execution can evict cached blocks to get memory, but only until storage drops to the protected threshold (`spark.memory.storageFraction`); blocks inside it are not evicted.
+  - text: The sort fails immediately because execution and storage memory never share space.
+    verdict: incorrect
+    justification: Execution and storage share the unified region, which is exactly what allows execution to borrow memory.
+  - text: The cached blocks are moved to the driver to free memory.
+    verdict: incorrect
+    justification: Evicted blocks are dropped (or spilled to disk depending on the storage level); they are never moved to the driver.
+  - text: Storage memory can evict execution memory to keep cached blocks.
+    verdict: incorrect
+    justification: 'It is the other way round: storage cannot evict execution memory.'
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-010
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer is asked what `spark.memory.fraction` controls.
+
+    Which statement is correct?
+  answers:
+  - text: The fraction of disk space that Spark may use for spills; the default is 0.6.
+    verdict: incorrect
+    justification: It concerns heap memory, not disk space for spills.
+  - text: The fraction of driver memory that is used for collecting results; the default is 0.5.
+    verdict: incorrect
+    justification: It is not about driver result collection; that is limited by settings such as `spark.driver.maxResultSize`.
+  - text: The fraction of the JVM heap (minus a reserved 300 MiB) used for the unified execution and storage region; the default is 0.6.
+    verdict: correct
+    justification: '`spark.memory.fraction` sets the share of (JVM heap − 300 MiB) used for the unified execution and storage region; its default is 0.6.'
+  - text: The fraction of CPU cores reserved for garbage collection; the default is 0.4.
+    verdict: incorrect
+    justification: Spark has no setting that reserves CPU cores for garbage collection.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-011
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    The Spark documentation states that the driver should run close to the worker nodes, preferably on the same local area network.
+
+    Why?
+  answers:
+  - text: Executors cannot start until they read the driver's local disk.
+    verdict: incorrect
+    justification: Executors do not read the driver's local disk to start.
+  - text: The driver schedules tasks and must communicate with executors throughout the application's lifetime.
+    verdict: correct
+    justification: The driver schedules tasks and talks to executors throughout the application's life, so low network latency between them matters.
+  - text: Executors send all output data to the driver after every task.
+    verdict: incorrect
+    justification: Executors do not send all their output to the driver after every task; outputs go to storage or shuffle files unless an action collects them.
+  - text: The driver stores the input files for the executors.
+    verdict: incorrect
+    justification: Input files live in external storage, not on the driver.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-012
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A team lists the Spark terms used in its runbook.
+
+    Which definition of a "worker node" is correct?
+  answers:
+  - text: The node where the Spark UI is hosted
+    verdict: incorrect
+    justification: The Spark UI is served by the driver, not by a specific worker node.
+  - text: A thread inside an executor that runs one task
+    verdict: incorrect
+    justification: A task thread runs inside an executor on a worker node; it is not the worker node itself.
+  - text: The node that runs the cluster manager only
+    verdict: incorrect
+    justification: The cluster manager is a separate service; a worker node is not defined as the cluster manager's node.
+  - text: Any node in the cluster that can run application code
+    verdict: correct
+    justification: In the Spark glossary, a worker node is any node in the cluster that can run application code.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-013
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    In a notebook, a data engineer runs `df.toPandas()` on a very large DataFrame and the driver crashes, while the executors stay healthy.
+
+    Which component's resources were exhausted?
+  answers:
+  - text: The driver's memory, because all rows were brought back to the driver process
+    verdict: correct
+    justification: '`toPandas()` collects all rows into a single pandas DataFrame on the driver, so a very large DataFrame exhausts driver memory while executors are unaffected.'
+  - text: The worker nodes' network cards, because `toPandas()` uses broadcast
+    verdict: incorrect
+    justification: '`toPandas()` does not use broadcast; data flows from executors to the driver.'
+  - text: The executors' disk, because `toPandas()` writes to local storage
+    verdict: incorrect
+    justification: '`toPandas()` sends data to the driver; it does not write to executor disks.'
+  - text: The cluster manager's memory, because it buffers the results
+    verdict: incorrect
+    justification: The cluster manager does not buffer query results.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-driver-overloaded
+- id: 1.2-014
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer wants each executor to have 8 GB of heap memory on a classic Spark deployment.
+
+    Which configuration property sets this?
+  answers:
+  - text: '`spark.memory.fraction`'
+    verdict: incorrect
+    justification: '`spark.memory.fraction` sets the share of heap used for execution and storage, not the heap size itself.'
+  - text: '`spark.executor.cores`'
+    verdict: incorrect
+    justification: '`spark.executor.cores` sets the number of cores per executor, not memory.'
+  - text: '`spark.executor.memory`'
+    verdict: correct
+    justification: '`spark.executor.memory` sets the heap size of each executor process.'
+  - text: '`spark.driver.memory`'
+    verdict: incorrect
+    justification: '`spark.driver.memory` sets the driver''s memory, not the executors''.'
+  source_url: https://spark.apache.org/docs/latest/configuration.html
+- id: 1.2-015
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer wants to control how many cores each executor uses on a cluster where this can be configured.
+
+    Which configuration property sets this?
+  answers:
+  - text: '`spark.cores.max.task`'
+    verdict: incorrect
+    justification: '`spark.cores.max.task` is not a Spark configuration property.'
+  - text: '`spark.executor.cores`'
+    verdict: correct
+    justification: '`spark.executor.cores` sets how many cores each executor uses, which determines how many tasks it can run in parallel.'
+  - text: '`spark.default.parallelism`'
+    verdict: incorrect
+    justification: '`spark.default.parallelism` sets the default number of partitions for RDD operations, not executor cores.'
+  - text: '`spark.task.cpus`'
+    verdict: incorrect
+    justification: '`spark.task.cpus` sets how many cores each task needs, not how many cores an executor has.'
+  source_url: https://spark.apache.org/docs/latest/configuration.html
+- id: 1.2-016
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A team wants to understand why the driver must be network-addressable from the worker nodes.
+
+    Which reason is correct?
+  answers:
+  - text: The worker nodes forward all user queries through the driver's web UI.
+    verdict: incorrect
+    justification: User queries are not routed through the driver's web UI; the UI only displays information.
+  - text: The driver hosts the files that executors write their output to.
+    verdict: incorrect
+    justification: Output files are written to storage, not hosted by the driver.
+  - text: Worker nodes download Spark itself from the driver at the start of every task.
+    verdict: incorrect
+    justification: Workers do not download Spark from the driver for every task.
+  - text: The driver listens for and accepts incoming connections from its executors for the whole lifetime of the application.
+    verdict: correct
+    justification: The driver must accept incoming connections from its executors for the whole application, so it has to be network-addressable from the workers.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-017
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer explains to a colleague the relationship between an application and its executors.
+
+    Which statement is correct?
+  answers:
+  - text: Executors are shared by all applications on the cluster and never restart.
+    verdict: incorrect
+    justification: Executors belong to one application; they are not shared by all applications.
+  - text: Executors are started for each task and terminated after the task finishes.
+    verdict: incorrect
+    justification: Executors are long-lived processes; they are not started and stopped for each task.
+  - text: Executors are launched for a specific application and usually stay up for the whole duration of that application, running tasks in multiple threads.
+    verdict: correct
+    justification: Each application gets its own executors, which normally stay up for the application's lifetime and run many tasks in multiple threads.
+  - text: Executors run only on the driver node, one per application.
+    verdict: incorrect
+    justification: Executors run on worker nodes, and an application usually has many of them.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-018
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    An executor process is described as running tasks and also "keeping data in memory or disk storage".
+
+    Which data is this referring to?
+  answers:
+  - text: Partitions that the application caches or persists, plus data such as shuffle files
+    verdict: correct
+    justification: Executors store the partitions an application caches or persists, and they also keep data such as shuffle files on local storage.
+  - text: The cluster manager's resource allocation tables
+    verdict: incorrect
+    justification: Resource allocation is the cluster manager's job; executors do not hold its tables.
+  - text: The query plans that the driver optimized
+    verdict: incorrect
+    justification: Query plans are created and optimized on the driver; executors receive tasks, not the optimized plans to store.
+  - text: The application's source code and its dependencies only
+    verdict: partially_correct
+    justification: Executors do receive the application's code and dependencies, but the phrase "keeping data in memory or disk storage" refers to cached partitions and shuffle data, not only code.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-019
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer chooses a single node compute resource on Databricks.
+
+    For which workload is this compute type intended?
+  answers:
+  - text: Workloads that must run the driver and executors on separate physical machines
+    verdict: incorrect
+    justification: On single node compute the driver and the Spark work run on the same machine, so it cannot separate them.
+  - text: Jobs that use small amounts of data or non-distributed workloads, such as single-node machine learning libraries
+    verdict: correct
+    justification: Databricks intends single node compute for jobs with small amounts of data or non-distributed workloads such as single-node ML libraries.
+  - text: Large-scale data processing with heavy shuffles across many machines
+    verdict: incorrect
+    justification: Databricks recommends multi-node compute for large-scale processing; it would exhaust a single node.
+  - text: Streaming jobs that need many executors for parallel ingestion
+    verdict: incorrect
+    justification: Parallel ingestion with many executors needs multi-node compute.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-020
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A cluster has 5 worker nodes, each with one executor of 8 cores. A stage has 200 tasks.
+
+    At most how many tasks of the stage can run concurrently, assuming each task uses one core?
+  answers:
+  - text: '5'
+    verdict: incorrect
+    justification: 5 is the number of executors, but each executor runs one task per core, not one task in total.
+  - text: '8'
+    verdict: incorrect
+    justification: 8 is the number of cores of a single executor, not of the whole cluster.
+  - text: '200'
+    verdict: incorrect
+    justification: 200 is the total number of tasks in the stage, but only 40 cores are available at once.
+  - text: '40'
+    verdict: correct
+    justification: 5 executors × 8 cores = 40 cores, so at most 40 one-core tasks run concurrently; the other tasks wait for a free core.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-021
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A stage of a job contains 1,000 tasks, but the cluster only has 100 cores available.
+
+    What happens?
+  answers:
+  - text: 'Tasks run in waves: about 100 run at a time, and new tasks start as earlier ones finish.'
+    verdict: correct
+    justification: Spark schedules tasks as cores become free, so they run in waves of about 100 until all 1,000 tasks finish.
+  - text: Spark merges the tasks into 100 larger tasks before starting.
+    verdict: incorrect
+    justification: Spark does not merge tasks; the number of tasks is fixed by the number of partitions.
+  - text: The driver runs the remaining 900 tasks locally.
+    verdict: incorrect
+    justification: The driver does not run tasks on multi-node compute; queued tasks wait for executor cores.
+  - text: Spark fails the stage because there are more tasks than cores.
+    verdict: incorrect
+    justification: Having more tasks than cores is normal; Spark simply queues the extra tasks.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-022
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer reads that roughly 40% of an executor's heap is outside the unified memory region by default.
+
+    What is this remaining memory used for?
+  answers:
+  - text: Python worker processes that run UDFs
+    verdict: incorrect
+    justification: Python workers are separate processes, outside the executor JVM heap.
+  - text: The driver's copy of the query plan
+    verdict: incorrect
+    justification: Query plans live on the driver, not in executor heap.
+  - text: Disk spill buffers for shuffle files only
+    verdict: incorrect
+    justification: Shuffle spill goes to disk; this region is not reserved for spill buffers.
+  - text: User data structures, Spark's internal metadata, and a safeguard against out-of-memory errors from unusually large records
+    verdict: correct
+    justification: The ~40% outside `spark.memory.fraction` is left for user data structures, Spark's internal metadata and as a safety buffer against OOM with unusually large records.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-023
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: In the Spark glossary, which component is described as "the process running the `main()` function of the application and creating the SparkContext"?
+  answers:
+  - text: The executor
+    verdict: incorrect
+    justification: An executor is a process on a worker node that runs tasks.
+  - text: The cluster manager
+    verdict: incorrect
+    justification: The cluster manager acquires resources for applications.
+  - text: The driver program
+    verdict: correct
+    justification: The Spark glossary defines the driver program as the process that runs `main()` and creates the SparkContext.
+  - text: The worker node
+    verdict: incorrect
+    justification: A worker node is any node that can run application code.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-024
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A developer wants to view running tasks, executors and storage usage of a running Spark application on a self-managed cluster.
+
+    Where is this information exposed by default?
+  answers:
+  - text: In the executor logs only, after the application ends
+    verdict: incorrect
+    justification: The information is available live in the UI, not only in executor logs after the application ends.
+  - text: In the web UI served by the driver, typically on port 4040
+    verdict: correct
+    justification: Each driver serves a web UI, typically on port 4040, showing running tasks, executors and storage usage.
+  - text: In the cluster manager's configuration file
+    verdict: incorrect
+    justification: The cluster manager's configuration file contains settings, not live job information.
+  - text: In a file the driver writes to every worker node
+    verdict: incorrect
+    justification: The driver does not write UI files to workers; it serves the UI itself.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-025
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer adds more worker nodes to a Databricks compute resource running a distributed Spark job.
+
+    Which resources are added for distributed processing?
+  answers:
+  - text: More memory on the existing driver node only
+    verdict: incorrect
+    justification: Adding workers does not change the driver's memory.
+  - text: More executors with additional cores and memory, because distributed processing happens on worker nodes
+    verdict: correct
+    justification: Workers run the executors; adding workers adds executors with more cores and memory where distributed processing happens.
+  - text: More cluster managers, so each worker can schedule its own tasks
+    verdict: incorrect
+    justification: Adding workers does not add cluster managers; there is a single cluster manager service.
+  - text: More driver nodes, so the application can run several `main()` functions in parallel
+    verdict: incorrect
+    justification: A compute resource has exactly one driver; adding workers does not add drivers.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-026
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    On Databricks, a team wants a more powerful driver than workers because it collects moderate results and coordinates many tasks.
+
+    Which statement is correct?
+  answers:
+  - text: The driver and worker node types can be configured separately, although by default the driver uses the same instance type as the workers.
+    verdict: correct
+    justification: Databricks lets you pick the driver and worker instance types separately; by default the driver uses the same type as the workers.
+  - text: The driver type can only be changed on serverless compute.
+    verdict: incorrect
+    justification: Driver type selection is part of classic compute configuration, not limited to serverless.
+  - text: Databricks always picks the smallest instance type for the driver.
+    verdict: incorrect
+    justification: Databricks does not force the smallest instance type on the driver.
+  - text: The driver must always use the same instance type as the workers.
+    verdict: incorrect
+    justification: The driver type can be set independently of the worker type.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-027
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A cluster runs at full CPU usage on all executor cores during a CPU-intensive transformation, while network and disk are mostly idle.
+
+    Which resource is the bottleneck?
+  answers:
+  - text: Network bandwidth, because Spark is always network-bound
+    verdict: incorrect
+    justification: Spark is not always network-bound; here the network is idle.
+  - text: Driver memory, because the driver performs the transformation
+    verdict: incorrect
+    justification: Transformations run on executors, not on the driver.
+  - text: CPU, because Spark programs can be bottlenecked by any resource in the cluster, including CPU
+    verdict: correct
+    justification: Spark can be bottlenecked by any resource; with all cores fully busy and idle network and disk, CPU is the bottleneck.
+  - text: Disk, because transformations always spill
+    verdict: incorrect
+    justification: Transformations do not always spill; disk is idle in this scenario.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-028
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A developer asks what a "task" is in Spark's terminology.
+
+    Which definition is correct?
+  answers:
+  - text: A process launched on a worker node
+    verdict: incorrect
+    justification: A process launched on a worker node is an executor, not a task.
+  - text: A complete action such as `count()`
+    verdict: incorrect
+    justification: An action such as `count()` triggers a job, which consists of many tasks.
+  - text: A group of stages that share a shuffle
+    verdict: incorrect
+    justification: Stages are sets of tasks; a group of stages is part of a job.
+  - text: A unit of work that is sent to one executor
+    verdict: correct
+    justification: In Spark's glossary a task is a unit of work sent to one executor, usually processing one partition.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.2-029
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer caches a large DataFrame and checks the Spark UI to see how much memory it occupies.
+
+    Which page shows this information?
+  answers:
+  - text: The SQL / DataFrame page
+    verdict: incorrect
+    justification: The SQL / DataFrame page shows query plans and metrics, not cache sizes.
+  - text: The Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration and environment details, not cache sizes.
+  - text: The Storage page
+    verdict: correct
+    justification: The Storage page lists cached RDDs/DataFrames with their storage level, size in memory and on disk.
+  - text: The Jobs page
+    verdict: incorrect
+    justification: The Jobs page lists jobs and their stages, not cached data.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-030
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A team notices that on its Databricks compute resource, notebook `print` output and logs of driver-side code appear somewhere.
+
+    Where does the driver-side code of a notebook run?
+  answers:
+  - text: On a randomly chosen worker node
+    verdict: incorrect
+    justification: Driver code does not run on a random worker; workers run executor tasks.
+  - text: On the driver node of the compute resource
+    verdict: correct
+    justification: Driver-side notebook code, including `print` statements outside Spark operations, runs on the driver node; its output goes to the driver logs and the notebook.
+  - text: On every worker node at once
+    verdict: incorrect
+    justification: Workers run Spark tasks, not the notebook's driver-side Python code.
+  - text: On the cluster manager
+    verdict: incorrect
+    justification: The cluster manager never runs user code.
+  source_url: https://docs.databricks.com/aws/en/compute/configure
+- id: 1.2-031
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    A data engineer is told that the default value of `spark.memory.storageFraction` is 0.5.
+
+    What does it mean?
+  answers:
+  - text: Half of the cached data is written to disk.
+    verdict: incorrect
+    justification: The setting is about eviction protection in memory, not about writing cached data to disk.
+  - text: Half of the executor's heap is always reserved for cached data, even if nothing is cached.
+    verdict: incorrect
+    justification: The protected storage is not reserved when unused; execution can use the memory if nothing is cached.
+  - text: Half of the executor cores are used for storage tasks.
+    verdict: incorrect
+    justification: The setting is about memory, not about cores.
+  - text: Half of the unified memory region is protected storage space where cached blocks cannot be evicted by execution.
+    verdict: correct
+    justification: '`storageFraction` = 0.5 means half of the unified region is protected storage where cached blocks cannot be evicted by execution.'
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.2-032
+  category: apache_spark_architecture_and_components
+  objective: '1.2'
+  question: |-
+    An executor fails in the middle of a stage on a cluster with several healthy executors.
+
+    What does Spark typically do?
+  answers:
+  - text: It reschedules the failed tasks on other executors and recomputes lost data from lineage if needed.
+    verdict: correct
+    justification: Spark reschedules the failed executor's tasks on healthy executors and recomputes any lost data from lineage.
+  - text: It restarts the driver and the whole job from the first stage.
+    verdict: incorrect
+    justification: The driver keeps running; only the affected tasks and lost data are recomputed.
+  - text: It fails the entire application immediately.
+    verdict: incorrect
+    justification: Spark tolerates executor failures; it does not fail the whole application immediately.
+  - text: It skips the failed tasks and returns partial results.
+    verdict: incorrect
+    justification: Spark never skips tasks to return partial results; all partitions must be computed.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html

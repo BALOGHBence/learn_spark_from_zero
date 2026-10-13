@@ -1,0 +1,628 @@
+# Objective 3.5: Combine DataFrames with operations such as Inner join, left join, broadcast join, multiple keys, cross join, union, and union all.
+- id: 3.5-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer joins `orders` and `customers` on `customer_id`, keeping only matching rows.
+
+    Which code does this?
+  answers:
+  - text: '`orders.union(customers, on="customer_id")`'
+    verdict: incorrect
+    justification: '`union` appends rows; it does not join, and it has no `on` parameter.'
+  - text: '`orders.join(customers, how="customer_id")`'
+    verdict: incorrect
+    justification: '`how` takes a join type, not a key column, and the key is missing.'
+  - text: '`orders.join(customers, on="customer_id", how="inner")`'
+    verdict: correct
+    justification: '`join(other, on="customer_id", how="inner")` keeps only orders with a matching customer.'
+  - text: '`orders.crossJoin(customers).filter("customer_id")`'
+    verdict: incorrect
+    justification: A cross join pairs every row with every row, and filtering on a column name alone is not a join condition.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: What is the default join type of `DataFrame.join` when `how` is not given?
+  answers:
+  - text: Cross
+    verdict: incorrect
+    justification: Cross joins need `crossJoin` or `how="cross"`.
+  - text: Inner
+    verdict: correct
+    justification: '`DataFrame.join` defaults to an inner join.'
+  - text: Left outer
+    verdict: incorrect
+    justification: Left outer must be requested with `how="left"`.
+  - text: Full outer
+    verdict: incorrect
+    justification: Full outer must be requested with `how="full"`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer must keep all orders, even those without a matching customer, filling customer columns with nulls.
+
+    Which code does this?
+  answers:
+  - text: '`orders.join(customers, "customer_id", "left")`'
+    verdict: correct
+    justification: A left join keeps all rows of `orders` and fills customer columns with null where there is no match.
+  - text: '`orders.join(customers, "customer_id", "inner")`'
+    verdict: incorrect
+    justification: An inner join drops orders without a matching customer.
+  - text: '`orders.join(customers, "customer_id", "right")`'
+    verdict: incorrect
+    justification: A right join keeps all customers, not all orders.
+  - text: '`orders.join(customers, "customer_id", "left_semi")`'
+    verdict: incorrect
+    justification: A left semi join returns no customer columns and drops unmatched orders.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer joins on two keys, `country` and `store_id`, which have the same names in both DataFrames.
+
+    Which code does this and keeps a single copy of each key column?
+  answers:
+  - text: '`sales.join(stores, sales.country == stores.country, stores.store_id)`'
+    verdict: incorrect
+    justification: The third argument is the join type, so passing a column there is invalid.
+  - text: '`sales.join(stores, on="country" & "store_id")`'
+    verdict: incorrect
+    justification: '`&` cannot combine two strings into a join condition.'
+  - text: '`sales.join(stores, on=("country", "store_id"), how="multi")`'
+    verdict: incorrect
+    justification: '`"multi"` is not a join type.'
+  - text: '`sales.join(stores, on=["country", "store_id"], how="inner")`'
+    verdict: correct
+    justification: Passing a list of column names joins on all of them and keeps one copy of each key column.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    The key columns have different names: `a.cust_id` and `b.customer_id`, and also `a.region` and `b.region_code`.
+
+    Which code joins on both keys?
+  answers:
+  - text: '`a.join(b, (a.cust_id == b.customer_id) and (a.region == b.region_code))`'
+    verdict: incorrect
+    justification: Python's `and` cannot combine Column conditions.
+  - text: '`a.join(b, (a.cust_id == b.customer_id) & (a.region == b.region_code), "inner")`'
+    verdict: correct
+    justification: Combine the two equality conditions with `&`, each in parentheses.
+  - text: '`a.join(b, ["cust_id", "customer_id", "region", "region_code"])`'
+    verdict: incorrect
+    justification: A list of names requires columns with the same names in both DataFrames, which is not the case here.
+  - text: '`a.join(b, on={"cust_id": "customer_id", "region": "region_code"})`'
+    verdict: incorrect
+    justification: '`on` does not accept a dictionary that maps names.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer joins `df1.join(df2, df1.id == df2.id)` and then selects `"id"`.
+
+    Why does the select fail?
+  answers:
+  - text: Expression joins only work with left joins.
+    verdict: incorrect
+    justification: Expression joins work with every join type.
+  - text: The `id` column is renamed to `id_1`.
+    verdict: incorrect
+    justification: Spark does not rename duplicate columns automatically.
+  - text: The join drops the `id` column.
+    verdict: incorrect
+    justification: The join keeps both `id` columns rather than dropping them.
+  - text: Joining with an expression keeps both `id` columns, so the unqualified name is ambiguous.
+    verdict: correct
+    justification: Joining with an expression keeps both `df1.id` and `df2.id`, so `"id"` is ambiguous.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer wants all orders that have at least one matching row in `returns`, but no columns from `returns`.
+
+    Which join type fits?
+  answers:
+  - text: '`left_semi`'
+    verdict: correct
+    justification: A left semi join returns left rows that have a match on the right, with only left-side columns.
+  - text: '`cross`'
+    verdict: incorrect
+    justification: A cross join returns every combination of rows.
+  - text: '`left_outer`'
+    verdict: partially_correct
+    justification: A left outer join keeps all orders and adds the `returns` columns, so it does not filter to matching orders.
+  - text: '`left_anti`'
+    verdict: incorrect
+    justification: A left anti join returns left rows without a match.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer wants the customers who have never placed an order.
+
+    Which code does this?
+  answers:
+  - text: '`customers.join(orders, "customer_id", "left_semi")`'
+    verdict: incorrect
+    justification: A left semi join returns customers who have orders.
+  - text: '`customers.join(orders, "customer_id", "inner")`'
+    verdict: incorrect
+    justification: An inner join returns customers with orders, combined with the order columns.
+  - text: '`customers.join(orders, "customer_id", "left_anti")`'
+    verdict: correct
+    justification: A left anti join returns customers with no matching row in `orders`.
+  - text: '`customers.join(orders, "customer_id", "right")`'
+    verdict: incorrect
+    justification: A right join keeps all orders, not customers without orders.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer must keep all rows from both DataFrames, matching where possible.
+
+    Which join type is needed?
+  answers:
+  - text: '`left_semi`'
+    verdict: incorrect
+    justification: A left semi join keeps only matching left rows.
+  - text: '`cross`'
+    verdict: incorrect
+    justification: A cross join pairs every row with every row, regardless of matches.
+  - text: '`full_outer`'
+    verdict: correct
+    justification: A full outer join keeps all rows from both sides and matches where possible.
+  - text: '`inner`'
+    verdict: incorrect
+    justification: An inner join keeps only matching rows.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer needs every combination of 10 `sizes` and 8 `colors`.
+
+    Which code does this, and how many rows result?
+  answers:
+  - text: '`sizes.join(colors, how="inner")`, producing 10 rows'
+    verdict: incorrect
+    justification: An inner join without a condition is not a guaranteed way to create combinations, and 10 rows is wrong.
+  - text: '`sizes.crossJoin(colors)`, producing 80 rows'
+    verdict: correct
+    justification: 'A cross join returns the Cartesian product: 10 × 8 = 80 rows.'
+  - text: '`sizes.crossJoin(colors)`, producing 18 rows'
+    verdict: partially_correct
+    justification: '`crossJoin` is the right method, but it produces 10 × 8 = 80 rows, not 10 + 8.'
+  - text: '`sizes.union(colors)`, producing 18 rows'
+    verdict: incorrect
+    justification: '`union` stacks rows (and needs matching schemas); it does not create combinations.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.crossJoin.html
+- id: 3.5-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: Why should a data engineer be careful with `crossJoin` on two DataFrames of 1 million rows each?
+  answers:
+  - text: It requires both DataFrames to be cached.
+    verdict: incorrect
+    justification: Caching is not required.
+  - text: It drops all rows that do not match on the first column.
+    verdict: incorrect
+    justification: A cross join has no matching condition; it returns all combinations.
+  - text: It only returns the first million rows.
+    verdict: incorrect
+    justification: A cross join returns every combination, not a subset.
+  - text: It produces a Cartesian product of 10^12 rows, which is extremely expensive.
+    verdict: correct
+    justification: 1 million × 1 million = 10^12 rows; a Cartesian product of large inputs is extremely expensive.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.crossJoin.html
+- id: 3.5-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer appends `jan` and `feb`, which have identical schemas in the same column order, keeping duplicates.
+
+    Which code does this?
+  answers:
+  - text: '`jan.union(feb)`'
+    verdict: correct
+    justification: '`union` stacks the rows by position and keeps duplicates.'
+  - text: '`jan.intersect(feb)`'
+    verdict: incorrect
+    justification: '`intersect` returns only rows present in both.'
+  - text: '`jan.join(feb, how="outer")`'
+    verdict: incorrect
+    justification: An outer join matches rows by keys; it does not append them.
+  - text: '`jan.unionByName(feb).distinct()`'
+    verdict: partially_correct
+    justification: '`unionByName` would append correctly, but `distinct()` removes the duplicates that must be kept.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.union.html
+- id: 3.5-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: How does `DataFrame.union` handle duplicate rows?
+  answers:
+  - text: It keeps duplicates, like SQL `UNION ALL`; use `distinct()` afterwards to remove them.
+    verdict: correct
+    justification: '`DataFrame.union` behaves like SQL `UNION ALL` and keeps duplicates; add `distinct()` to remove them.'
+  - text: It keeps only rows present in both DataFrames.
+    verdict: true_but_irrelevant
+    justification: Keeping only rows present in both is what `intersect` does.
+  - text: It removes duplicates, like SQL `UNION`.
+    verdict: true_but_irrelevant
+    justification: Removing duplicates is what SQL `UNION` (without `ALL`) does, not `DataFrame.union`.
+  - text: It fails if duplicates exist.
+    verdict: incorrect
+    justification: Duplicates are allowed.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.union.html
+- id: 3.5-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: How does `DataFrame.union` match columns between the two DataFrames?
+  answers:
+  - text: By data type only
+    verdict: incorrect
+    justification: Types are not used to match columns.
+  - text: By name, ignoring position
+    verdict: true_but_irrelevant
+    justification: Matching by name is what `unionByName` does.
+  - text: By the first column only
+    verdict: incorrect
+    justification: All columns are matched by position.
+  - text: By position, not by name
+    verdict: correct
+    justification: '`union` matches columns by position.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.union.html
+- id: 3.5-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    Two DataFrames have the same columns, but in a different order. The engineer must combine them correctly.
+
+    Which code does this?
+  answers:
+  - text: '`df1.unionAll(df2)`'
+    verdict: incorrect
+    justification: '`unionAll` is an alias of `union` and also matches by position.'
+  - text: '`df1.unionByName(df2)`'
+    verdict: correct
+    justification: '`unionByName` matches columns by name, so a different column order is handled correctly.'
+  - text: '`df1.join(df2, how="outer")`'
+    verdict: incorrect
+    justification: An outer join matches rows by keys; it does not append them.
+  - text: '`df1.union(df2)`'
+    verdict: incorrect
+    justification: '`union` matches by position, so values would end up in the wrong columns.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.unionByName.html
+- id: 3.5-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    `df2` lacks the column `discount` that `df1` has. The engineer wants to union them, filling the missing column with nulls.
+
+    Which code does this?
+  answers:
+  - text: '`df1.unionAll(df2).fillna("discount")`'
+    verdict: incorrect
+    justification: '`unionAll` fails on different schemas, and `fillna("discount")` would fill values, not add a column.'
+  - text: '`df1.unionByName(df2, ignoreMissing="null")`'
+    verdict: incorrect
+    justification: The parameter is `allowMissingColumns`, not `ignoreMissing`.
+  - text: '`df1.unionByName(df2, allowMissingColumns=True)`'
+    verdict: correct
+    justification: '`unionByName(..., allowMissingColumns=True)` fills columns missing on one side with nulls.'
+  - text: '`df1.union(df2, fillMissing=True)`'
+    verdict: incorrect
+    justification: '`union` has no `fillMissing` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.unionByName.html
+- id: 3.5-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: Which statement about `unionAll` on DataFrames is correct?
+  answers:
+  - text: It only works on streaming DataFrames.
+    verdict: incorrect
+    justification: Both work on batch DataFrames.
+  - text: It matches columns by name.
+    verdict: incorrect
+    justification: Both match by position.
+  - text: It is an alias of `union` and keeps duplicate rows.
+    verdict: correct
+    justification: '`unionAll` is an alias of `union` and keeps duplicates.'
+  - text: It removes duplicates while `union` keeps them.
+    verdict: incorrect
+    justification: Both keep duplicates.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.unionAll.html
+- id: 3.5-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: In Spark SQL, what is the difference between `UNION` and `UNION ALL`?
+  answers:
+  - text: '`UNION ALL` removes duplicate rows, while `UNION` keeps them.'
+    verdict: incorrect
+    justification: The behaviours are swapped.
+  - text: '`UNION` removes duplicate rows, while `UNION ALL` keeps them.'
+    verdict: correct
+    justification: SQL `UNION` removes duplicates, and `UNION ALL` keeps them.
+  - text: '`UNION` matches columns by name, `UNION ALL` by position.'
+    verdict: incorrect
+    justification: Both match columns by position.
+  - text: They are identical.
+    verdict: incorrect
+    justification: They differ in how they treat duplicates.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-setops
+- id: 3.5-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A small `countries` DataFrame (a few hundred rows) is joined with a 2 TB `events` DataFrame.
+
+    Which code asks Spark to broadcast the small side?
+  answers:
+  - text: '`events.join(broadcast(countries), "country_code")`'
+    verdict: correct
+    justification: '`broadcast(countries)` marks the small DataFrame to be broadcast in the join.'
+  - text: '`events.join(countries.cache(), "country_code")`'
+    verdict: incorrect
+    justification: Caching does not make Spark broadcast the DataFrame.
+  - text: '`broadcast(events).join(countries, "country_code")`'
+    verdict: incorrect
+    justification: This would broadcast the 2 TB table, which is the wrong side.
+  - text: '`events.join(countries, "country_code", "broadcast")`'
+    verdict: incorrect
+    justification: '`"broadcast"` is not a join type.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.broadcast.html
+- id: 3.5-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer runs `orders.join(customers, "customer_id", "left")`. A customer appears twice in `customers`.
+
+    What happens to an order of that customer?
+  answers:
+  - text: The join fails because keys are not unique.
+    verdict: incorrect
+    justification: Joins do not require unique keys.
+  - text: It appears once with the first customer row.
+    verdict: incorrect
+    justification: Spark does not choose only the first match.
+  - text: It is dropped because of the duplicate.
+    verdict: incorrect
+    justification: Duplicate keys do not drop rows in a left join.
+  - text: It appears twice in the result, once for each matching customer row.
+    verdict: correct
+    justification: Each matching row on the right produces an output row, so the order appears twice.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    Rows with a null `customer_id` exist in both DataFrames. The engineer performs an inner join on `customer_id`.
+
+    Do the null keys match each other?
+  answers:
+  - text: Yes, but only in a left join.
+    verdict: incorrect
+    justification: Join type does not make nulls equal; in a left join null keys are kept but unmatched.
+  - text: The join fails when keys contain nulls.
+    verdict: incorrect
+    justification: Nulls in keys do not make the join fail.
+  - text: No, null keys do not match in an equality join.
+    verdict: correct
+    justification: An equality comparison involving null returns null, so null keys never match in an equality join.
+  - text: Yes, nulls are treated as equal values.
+    verdict: incorrect
+    justification: Nulls are not treated as equal in `==` joins.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer wants null keys to match each other in a join condition.
+
+    Which operator is used?
+  answers:
+  - text: '`df1.join(df2, df1.k == df2.k)`'
+    verdict: incorrect
+    justification: '`==` never matches nulls.'
+  - text: '`df1.join(df2, df1.k.isNull() == df2.k.isNull())`'
+    verdict: incorrect
+    justification: This compares only whether both are null, so all non-null keys would match each other.
+  - text: '`df1.join(df2, df1.k.isin(df2.k))`'
+    verdict: incorrect
+    justification: '`isin` with a Column from another DataFrame is not a valid join condition.'
+  - text: '`df1.join(df2, df1.k.eqNullSafe(df2.k))`'
+    verdict: correct
+    justification: '`eqNullSafe` (SQL `<=>`) treats two nulls as equal.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Column.eqNullSafe.html
+- id: 3.5-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    Two DataFrames `a` and `b` share many column names. The engineer wants to reference columns unambiguously after the join.
+
+    Which approach helps?
+  answers:
+  - text: Alias the DataFrames, for example `a.alias("a").join(b.alias("b"), col("a.id") == col("b.id"))`, and select `col("a.name")`.
+    verdict: correct
+    justification: Aliasing each DataFrame lets you reference columns with qualified names such as `col("a.name")`.
+  - text: Cache both DataFrames before the join.
+    verdict: incorrect
+    justification: Caching does not affect column names.
+  - text: Use `union` instead of `join`.
+    verdict: incorrect
+    justification: '`union` stacks rows and is not a join.'
+  - text: Call `distinct()` before the join.
+    verdict: incorrect
+    justification: '`distinct` removes duplicate rows, not duplicate column names.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer writes a SQL query that joins `orders o` and `customers c` and keeps unmatched orders.
+
+    Which statement is correct?
+  answers:
+  - text: '`SELECT * FROM orders o JOIN LEFT customers c ON o.customer_id = c.id`'
+    verdict: incorrect
+    justification: The keyword order is `LEFT JOIN`, not `JOIN LEFT`.
+  - text: '`SELECT * FROM orders o LEFT JOIN customers c ON o.customer_id = c.id`'
+    verdict: correct
+    justification: '`LEFT JOIN ... ON` keeps all orders.'
+  - text: '`SELECT * FROM orders o LEFT customers c USING o.customer_id = c.id`'
+    verdict: incorrect
+    justification: '`USING` takes a list of column names, not an expression, and `JOIN` is missing.'
+  - text: '`SELECT * FROM orders o OUTER LEFT JOIN customers c WHERE o.customer_id = c.id`'
+    verdict: incorrect
+    justification: The keyword is `LEFT OUTER JOIN`, and the join condition belongs in `ON`, not `WHERE`.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-join
+- id: 3.5-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    In SQL, a data engineer joins on a column with the same name in both tables and wants it only once in the output.
+
+    Which clause does this?
+  answers:
+  - text: '`JOIN customers WITH customer_id`'
+    verdict: incorrect
+    justification: '`WITH` is not a join clause.'
+  - text: '`JOIN customers USING (customer_id)`'
+    verdict: correct
+    justification: '`USING (col)` joins on a shared column name and returns it once.'
+  - text: '`JOIN customers BY customer_id`'
+    verdict: incorrect
+    justification: '`BY` is not a join clause.'
+  - text: '`JOIN customers ON customer_id`'
+    verdict: incorrect
+    justification: '`ON` needs a boolean condition, not a bare column name.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-join
+- id: 3.5-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer needs rows that appear in both `df1` and `df2`, without duplicates.
+
+    Which method does this?
+  answers:
+  - text: '`df1.intersect(df2)`'
+    verdict: correct
+    justification: '`intersect` returns distinct rows present in both DataFrames.'
+  - text: '`df1.exceptAll(df2)`'
+    verdict: incorrect
+    justification: '`exceptAll` returns rows in `df1` that are not in `df2`.'
+  - text: '`df1.crossJoin(df2)`'
+    verdict: incorrect
+    justification: A cross join returns all combinations.
+  - text: '`df1.union(df2)`'
+    verdict: incorrect
+    justification: '`union` combines all rows from both.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.intersect.html
+- id: 3.5-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer joins 3 DataFrames: `orders`, `customers` and `products`.
+
+    Which code is correct?
+  answers:
+  - text: '`orders.join(customers, products, ["customer_id", "product_id"])`'
+    verdict: incorrect
+    justification: '`join` takes one DataFrame at a time.'
+  - text: '`orders.join([customers, products], "id")`'
+    verdict: incorrect
+    justification: '`join` does not accept a list of DataFrames.'
+  - text: '`orders.join(customers, "customer_id").join(products, "product_id")`'
+    verdict: correct
+    justification: 'Joins are chained: join `orders` with `customers`, then join the result with `products`.'
+  - text: '`join(orders, customers, products)`'
+    verdict: incorrect
+    justification: There is no top-level `join` function for DataFrames.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: A right join `a.join(b, "id", "right")` is written. Which equivalent join keeps the same rows?
+  answers:
+  - text: '`a.join(b, "id", "full")`'
+    verdict: incorrect
+    justification: A full join keeps all rows of both sides.
+  - text: '`a.join(b, "id", "left")`'
+    verdict: incorrect
+    justification: A left join of `a` and `b` keeps all rows of `a` instead.
+  - text: '`b.join(a, "id", "right")`'
+    verdict: incorrect
+    justification: A right join of `b` and `a` keeps all rows of `a`.
+  - text: '`b.join(a, "id", "left")`'
+    verdict: correct
+    justification: A right join of `a` and `b` keeps all rows of `b`, which is the same as a left join with `b` on the left.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    `df1` has columns `(id int, name string)` and `df2` has `(name string, id int)`. The engineer calls `df1.union(df2)`.
+
+    What is the risk?
+  answers:
+  - text: The union always fails with a schema mismatch error.
+    verdict: partially_correct
+    justification: Mismatched types can make the union fail, but whether it fails depends on the types; it can also succeed silently with wrong data.
+  - text: Values are combined by position, so names may land in the `id` column, producing wrong data or a type error.
+    verdict: correct
+    justification: '`union` aligns columns by position, so `df2`''s names would go into `id` and its ids into `name` — wrong data or a type error.'
+  - text: Spark reorders the columns automatically, so there is no risk.
+    verdict: incorrect
+    justification: '`union` does not reorder columns; `unionByName` would.'
+  - text: The union drops `df2` entirely.
+    verdict: incorrect
+    justification: Both DataFrames are combined.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.union.html
+- id: 3.5-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: |-
+    A data engineer filters `orders` to 2025 before joining it with `customers`.
+
+    Why is this good practice?
+  answers:
+  - text: Spark never pushes filters through joins.
+    verdict: incorrect
+    justification: Spark does push filters through joins when possible; filtering early in code is still good practice.
+  - text: Joins cannot handle more than one year of data.
+    verdict: incorrect
+    justification: Joins have no limit on the date range.
+  - text: Filters after joins are not allowed.
+    verdict: incorrect
+    justification: Filters can be applied after joins.
+  - text: Reducing rows before a join reduces the data shuffled and processed by the join.
+    verdict: correct
+    justification: Filtering early means fewer rows are shuffled and joined, which saves work.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html
+- id: 3.5-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.5'
+  question: Which join type returns only columns from the left DataFrame?
+  answers:
+  - text: '`left_outer` and `full_outer`'
+    verdict: incorrect
+    justification: Left outer and full outer joins return columns from both sides.
+  - text: '`right` and `right_outer`'
+    verdict: incorrect
+    justification: Right joins return columns from both sides.
+  - text: '`left_semi` and `left_anti`'
+    verdict: correct
+    justification: Left semi and left anti joins return only the left DataFrame's columns.
+  - text: '`inner` and `cross`'
+    verdict: incorrect
+    justification: Inner and cross joins return columns from both sides.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.join.html

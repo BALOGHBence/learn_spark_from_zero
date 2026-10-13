@@ -1,0 +1,651 @@
+# Objective 1.4: Explain the Apache Spark™ Architecture execution hierarchy.
+- id: 1.4-001
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer explains Spark's execution hierarchy to a new colleague, from the largest unit to the smallest.
+
+    Which order is correct?
+  answers:
+  - text: Job → application → task → stage
+    verdict: incorrect
+    justification: The application is the outermost unit; jobs belong to an application, not the other way round.
+  - text: Application → job → stage → task
+    verdict: correct
+    justification: An application contains jobs (one or more per action), each job is split into stages at shuffle boundaries, and each stage runs one task per partition.
+  - text: Stage → job → task → application
+    verdict: incorrect
+    justification: 'The order is reversed: the application is the largest unit and the task the smallest.'
+  - text: Application → task → stage → job
+    verdict: incorrect
+    justification: Tasks are the smallest unit, so they cannot contain stages and jobs.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-002
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A developer runs a notebook cell that ends with `df.write.parquet(path)`.
+
+    In Spark's terminology, what does this action spawn?
+  answers:
+  - text: 'A task: a single unit of work that writes the whole DataFrame'
+    verdict: incorrect
+    justification: The write is split into many tasks, one per partition, not a single task.
+  - text: 'An application: a new driver started for each write'
+    verdict: incorrect
+    justification: The notebook keeps the same application and driver; an action does not start a new application.
+  - text: 'A job: a parallel computation made of multiple tasks that is spawned in response to an action'
+    verdict: correct
+    justification: The Spark glossary defines a job as a parallel computation of many tasks spawned in response to an action such as `save` or `collect`; `write.parquet` is such an action.
+  - text: 'A stage: a set of tasks spawned for every transformation'
+    verdict: partially_correct
+    justification: The job will be divided into stages, but stages are created at shuffle boundaries, not for every transformation, and the action spawns a job.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-003
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A job in the Spark UI is divided into three stages.
+
+    What determines where Spark splits a job into stages?
+  answers:
+  - text: The number of lines of code in the notebook cell
+    verdict: incorrect
+    justification: Stage boundaries depend on the data dependencies in the plan, not on lines of code.
+  - text: The number of executors in the cluster
+    verdict: incorrect
+    justification: The number of executors affects parallelism, not where stage boundaries are.
+  - text: Each `select` or `filter` call starts a new stage
+    verdict: incorrect
+    justification: '`select` and `filter` are narrow transformations that are pipelined into the same stage.'
+  - text: Shuffle boundaries created by wide transformations such as joins, aggregations and repartitioning
+    verdict: correct
+    justification: Spark cuts a job into stages where data must be shuffled, which happens for wide transformations such as joins, aggregations and repartitioning.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-004
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A stage reads a DataFrame that has 64 partitions and applies only narrow transformations.
+
+    How many tasks does Spark create for this stage?
+  answers:
+  - text: 64, one task per partition
+    verdict: correct
+    justification: Spark creates one task per partition in a stage, so 64 partitions produce 64 tasks.
+  - text: One task per column
+    verdict: incorrect
+    justification: Columns do not determine tasks; partitions of rows do.
+  - text: One task per executor
+    verdict: incorrect
+    justification: The task count follows the partition count, not the number of executors.
+  - text: 1, one task per stage
+    verdict: incorrect
+    justification: A stage contains many tasks, one per partition, not just one.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-005
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer classifies transformations by their dependencies.
+
+    Which transformation is narrow, so that each output partition depends on at most one input partition?
+  answers:
+  - text: '`filter`'
+    verdict: correct
+    justification: '`filter` keeps or drops rows within each partition, so each output partition depends on exactly one input partition — a narrow dependency.'
+  - text: '`distinct`'
+    verdict: incorrect
+    justification: '`distinct` must compare rows across partitions, which requires a shuffle (wide).'
+  - text: '`orderBy`'
+    verdict: incorrect
+    justification: '`orderBy` performs a global sort that redistributes rows across partitions (wide).'
+  - text: '`groupBy(...).count()`'
+    verdict: incorrect
+    justification: '`groupBy(...).count()` must bring rows with the same key together, which requires a shuffle (wide).'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-006
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: Which of these DataFrame operations causes a shuffle, and therefore a new stage?
+  answers:
+  - text: '`df.withColumn("total", df.price * df.qty)`'
+    verdict: incorrect
+    justification: '`withColumn` computes a value per row within its partition; it is narrow.'
+  - text: '`df.filter(df.amount > 100)`'
+    verdict: incorrect
+    justification: '`filter` removes rows within each partition; it is narrow.'
+  - text: '`df.groupBy("country").sum("amount")`'
+    verdict: correct
+    justification: '`groupBy().sum()` has to collect rows with the same key into the same partition, so it shuffles and starts a new stage.'
+  - text: '`df.select("id", "name")`'
+    verdict: incorrect
+    justification: '`select` projects columns per row; it is narrow.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-007
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A developer wants to see how a job was broken down into stages and how those stages depend on each other.
+
+    Where in the Spark UI can this be found?
+  answers:
+  - text: The Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data, not job structure.
+  - text: The job's detail page, which shows the DAG visualization of its stages
+    verdict: correct
+    justification: A job's detail page in the Spark UI shows the DAG visualization of its stages and how they depend on each other.
+  - text: The Executors page
+    verdict: incorrect
+    justification: The Executors page shows executor resources and metrics, not job structure.
+  - text: The Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration and environment information, not stage DAGs.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-008
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A notebook cell runs `df.count()` and then `df.show()` on the same uncached DataFrame.
+
+    How many Spark jobs are triggered at least?
+  answers:
+  - text: One per transformation in the DataFrame's lineage
+    verdict: incorrect
+    justification: Jobs are created per action, not per transformation.
+  - text: Exactly one, because both actions share the same DataFrame
+    verdict: incorrect
+    justification: Actions do not share execution; without caching each action runs its own job.
+  - text: Zero, because the DataFrame is lazily evaluated
+    verdict: incorrect
+    justification: Lazy evaluation only defers execution until an action; both calls are actions, so jobs do run.
+  - text: At least two, because each action triggers its own job
+    verdict: correct
+    justification: Each action triggers at least one job, and the DataFrame is not cached, so `count()` and `show()` produce at least two jobs.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-009
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A stage in the Spark UI shows "Shuffle Write" in its metrics, and the next stage shows "Shuffle Read".
+
+    What does this indicate?
+  answers:
+  - text: The data was written to the output table twice.
+    verdict: incorrect
+    justification: Shuffle files are intermediate data on executor disks, not writes to the output table.
+  - text: The driver collected the results between the stages.
+    verdict: incorrect
+    justification: Shuffle data moves between executors; the driver does not collect it between stages.
+  - text: Both stages cached the DataFrame in memory.
+    verdict: incorrect
+    justification: Shuffle metrics are not caching; cached data appears on the Storage page.
+  - text: The first stage wrote shuffled data that the next stage read across a shuffle boundary.
+    verdict: correct
+    justification: Shuffle Write on one stage and Shuffle Read on the next mean data was redistributed across a shuffle boundary between them.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-010
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A team discusses which component breaks a job into stages and tasks and sends tasks to executors.
+
+    Which component is responsible?
+  answers:
+  - text: The driver, through its schedulers
+    verdict: correct
+    justification: The driver's DAG scheduler splits jobs into stages, and its task scheduler sends tasks to executors.
+  - text: The cluster manager, using its resource allocation table
+    verdict: incorrect
+    justification: The cluster manager only allocates resources such as executors; it does not create stages or tasks.
+  - text: The executors, by negotiating with each other
+    verdict: incorrect
+    justification: Executors run the tasks they receive; they do not plan stages by negotiating with each other.
+  - text: The storage layer, based on file sizes
+    verdict: incorrect
+    justification: File sizes influence the number of partitions, but the storage layer does not create stages or send tasks.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-011
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A pipeline runs: read → filter → select → groupBy().agg() → filter → write.
+
+    How many stages does Spark typically create for this job, ignoring adaptive optimizations?
+  answers:
+  - text: One, because all operations are in a single chain
+    verdict: incorrect
+    justification: The aggregation needs a shuffle, which always splits the chain into separate stages.
+  - text: Three, one for each filter and one for the write
+    verdict: incorrect
+    justification: Filters are narrow and do not create stages; only the shuffle does.
+  - text: Two, separated by the shuffle caused by the aggregation
+    verdict: correct
+    justification: Read, filter and select are narrow and run in the first stage; the aggregation shuffles, and the second stage aggregates, filters and writes — two stages.
+  - text: Six, one for each operation
+    verdict: incorrect
+    justification: Narrow operations are pipelined together; Spark does not create a stage per operation.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-012
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer explains why tasks in the same stage can run in parallel.
+
+    Which statement is correct?
+  answers:
+  - text: All tasks in a stage share a single partition and lock it in turns.
+    verdict: incorrect
+    justification: Each task processes its own partition; tasks do not share and lock one partition.
+  - text: Each task processes a different partition with the same code, so tasks are independent of each other.
+    verdict: correct
+    justification: Tasks in a stage run the same code on different partitions, so they do not depend on each other and can run in parallel.
+  - text: Tasks in a stage run sequentially on the driver.
+    verdict: incorrect
+    justification: Tasks run on executors in parallel, not sequentially on the driver.
+  - text: Tasks in a stage each run a different transformation from the code.
+    verdict: incorrect
+    justification: All tasks in a stage execute the same pipeline of operations, just on different data.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-013
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer opens a stage's detail page in the Spark UI.
+
+    Which information is shown there?
+  answers:
+  - text: Summary metrics for all tasks, such as duration, GC time and shuffle read sizes, plus per-task details
+    verdict: correct
+    justification: The stage detail page shows summary metrics across tasks (duration, GC time, shuffle read and write, spill) and a table of individual tasks.
+  - text: A list of all jobs in the application
+    verdict: incorrect
+    justification: All jobs are listed on the Jobs page, not on a stage's detail page.
+  - text: Only the SQL text that created the stage
+    verdict: incorrect
+    justification: The stage page shows metrics and task details, not only SQL text; SQL plans are on the SQL / DataFrame page.
+  - text: The cluster manager's configuration
+    verdict: incorrect
+    justification: The cluster manager's configuration is not shown on the stage page.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-014
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    Two DataFrames that are not co-partitioned are joined using a sort-merge join.
+
+    What does this mean for the stages of the job?
+  answers:
+  - text: The join creates one stage per row of the smaller DataFrame.
+    verdict: incorrect
+    justification: Stages are created at shuffle boundaries, not per row.
+  - text: The join runs in the same stage as the reads because joins are narrow.
+    verdict: incorrect
+    justification: A sort-merge join of inputs that are not co-partitioned is wide, so it cannot run in the same stage as the reads.
+  - text: Both inputs are shuffled in earlier stages, and the join runs in a later stage that reads the shuffled data.
+    verdict: correct
+    justification: A sort-merge join of inputs that are not co-partitioned shuffles both sides by key in earlier stages, and the join runs in a later stage that reads the shuffled data.
+  - text: The join runs on the driver in a separate stage.
+    verdict: incorrect
+    justification: Joins run in tasks on executors, not on the driver.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-015
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer notices that some stages in the Spark UI are marked as "skipped".
+
+    What is the most likely reason?
+  answers:
+  - text: The stages contained only transformations, which never run.
+    verdict: incorrect
+    justification: Transformations do run when an action triggers them; skipping is about reusing existing shuffle output.
+  - text: Their output, such as shuffle files, was already available from an earlier job, so Spark reused it instead of recomputing.
+    verdict: correct
+    justification: Skipped stages appear when their shuffle output already exists from an earlier job, so Spark reuses the shuffle files instead of recomputing the stage.
+  - text: The cluster had too few cores to run them.
+    verdict: incorrect
+    justification: A lack of cores delays tasks but does not skip stages.
+  - text: The stages failed and were ignored.
+    verdict: incorrect
+    justification: Failed stages are shown as failed and retried; "skipped" means they did not need to run.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-016
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A user wants to see the jobs triggered by a single DataFrame query, along with its physical plan and metrics.
+
+    Which Spark UI page is designed for this?
+  answers:
+  - text: The Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data only.
+  - text: The Executors page
+    verdict: incorrect
+    justification: The Executors page shows executor resources, not per-query plans.
+  - text: The Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration only.
+  - text: The SQL / DataFrame page
+    verdict: correct
+    justification: The SQL / DataFrame page shows each query with its physical plan, SQL metrics and the jobs it triggered.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-017
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A developer compares `repartition(10)` and `coalesce(10)` on a DataFrame with 100 partitions.
+
+    How do they affect the execution hierarchy?
+  answers:
+  - text: '`repartition(10)` adds a shuffle and therefore a stage boundary, while `coalesce(10)` merges partitions without a shuffle.'
+    verdict: correct
+    justification: '`repartition` always shuffles, adding a stage boundary; `coalesce` merges existing partitions through a narrow dependency without a shuffle.'
+  - text: '`coalesce(10)` adds a shuffle, while `repartition(10)` does not.'
+    verdict: incorrect
+    justification: 'It is the other way round: `repartition` shuffles and `coalesce` does not.'
+  - text: Neither changes the stages, because both are narrow transformations.
+    verdict: incorrect
+    justification: '`repartition` is a wide transformation that adds a shuffle.'
+  - text: Both add a shuffle and a new stage.
+    verdict: incorrect
+    justification: Only `repartition` shuffles; `coalesce` avoids a shuffle when reducing partitions.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-018
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A team wants to know where the user code of transformations actually runs at the task level.
+
+    Which statement is correct?
+  answers:
+  - text: Tasks run inside the cluster manager.
+    verdict: incorrect
+    justification: The cluster manager allocates resources; it does not run tasks.
+  - text: Tasks run on the driver and send results to executors.
+    verdict: incorrect
+    justification: Tasks run on executors; the driver schedules them and receives results.
+  - text: Tasks run inside executor processes, each task processing one partition.
+    verdict: correct
+    justification: Tasks run inside executor processes on worker nodes, and each task processes one partition.
+  - text: Tasks run on the client machine that submitted the job.
+    verdict: incorrect
+    justification: The submitting client does not run tasks; executors on the cluster do.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-019
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A stage has 200 tasks, and one task fails because of a transient network error.
+
+    How does Spark handle this by default?
+  answers:
+  - text: It skips the failed task and continues with partial data.
+    verdict: incorrect
+    justification: Spark never skips tasks and returns partial results.
+  - text: It restarts the entire application.
+    verdict: incorrect
+    justification: A single task failure does not restart the application.
+  - text: It fails the job immediately on the first task failure.
+    verdict: incorrect
+    justification: Spark tolerates transient failures by retrying the task before failing the job.
+  - text: It retries the failed task, and the stage only fails if the task keeps failing beyond the allowed retries.
+    verdict: correct
+    justification: Spark retries failed tasks (by default up to 4 attempts, `spark.task.maxFailures`); the stage only fails if a task keeps failing.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-020
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer writes the code below.
+
+    ```python
+    df2 = df.filter("status = 'OK'").select("id", "amount")
+    df3 = df2.groupBy("id").sum("amount")
+    ```
+
+    Which statement is correct about jobs, if no further code is run?
+  answers:
+  - text: Two jobs are created, one for each line.
+    verdict: incorrect
+    justification: Transformations do not create jobs, so the two lines create none.
+  - text: No job is created yet, because no action has been called.
+    verdict: correct
+    justification: '`filter`, `select`, `groupBy` and `sum` are all transformations, so Spark only builds a plan; no job runs until an action is called.'
+  - text: One job per transformation is created.
+    verdict: incorrect
+    justification: Jobs are created by actions, not by transformations.
+  - text: One job is created for the `groupBy`.
+    verdict: incorrect
+    justification: '`groupBy(...).sum(...)` is a transformation that returns a DataFrame; it does not trigger a job.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-021
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    In the Spark UI Jobs page, a data engineer sees that a single `df.show()` call created more than one job.
+
+    What is a valid reason?
+  answers:
+  - text: '`show()` always creates one job per executor.'
+    verdict: incorrect
+    justification: '`show()` does not create one job per executor.'
+  - text: The Spark UI duplicates every job for fault tolerance.
+    verdict: incorrect
+    justification: The Spark UI does not duplicate jobs for fault tolerance.
+  - text: Some operations, such as those that need to inspect data first or adaptive query execution re-planning, can launch additional jobs for one action.
+    verdict: correct
+    justification: One action can launch several jobs, for example when Spark first needs to inspect data or when adaptive query execution runs query stages as separate jobs.
+  - text: Each column of the DataFrame is processed in its own job.
+    verdict: incorrect
+    justification: Columns are not processed in separate jobs.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-022
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A developer asks what makes a dependency "wide".
+
+    Which definition is correct?
+  answers:
+  - text: The transformation is executed on more than one executor.
+    verdict: incorrect
+    justification: Narrow transformations also run on many executors; wideness is about shuffling data.
+  - text: The transformation reads from more than one file.
+    verdict: incorrect
+    justification: Reading several files does not make a dependency wide; reads are narrow.
+  - text: The transformation produces more columns than it reads.
+    verdict: incorrect
+    justification: Wideness is about data dependencies between partitions, not the number of columns.
+  - text: An output partition may depend on data from many input partitions, so data must be shuffled.
+    verdict: correct
+    justification: A wide dependency means an output partition needs data from many input partitions, so the data must be shuffled.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-023
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A team reads that a Spark job is "divided into smaller sets of tasks called stages that depend on each other".
+
+    Which analogy does the Spark documentation use for stages?
+  answers:
+  - text: The map and reduce stages in MapReduce
+    verdict: correct
+    justification: The Spark documentation compares stages to the map and reduce stages in MapReduce.
+  - text: The rows and columns of a table
+    verdict: incorrect
+    justification: Rows and columns describe tables, not execution stages.
+  - text: The read and write phases of a database transaction
+    verdict: incorrect
+    justification: Database transaction phases are not the documented analogy.
+  - text: The client and server parts of a web request
+    verdict: incorrect
+    justification: Client/server request parts are not the documented analogy.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-024
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer notices one stage of a job takes 90% of the job's time.
+
+    How can the engineer find out whether the slowness comes from a few tasks or all of them?
+  answers:
+  - text: Check the Environment page for the number of tasks.
+    verdict: incorrect
+    justification: The Environment page shows configuration, not task durations.
+  - text: Inspect the stage's summary metrics in the Spark UI to compare the median and max task durations.
+    verdict: correct
+    justification: Comparing median and max task durations in the stage's summary metrics shows whether a few tasks (skew) or all tasks are slow.
+  - text: Read the cluster manager's event log.
+    verdict: incorrect
+    justification: The cluster manager's log does not show Spark task durations.
+  - text: Look at the Jobs page, which lists the duration of every task.
+    verdict: incorrect
+    justification: The Jobs page lists jobs and stages, not individual task durations.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-025
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A DataFrame with 8 partitions is aggregated with `groupBy`, and `spark.sql.shuffle.partitions` is set to 50 with adaptive query execution disabled.
+
+    How many tasks does the stage after the shuffle have?
+  answers:
+  - text: '50'
+    verdict: correct
+    justification: After a shuffle, the number of partitions (and tasks) equals `spark.sql.shuffle.partitions`, so the post-shuffle stage has 50 tasks when AQE is off.
+  - text: '58'
+    verdict: incorrect
+    justification: Task counts of different stages are not added together.
+  - text: '1'
+    verdict: incorrect
+    justification: Aggregations use many shuffle partitions, not one.
+  - text: '8'
+    verdict: incorrect
+    justification: 8 is the number of input partitions, which applies to the stage before the shuffle.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-026
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A job reads a table, joins it with another table, aggregates, and writes the result.
+
+    Which statement about the relationship between stages is correct?
+  answers:
+  - text: All stages of a job always run at the same time.
+    verdict: incorrect
+    justification: Dependent stages cannot run at the same time as the stages they depend on.
+  - text: Each stage runs on a different executor.
+    verdict: incorrect
+    justification: Every stage runs its tasks on any available executors; stages are not tied to one executor each.
+  - text: A stage that consumes shuffle output can only start after the stages that produce that shuffle data have finished.
+    verdict: correct
+    justification: Stages that read shuffle output depend on the stages that write it, so they can only start after those parent stages have finished.
+  - text: Stages run in random order chosen by the cluster manager.
+    verdict: incorrect
+    justification: Stage order follows the DAG of dependencies, not a random order from the cluster manager.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-027
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    An application runs in a notebook for several hours, executing many queries.
+
+    How does this map to Spark's hierarchy?
+  answers:
+  - text: Each query is a stage of one large job.
+    verdict: incorrect
+    justification: Each query's action triggers its own job, not a stage of one large job.
+  - text: It is one application with one driver, containing many jobs triggered by actions.
+    verdict: correct
+    justification: A notebook session is one application with one driver; each query's actions trigger jobs within that same application.
+  - text: The notebook runs one task per query.
+    verdict: incorrect
+    justification: Each query runs many tasks, one per partition in each stage.
+  - text: Each query starts a new application with a new driver.
+    verdict: incorrect
+    justification: Queries in the same notebook reuse the same application and driver.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.4-028
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer runs `df.orderBy("amount").write.parquet(path)`.
+
+    Why does this query include a shuffle?
+  answers:
+  - text: Parquet files must be written by the driver.
+    verdict: incorrect
+    justification: Parquet files are written by tasks on executors, not by the driver.
+  - text: Writing Parquet always requires a shuffle.
+    verdict: incorrect
+    justification: Writing Parquet without a sort does not require a shuffle.
+  - text: '`orderBy` sorts only within each partition, which needs a shuffle to start.'
+    verdict: incorrect
+    justification: '`orderBy` sorts globally; within-partition sorting is `sortWithinPartitions`, which needs no shuffle.'
+  - text: A global sort needs to redistribute rows across partitions by range of the sort key.
+    verdict: correct
+    justification: '`orderBy` performs a global sort, so Spark redistributes rows by range of the sort key across partitions, which needs a shuffle.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-029
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: Which transformation creates a narrow dependency and keeps the job in a single stage?
+  answers:
+  - text: '`df.repartition("country")`'
+    verdict: incorrect
+    justification: '`repartition("country")` shuffles the data by hash of the column.'
+  - text: '`df.join(other, "id")` without a broadcast'
+    verdict: incorrect
+    justification: A join without broadcast usually shuffles both sides, creating new stages.
+  - text: '`df.distinct()`'
+    verdict: incorrect
+    justification: '`distinct` needs a shuffle to compare rows across partitions.'
+  - text: '`df.withColumn("year", year("order_date"))`'
+    verdict: correct
+    justification: '`withColumn` with `year()` computes a new value row by row inside each partition, so it is narrow and stays in the same stage.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.4-030
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    A data engineer opens the Spark UI and sees a job with 2 stages: Stage 0 has 12 tasks and Stage 1 has 200 tasks.
+
+    Which explanation fits best?
+  answers:
+  - text: Stage 0 ran on the driver and Stage 1 ran on executors.
+    verdict: incorrect
+    justification: Both stages ran on executors; the driver does not run stages.
+  - text: The cluster has 12 executors and 200 cores.
+    verdict: incorrect
+    justification: Task counts come from partitions, not from the number of executors or cores.
+  - text: The input had 12 partitions, and a shuffle produced 200 partitions, the default number of shuffle partitions.
+    verdict: correct
+    justification: Stage 0 has one task per input partition (12), and the stage after the shuffle has 200 tasks, the default `spark.sql.shuffle.partitions`.
+  - text: Stage 1 retried each of Stage 0's tasks multiple times.
+    verdict: incorrect
+    justification: 200 tasks do not mean retries; retried attempts appear as extra attempts of the same tasks.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.4-031
+  category: apache_spark_architecture_and_components
+  objective: '1.4'
+  question: |-
+    Several jobs are submitted from different threads of the same Spark application.
+
+    How does Spark schedule them by default within the application?
+  answers:
+  - text: Strictly one job at a time, with no parallel execution possible.
+    verdict: incorrect
+    justification: Jobs submitted from different threads can run concurrently if resources are free.
+  - text: 'First-in-first-out (FIFO): earlier jobs get priority on available resources.'
+    verdict: correct
+    justification: By default, Spark's scheduler runs jobs within an application in FIFO order, so earlier jobs get priority on resources (FAIR scheduling can be configured).
+  - text: In random order chosen by the cluster manager.
+    verdict: incorrect
+    justification: Job scheduling within an application is done by the driver's scheduler, not randomly by the cluster manager.
+  - text: Round-robin across executors, one job per executor.
+    verdict: incorrect
+    justification: Jobs are not assigned one per executor; tasks of any job can run on any executor.
+  source_url: https://spark.apache.org/docs/latest/job-scheduling.html

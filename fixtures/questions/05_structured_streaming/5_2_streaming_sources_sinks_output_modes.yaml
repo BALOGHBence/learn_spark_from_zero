@@ -1,0 +1,669 @@
+# Objective 5.2: Create and write Streaming DataFrames and Streaming Datasets, including the basic output modes and output sinks.
+- id: 5.2-001
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer creates a streaming DataFrame from the Delta table `main.raw.events`.
+
+    Which code does this?
+  answers:
+  - text: '`spark.readStream.parquet("main.raw.events")`'
+    verdict: incorrect
+    justification: '`parquet()` expects a file path, not a table name.'
+  - text: '`spark.read.stream("main.raw.events")`'
+    verdict: incorrect
+    justification: '`DataFrameReader` has no `stream` method; streaming reads use `spark.readStream`.'
+  - text: '`spark.table("main.raw.events").stream()`'
+    verdict: incorrect
+    justification: DataFrames have no `stream()` method.
+  - text: '`spark.readStream.table("main.raw.events")`'
+    verdict: correct
+    justification: '`spark.readStream.table(...)` creates a streaming DataFrame from a table.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamReader.table.html
+- id: 5.2-002
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes a streaming DataFrame to the Delta table `main.silver.events`, with a checkpoint.
+
+    Which code does this?
+  answers:
+  - text: |-
+      ```python
+      (df.writeStream
+         .saveAsTable("main.silver.events")
+         .start())
+      ```
+    verdict: incorrect
+    justification: '`DataStreamWriter` has no `saveAsTable`; use `toTable`, which also starts the query.'
+  - text: |-
+      ```python
+      (df.writeStream
+         .option("checkpointLocation", "/Volumes/main/silver/chk/events")
+         .toTable("main.silver.events"))
+      ```
+    verdict: correct
+    justification: '`writeStream` with a `checkpointLocation` and `toTable(...)` starts a streaming write into the table.'
+  - text: |-
+      ```python
+      (df.write
+         .option("checkpointLocation", "/Volumes/main/silver/chk/events")
+         .saveAsTable("main.silver.events"))
+      ```
+    verdict: incorrect
+    justification: '`df.write` is for batch DataFrames; streaming DataFrames must use `writeStream`.'
+  - text: |-
+      ```python
+      (df.writeStream
+         .checkpoint("/Volumes/main/silver/chk/events")
+         .table("main.silver.events"))
+      ```
+    verdict: incorrect
+    justification: There is no `checkpoint()` method or `table()` method on `DataStreamWriter`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.toTable.html
+- id: 5.2-003
+  category: structured_streaming
+  objective: '5.2'
+  question: Which output modes does Structured Streaming support?
+  answers:
+  - text: Append, update and complete
+    verdict: correct
+    justification: Structured Streaming supports the append, update and complete output modes.
+  - text: Append, overwrite and ignore
+    verdict: true_but_irrelevant
+    justification: Overwrite and ignore are batch save modes, not streaming output modes.
+  - text: Append, merge and replace
+    verdict: incorrect
+    justification: Merge and replace are not output modes.
+  - text: Insert, update and delete
+    verdict: incorrect
+    justification: Insert, update and delete are DML operations.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.outputMode.html
+- id: 5.2-004
+  category: structured_streaming
+  objective: '5.2'
+  question: Which output mode is the default for streaming queries?
+  answers:
+  - text: Update
+    verdict: incorrect
+    justification: Update must be set explicitly.
+  - text: Complete
+    verdict: incorrect
+    justification: Complete must be set explicitly.
+  - text: Append
+    verdict: correct
+    justification: Databricks documents append as the default output mode.
+  - text: Overwrite
+    verdict: true_but_irrelevant
+    justification: Overwrite is a batch save mode, not a streaming output mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-005
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A streaming aggregation must write the whole updated result table to the sink on every trigger.
+
+    Which output mode does this?
+  answers:
+  - text: Append
+    verdict: incorrect
+    justification: Append writes only rows that will not change anymore.
+  - text: Update
+    verdict: incorrect
+    justification: Update writes only the rows that changed.
+  - text: Ignore
+    verdict: true_but_irrelevant
+    justification: Ignore is a batch save mode.
+  - text: Complete
+    verdict: correct
+    justification: Complete mode writes the whole result table on every trigger.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-006
+  category: structured_streaming
+  objective: '5.2'
+  question: Which output mode can only be used with streaming aggregations?
+  answers:
+  - text: Complete
+    verdict: correct
+    justification: Databricks states complete mode only works with streaming aggregations.
+  - text: Update
+    verdict: incorrect
+    justification: Update works with non-aggregation queries.
+  - text: Append
+    verdict: incorrect
+    justification: Append works with non-aggregation queries.
+  - text: All modes can be used with any query
+    verdict: incorrect
+    justification: Complete mode is limited to aggregations.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-007
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A dashboard needs the freshest values of a streaming aggregation, accepting that rows may be rewritten as they change.
+
+    Which output mode writes all rows that changed during the trigger?
+  answers:
+  - text: Ignore
+    verdict: true_but_irrelevant
+    justification: Ignore is a batch save mode.
+  - text: Update
+    verdict: correct
+    justification: Update mode writes every row that changed during the trigger, keeping the sink fresh.
+  - text: Append
+    verdict: incorrect
+    justification: Append waits until rows are final, which delays results.
+  - text: Complete
+    verdict: partially_correct
+    justification: Complete also shows the latest values, but it rewrites the entire result each trigger, which is costly.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-008
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A downstream notification service must act exactly once per row written to the sink.
+
+    Which output mode does Databricks suggest in most cases?
+  answers:
+  - text: Complete, because it rewrites the full result
+    verdict: incorrect
+    justification: Complete mode rewrites all rows each trigger, repeating notifications.
+  - text: Update, because it writes rows every time they change
+    verdict: true_but_irrelevant
+    justification: It is true that update mode writes a row every time it changes, but that causes repeated notifications here.
+  - text: Append, because each record is written only once
+    verdict: correct
+    justification: Databricks suggests append mode when downstream services act on every write, because each record is written only once.
+  - text: Any mode, because they behave the same for aggregations
+    verdict: incorrect
+    justification: The modes behave differently for aggregations.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-009
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A stateless streaming query only filters and projects rows.
+
+    How do the output modes behave for it?
+  answers:
+  - text: Append mode drops rows.
+    verdict: incorrect
+    justification: Append mode does not drop rows in stateless queries.
+  - text: All output modes behave the same, because each trigger only emits the rows processed in that trigger.
+    verdict: correct
+    justification: 'For stateless queries, all output modes behave the same: each trigger emits the rows processed in that trigger.'
+  - text: Update mode rewrites all rows.
+    verdict: incorrect
+    justification: Update mode does not rewrite all rows.
+  - text: Only complete mode is allowed.
+    verdict: incorrect
+    justification: Complete mode is only for aggregations.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-010
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes a streaming aggregation to a Delta Lake table in update mode.
+
+    What does the Databricks documentation say?
+  answers:
+  - text: Delta Lake supports only complete mode.
+    verdict: incorrect
+    justification: Delta Lake supports append as well as complete.
+  - text: Delta Lake supports all three modes.
+    verdict: incorrect
+    justification: Update mode is not supported for Delta Lake sinks.
+  - text: Delta Lake sinks support append and complete modes but not update mode; for update-like behavior, use merge in streaming with `foreachBatch`.
+    verdict: correct
+    justification: Databricks states that Delta Lake sinks support append and complete but not update; use merge with `foreachBatch` for update-like behaviour.
+  - text: Delta Lake supports only update mode.
+    verdict: incorrect
+    justification: Delta Lake does not support update mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-011
+  category: structured_streaming
+  objective: '5.2'
+  question: Which sink supports all output modes according to the Databricks documentation?
+  answers:
+  - text: Kafka
+    verdict: correct
+    justification: Databricks states that Kafka supports all output modes.
+  - text: The file sink
+    verdict: incorrect
+    justification: The file sink supports only append.
+  - text: None
+    verdict: incorrect
+    justification: Kafka supports all three.
+  - text: Delta Lake
+    verdict: incorrect
+    justification: Delta Lake supports append and complete only.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-012
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A stream-stream join is written to a sink.
+
+    Which output mode do joins support?
+  answers:
+  - text: All modes
+    verdict: incorrect
+    justification: Only append is supported.
+  - text: Complete only
+    verdict: incorrect
+    justification: Complete mode does not apply to joins.
+  - text: Update only
+    verdict: incorrect
+    justification: Update mode does not apply to joins.
+  - text: Append only
+    verdict: correct
+    justification: Databricks states that joins only support append mode.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode
+- id: 5.2-013
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer needs to upsert each micro-batch of a stream into a Delta table with `MERGE`.
+
+    Which API supports this?
+  answers:
+  - text: '`outputMode("merge")`'
+    verdict: incorrect
+    justification: There is no `merge` output mode.
+  - text: '`foreachBatch`, which runs a function on each micro-batch''s DataFrame'
+    verdict: correct
+    justification: '`foreachBatch` passes each micro-batch as a DataFrame, so you can run a Delta `MERGE` on it.'
+  - text: '`foreach`, which receives one micro-batch DataFrame'
+    verdict: incorrect
+    justification: '`foreach` receives rows, not DataFrames.'
+  - text: '`trigger(merge=True)`'
+    verdict: incorrect
+    justification: '`trigger` has no `merge` parameter.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/foreach
+- id: 5.2-014
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes each micro-batch to two different tables.
+
+    Which code does this?
+  answers:
+  - text: |-
+      ```python
+      df.writeStream.foreach(lambda row: row.write.saveAsTable("main.a.t1")).start()
+      ```
+    verdict: incorrect
+    justification: '`foreach` receives rows, which have no `write` attribute.'
+  - text: |-
+      ```python
+      (df.writeStream
+         .format("multi")
+         .option("tables", "main.a.t1,main.a.t2")
+         .start())
+      ```
+    verdict: incorrect
+    justification: There is no `multi` format.
+  - text: |-
+      ```python
+      (df.writeStream
+         .toTable("main.a.t1")
+         .toTable("main.a.t2"))
+      ```
+    verdict: incorrect
+    justification: '`toTable` starts the query and returns a `StreamingQuery`, so it cannot be chained twice.'
+  - text: |-
+      ```python
+      def write_both(batch_df, batch_id):
+          batch_df.write.mode("append").saveAsTable("main.a.t1")
+          batch_df.write.mode("append").saveAsTable("main.a.t2")
+
+      (df.writeStream
+         .foreachBatch(write_both)
+         .option("checkpointLocation", chk)
+         .start())
+      ```
+    verdict: correct
+    justification: '`foreachBatch` lets the function write each micro-batch to several tables.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.foreachBatch.html
+- id: 5.2-015
+  category: structured_streaming
+  objective: '5.2'
+  question: What arguments does the function passed to `foreachBatch` receive?
+  answers:
+  - text: One row and its partition id
+    verdict: true_but_irrelevant
+    justification: One row per call is how `foreach` works, without a partition id.
+  - text: The source offsets only
+    verdict: incorrect
+    justification: It receives the data, not just offsets.
+  - text: The micro-batch as a DataFrame and the unique batch id
+    verdict: correct
+    justification: The function receives the micro-batch DataFrame and a unique batch id.
+  - text: The streaming query and its checkpoint path
+    verdict: incorrect
+    justification: It does not receive the query or the checkpoint path.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.foreachBatch.html
+- id: 5.2-016
+  category: structured_streaming
+  objective: '5.2'
+  question: What is the difference between `foreach` and `foreachBatch`?
+  answers:
+  - text: '`foreach` applies custom logic to each row, while `foreachBatch` applies logic to each micro-batch as a DataFrame.'
+    verdict: correct
+    justification: '`foreach` processes each row with custom logic; `foreachBatch` processes each micro-batch as a DataFrame.'
+  - text: '`foreach` runs on the driver only.'
+    verdict: incorrect
+    justification: '`foreach` runs on executors.'
+  - text: They are identical.
+    verdict: incorrect
+    justification: They work at different granularities.
+  - text: '`foreachBatch` is only for batch DataFrames.'
+    verdict: incorrect
+    justification: '`foreachBatch` is a streaming API.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.foreach.html
+- id: 5.2-017
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer reads JSON files as a stream from a directory.
+
+    What is required by default for file sources?
+  answers:
+  - text: Nothing; Spark always infers the schema from all files.
+    verdict: incorrect
+    justification: Schema inference is off by default for streaming file sources.
+  - text: A schema must be specified, because schema inference for streaming file sources is disabled by default.
+    verdict: correct
+    justification: The Spark docs state file-based streaming sources require a schema by default, because schema inference is disabled.
+  - text: The directory must contain exactly one file.
+    verdict: incorrect
+    justification: Directories with many files are supported.
+  - text: The files must be in Delta format.
+    verdict: incorrect
+    justification: JSON and other formats are supported.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-018
+  category: structured_streaming
+  objective: '5.2'
+  question: Which code reads a stream of CSV files with a schema?
+  answers:
+  - text: '`spark.readStream.csv("/Volumes/main/raw/files/in").schema("id INT, ts TIMESTAMP, v DOUBLE")`'
+    verdict: incorrect
+    justification: '`csv()` returns a DataFrame; the schema must be set before reading.'
+  - text: '`spark.readStream.load("/Volumes/main/raw/files/in")`'
+    verdict: incorrect
+    justification: '`load` without a format and schema fails for a CSV stream.'
+  - text: '`spark.read.stream.csv("/Volumes/main/raw/files/in", inferSchema=True)`'
+    verdict: incorrect
+    justification: '`DataFrameReader` has no `stream` attribute.'
+  - text: '`spark.readStream.schema("id INT, ts TIMESTAMP, v DOUBLE").option("header", True).csv("/Volumes/main/raw/files/in")`'
+    verdict: correct
+    justification: The schema is set on `readStream` before `csv(...)` creates the streaming DataFrame.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamReader.schema.html
+- id: 5.2-019
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer on Databricks wants to incrementally ingest new files from cloud storage into a stream with schema inference and evolution.
+
+    Which source is recommended?
+  answers:
+  - text: The `socket` source
+    verdict: true_but_irrelevant
+    justification: The `socket` source is real, but it reads text from a socket for testing.
+  - text: The `memory` source
+    verdict: incorrect
+    justification: There is no `memory` source; `memory` is a sink.
+  - text: Auto Loader, using `format("cloudFiles")`
+    verdict: correct
+    justification: Databricks recommends Auto Loader (`cloudFiles`) for incremental file ingestion with schema inference and evolution.
+  - text: The `rate` source
+    verdict: true_but_irrelevant
+    justification: The `rate` source is real, but it only generates test data.
+  source_url: https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/
+- id: 5.2-020
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer needs test data for a streaming query that generates rows at a fixed rate.
+
+    Which built-in source does this?
+  answers:
+  - text: The `rate` source
+    verdict: correct
+    justification: The `rate` source generates rows at a fixed rate for testing.
+  - text: The `memory` source
+    verdict: incorrect
+    justification: '`memory` is a sink, not a source.'
+  - text: The `noop` source
+    verdict: incorrect
+    justification: '`noop` is a sink.'
+  - text: The `foreach` source
+    verdict: incorrect
+    justification: '`foreach` is a sink.'
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-021
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    For debugging, a data engineer wants to print each micro-batch's output to stdout.
+
+    Which sink does this?
+  answers:
+  - text: The `memory` sink
+    verdict: true_but_irrelevant
+    justification: The `memory` sink is real, but it stores results in an in-memory table instead of printing them.
+  - text: The `delta` sink
+    verdict: incorrect
+    justification: The Delta sink writes a table.
+  - text: The `file` sink
+    verdict: incorrect
+    justification: The file sink writes files.
+  - text: The `console` sink
+    verdict: correct
+    justification: The console sink prints each micro-batch to stdout for debugging.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-022
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes a stream to the `memory` sink for testing and wants to query it as a table.
+
+    What is needed?
+  answers:
+  - text: A checkpoint location only
+    verdict: incorrect
+    justification: A checkpoint does not give the table a name.
+  - text: A query name set with `queryName`, which becomes the in-memory table name
+    verdict: correct
+    justification: The memory sink stores results in an in-memory table named after `queryName`.
+  - text: A Delta table path
+    verdict: incorrect
+    justification: The memory sink does not use Delta.
+  - text: Nothing; the sink is queried as `memory`
+    verdict: incorrect
+    justification: A query name is needed to query the in-memory table.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-023
+  category: structured_streaming
+  objective: '5.2'
+  question: How can a data engineer check if a DataFrame is a streaming DataFrame?
+  answers:
+  - text: '`type(df) == StreamingDataFrame`'
+    verdict: incorrect
+    justification: There is no `StreamingDataFrame` class.
+  - text: '`df.isStream()`'
+    verdict: incorrect
+    justification: '`isStreaming` is a property, not a method.'
+  - text: '`df.isStreaming`'
+    verdict: correct
+    justification: '`df.isStreaming` returns True for streaming DataFrames.'
+  - text: '`df.schema.streaming`'
+    verdict: incorrect
+    justification: Schemas have no `streaming` attribute.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.isStreaming.html
+- id: 5.2-024
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes a stream to a Parquet path.
+
+    Which code does this?
+  answers:
+  - text: '`df.writeStream.format("parquet").option("checkpointLocation", chk).start("/Volumes/main/out/files/p")`'
+    verdict: correct
+    justification: '`writeStream.format("parquet").start(path)` with a checkpoint starts a streaming file write.'
+  - text: '`df.writeStream.format("parquet").save("/Volumes/main/out/files/p")`'
+    verdict: incorrect
+    justification: '`DataStreamWriter` has no `save`; streams start with `start` or `toTable`.'
+  - text: '`df.write.format("parquet").start("/Volumes/main/out/files/p")`'
+    verdict: incorrect
+    justification: '`df.write` has no `start`.'
+  - text: '`df.writeStream.parquet("/Volumes/main/out/files/p")`'
+    verdict: incorrect
+    justification: '`DataStreamWriter` has no `parquet` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.start.html
+- id: 5.2-025
+  category: structured_streaming
+  objective: '5.2'
+  question: What does `writeStream...start()` return?
+  answers:
+  - text: A DataFrame with the written rows
+    verdict: incorrect
+    justification: It returns a handle to the query, not the written rows.
+  - text: A `StreamingQuery` object that can be used to monitor and manage the running query
+    verdict: correct
+    justification: '`start()` returns a `StreamingQuery` to monitor and manage the running query.'
+  - text: The number of rows written
+    verdict: incorrect
+    justification: It does not return a row count.
+  - text: '`None`'
+    verdict: incorrect
+    justification: It returns a `StreamingQuery`, not `None`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.start.html
+- id: 5.2-026
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer calls `df.count()` directly on a streaming DataFrame.
+
+    What happens?
+  answers:
+  - text: It returns 0.
+    verdict: incorrect
+    justification: No value is returned.
+  - text: It returns the number of rows received so far.
+    verdict: incorrect
+    justification: Streaming DataFrames do not support direct actions.
+  - text: An error is raised, because actions such as `count()` cannot be run directly on streaming DataFrames; queries must be started with `writeStream`.
+    verdict: correct
+    justification: Actions such as `count()` cannot run directly on streaming DataFrames; you must start a query with `writeStream`.
+  - text: It blocks until the stream ends.
+    verdict: incorrect
+    justification: It raises an error instead of blocking.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-027
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer runs several streams on one cluster and wants to identify each in the Spark UI and in `spark.streams.active`.
+
+    Which method sets a name?
+  answers:
+  - text: '`queryName("orders_bronze")`'
+    verdict: correct
+    justification: '`queryName` names the query in the Spark UI and in `spark.streams.active`.'
+  - text: '`alias("orders_bronze")`'
+    verdict: incorrect
+    justification: '`alias` names DataFrames or columns, not queries.'
+  - text: '`appName("orders_bronze")`'
+    verdict: incorrect
+    justification: '`appName` names the whole application.'
+  - text: '`option("name", "orders_bronze")`'
+    verdict: incorrect
+    justification: There is no `name` option for this.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.queryName.html
+- id: 5.2-028
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer writes a stream that processes all available data and stops, to run as a scheduled job.
+
+    Which code is correct?
+  answers:
+  - text: '`df.write.trigger(availableNow=True).saveAsTable("main.silver.t")`'
+    verdict: incorrect
+    justification: Batch writers have no `trigger`.
+  - text: '`df.writeStream.trigger(processingTime="once").toTable("main.silver.t")`'
+    verdict: incorrect
+    justification: '`processingTime` expects an interval, not `"once"`.'
+  - text: '`df.writeStream.option("availableNow", True).toTable("main.silver.t")`'
+    verdict: incorrect
+    justification: '`availableNow` is a trigger setting, not an option.'
+  - text: '`df.writeStream.trigger(availableNow=True).option("checkpointLocation", chk).toTable("main.silver.t")`'
+    verdict: correct
+    justification: '`trigger(availableNow=True)` with a checkpoint processes all available data and stops.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.DataStreamWriter.trigger.html
+- id: 5.2-029
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A streaming aggregation without a watermark is written with append mode.
+
+    What happens?
+  answers:
+  - text: It drops all late data automatically.
+    verdict: incorrect
+    justification: Without a watermark there is no lateness threshold to drop data.
+  - text: It works and writes each row once.
+    verdict: incorrect
+    justification: Rows are never final without a watermark.
+  - text: It is not supported, because without a watermark the aggregation results can always change and never become final.
+    verdict: correct
+    justification: Without a watermark, aggregation results never become final, so append mode is not supported for them.
+  - text: It silently switches to complete mode.
+    verdict: incorrect
+    justification: Spark does not switch modes silently.
+  source_url: https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html
+- id: 5.2-030
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer reads a stream from Kafka.
+
+    Which code is correct?
+  answers:
+  - text: '`spark.readStream.kafka("orders", servers)`'
+    verdict: incorrect
+    justification: '`DataStreamReader` has no `kafka` method.'
+  - text: '`spark.readStream.format("kafka").option("kafka.bootstrap.servers", servers).option("subscribe", "orders").load()`'
+    verdict: correct
+    justification: Kafka streams use `format("kafka")` with `kafka.bootstrap.servers` and `subscribe`.
+  - text: '`spark.readStream.format("kafka").load("orders")`'
+    verdict: incorrect
+    justification: Topics are set with `subscribe`, not passed as a path.
+  - text: '`spark.read.format("kafka").stream("orders")`'
+    verdict: incorrect
+    justification: '`read` is for batch reads, and there is no `stream` method.'
+  source_url: https://spark.apache.org/docs/latest/streaming/structured-streaming-kafka-integration.html
+- id: 5.2-031
+  category: structured_streaming
+  objective: '5.2'
+  question: |-
+    A data engineer wants the semantics of complete mode for a large, growing aggregation on Databricks, but complete mode performs poorly as data scales.
+
+    What does Databricks recommend instead?
+  answers:
+  - text: Writing the aggregation in update mode to a Delta table
+    verdict: incorrect
+    justification: Delta Lake sinks do not support update mode.
+  - text: Using the `memory` sink
+    verdict: incorrect
+    justification: The memory sink is for testing only.
+  - text: Using `foreach` with a Python dictionary
+    verdict: incorrect
+    justification: A driver-side dictionary is neither scalable nor fault-tolerant.
+  - text: Materialized views, which provide those semantic guarantees with incremental processing
+    verdict: correct
+    justification: Databricks recommends materialized views to get complete-mode semantics with incremental processing.
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/output-mode

@@ -70,6 +70,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/_build*/
+docs/jupyter_execute/
 
 # PyBuilder
 .pybuilder/
@@ -220,3 +222,5 @@ __marimo__/
 # Databricks Declarative Automation Bundles
 scratch/**
 !scratch/README.md
+
+.DS_Store

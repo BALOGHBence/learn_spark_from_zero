@@ -1,0 +1,690 @@
+# Objective 2.1: Utilize common data sources such as JDBC, files, etc., to efficiently read from and write to Spark DataFrames using Spark SQL, including overwriting and partitioning by column.
+- id: 2.1-001
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer must write a DataFrame to Parquet files partitioned by `region`, replacing whatever is already in `/mnt/sales`.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.partitionBy("region").mode("append").parquet("/mnt/sales")`'
+    verdict: partially_correct
+    justification: The partitioning is right, but `append` adds to the existing data instead of replacing it.
+  - text: '`df.write.mode("overwrite").partitionBy("region").parquet("/mnt/sales")`'
+    verdict: correct
+    justification: '`mode("overwrite")` replaces existing data and `partitionBy("region")` writes one directory per region value.'
+  - text: '`df.write.repartition("region").overwrite().parquet("/mnt/sales")`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `repartition` or `overwrite()` methods; repartitioning is done on the DataFrame, and the mode is set with `mode()`.'
+  - text: '`df.write.mode("ignore").partitionBy("region").parquet("/mnt/sales")`'
+    verdict: incorrect
+    justification: '`ignore` skips the write entirely when data already exists, so nothing is replaced.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.1-002
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads the `public.customers` table from PostgreSQL into a DataFrame.
+
+    Which code is correct?
+  answers:
+  - text: |-
+      ```python
+      df = (spark.read.format("jdbc")
+            .option("connection", "jdbc:postgresql://db:5432/shop")
+            .option("table", "public.customers")
+            .load())
+      ```
+    verdict: incorrect
+    justification: The options are named `url` and `dbtable`; `connection` and `table` are not JDBC source options.
+  - text: |-
+      ```python
+      df = spark.sql("SELECT * FROM jdbc:postgresql://db:5432/shop/public.customers")
+      ```
+    verdict: incorrect
+    justification: Spark SQL cannot query a JDBC URL as a table name like this.
+  - text: |-
+      ```python
+      df = spark.read.jdbc("public.customers").option("url", "jdbc:postgresql://db:5432/shop")
+      ```
+    verdict: incorrect
+    justification: '`spark.read.jdbc` takes the URL and table as arguments and returns a DataFrame, so `.option(...)` cannot be chained after it.'
+  - text: |-
+      ```python
+      df = (spark.read.format("jdbc")
+            .option("url", "jdbc:postgresql://db:5432/shop")
+            .option("dbtable", "public.customers")
+            .option("user", user)
+            .option("password", password)
+            .load())
+      ```
+    verdict: correct
+    justification: A JDBC read uses `format("jdbc")` with the `url` and `dbtable` options (plus credentials), then `load()`.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-003
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer wants to read only the result of a SQL query from a JDBC database, not a full table.
+
+    Which option should be used?
+  answers:
+  - text: '`.option("sql", "SELECT id, name FROM customers WHERE active = 1")`'
+    verdict: incorrect
+    justification: There is no `sql` option for the JDBC source.
+  - text: '`.option("filter", "active = 1")`'
+    verdict: incorrect
+    justification: There is no `filter` option; filters are applied with `DataFrame.filter` and pushed down.
+  - text: '`.option("query", "SELECT id, name FROM customers WHERE active = 1")`'
+    verdict: correct
+    justification: The `query` option reads the result of a query; Spark wraps it as a subquery in the `FROM` clause.
+  - text: '`.option("select", "id, name")`'
+    verdict: incorrect
+    justification: There is no `select` option; columns are chosen with `select` on the DataFrame.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-004
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A JDBC read of a 200-million-row table is slow because it runs as a single task.
+
+    Which set of options lets Spark read the table in parallel?
+  answers:
+  - text: '`partitionColumn`, `lowerBound`, `upperBound` and `numPartitions`'
+    verdict: correct
+    justification: Setting `partitionColumn`, `lowerBound`, `upperBound` and `numPartitions` together splits the read into parallel range queries.
+  - text: '`numPartitions` alone'
+    verdict: partially_correct
+    justification: '`numPartitions` is needed, but on its own it does not split a read; the partition column and bounds must be set too.'
+  - text: '`truncate` and `pushDownPredicate`'
+    verdict: true_but_irrelevant
+    justification: '`truncate` affects overwriting JDBC tables and `pushDownPredicate` controls filter pushdown; neither parallelizes the read.'
+  - text: '`fetchsize` and `batchsize`'
+    verdict: true_but_irrelevant
+    justification: '`fetchsize` and `batchsize` tune rows per round trip for reads and writes; they do not parallelize the read.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-005
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads a JDBC table with `partitionColumn="id"`, `lowerBound=1`, `upperBound=1000` and `numPartitions=10`. The table contains ids up to 5,000.
+
+    Which rows are returned?
+  answers:
+  - text: The read fails because some ids are outside the bounds
+    verdict: incorrect
+    justification: Values outside the bounds are allowed; they go to the first or last partition.
+  - text: Only the first 1,000 rows
+    verdict: incorrect
+    justification: The bounds do not limit the number of rows.
+  - text: Only rows with ids between 1 and 1,000
+    verdict: incorrect
+    justification: The bounds do not filter rows; ids above 1,000 end up in the last partition.
+  - text: All rows, because the bounds only decide the partition stride and do not filter rows
+    verdict: correct
+    justification: The Spark docs state that `lowerBound` and `upperBound` only decide the partition stride; all rows of the table are still read.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-006
+  category: using_spark_sql
+  objective: '2.1'
+  question: Which column types can be used as the `partitionColumn` for a parallel JDBC read?
+  answers:
+  - text: Numeric, date or timestamp columns
+    verdict: correct
+    justification: '`partitionColumn` must be a numeric, date or timestamp column.'
+  - text: String columns only
+    verdict: incorrect
+    justification: String columns are not supported as partition columns.
+  - text: Only the primary key column
+    verdict: incorrect
+    justification: Any numeric, date or timestamp column works; it does not have to be the primary key.
+  - text: Any column, including arrays
+    verdict: incorrect
+    justification: Arrays and other complex types cannot be used.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-007
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer sets `numPartitions` to 8 for a JDBC read.
+
+    What else does this option control besides read parallelism?
+  answers:
+  - text: The number of output files when writing to Parquet
+    verdict: incorrect
+    justification: '`numPartitions` is a JDBC option; it does not set the number of Parquet output files of a different write.'
+  - text: The maximum number of concurrent JDBC connections
+    verdict: correct
+    justification: '`numPartitions` is the maximum number of partitions for reading or writing, which also caps the number of concurrent JDBC connections.'
+  - text: The number of retries on connection failure
+    verdict: incorrect
+    justification: Retries are not controlled by `numPartitions`.
+  - text: The number of rows fetched per round trip
+    verdict: true_but_irrelevant
+    justification: Rows per round trip is controlled by `fetchsize`, not `numPartitions`.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-008
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    Reads from an Oracle database through JDBC are slow because the driver fetches only 10 rows per round trip.
+
+    Which option should be tuned?
+  answers:
+  - text: '`numPartitions`'
+    verdict: true_but_irrelevant
+    justification: '`numPartitions` controls parallelism, not rows per round trip.'
+  - text: '`batchsize`'
+    verdict: true_but_irrelevant
+    justification: '`batchsize` is real, but it only applies to inserts when writing.'
+  - text: '`fetchsize`'
+    verdict: correct
+    justification: '`fetchsize` sets how many rows are fetched per round trip on reads, which helps drivers with small defaults such as Oracle''s 10.'
+  - text: '`queryTimeout`'
+    verdict: true_but_irrelevant
+    justification: '`queryTimeout` limits how long a statement may run, not how many rows are fetched.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-009
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer writes a large DataFrame to a MySQL table through JDBC and wants fewer round trips per insert.
+
+    Which option should be tuned?
+  answers:
+  - text: '`fetchsize`, which defaults to 0'
+    verdict: true_but_irrelevant
+    justification: '`fetchsize` is real, but it only applies to reading.'
+  - text: '`batchsize`, which defaults to 1000 rows per round trip'
+    verdict: correct
+    justification: '`batchsize` (default 1000) sets how many rows are inserted per round trip when writing.'
+  - text: '`customSchema`'
+    verdict: incorrect
+    justification: '`customSchema` sets data types for reading.'
+  - text: '`partitionColumn`'
+    verdict: incorrect
+    justification: '`partitionColumn` is for parallel reads.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-010
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer overwrites a JDBC table nightly but must keep its indexes and other table metadata.
+
+    Which option helps?
+  answers:
+  - text: '`.option("truncate", "true")` together with `mode("overwrite")`'
+    verdict: correct
+    justification: With `mode("overwrite")`, `truncate=true` truncates the existing table instead of dropping and recreating it, so indexes and metadata survive.
+  - text: '`.option("dropTable", "false")` together with `mode("append")`'
+    verdict: incorrect
+    justification: There is no `dropTable` option, and `append` would keep the old rows instead of replacing them.
+  - text: '`.option("keepIndexes", "true")` together with `mode("overwrite")`'
+    verdict: incorrect
+    justification: There is no `keepIndexes` option.
+  - text: '`mode("ignore")`'
+    verdict: incorrect
+    justification: '`ignore` skips the write when the table exists, so nothing is replaced.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-011
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A JDBC read has a filter `df.filter("country = 'DE'")` applied after loading.
+
+    With default options, what does Spark try to do?
+  answers:
+  - text: Run the filter after writing the data to a temporary table
+    verdict: incorrect
+    justification: No temporary table is involved.
+  - text: Read the whole table and filter only on the driver
+    verdict: incorrect
+    justification: By default filters are pushed down, and filtering never happens on the driver.
+  - text: Ignore the filter for JDBC sources
+    verdict: incorrect
+    justification: Filters are applied; pushdown makes them more efficient.
+  - text: Push the filter down to the database so fewer rows are transferred
+    verdict: correct
+    justification: '`pushDownPredicate` defaults to true, so Spark pushes filters down to the database to transfer fewer rows.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-012
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer writes a DataFrame with `partitionBy("year", "month")` to a path.
+
+    How is the output organized?
+  answers:
+  - text: In one directory per executor
+    verdict: incorrect
+    justification: Directories follow partition column values, not executors.
+  - text: In a single file sorted by year and month
+    verdict: incorrect
+    justification: Partitioned writes produce many files in directories, not a single sorted file.
+  - text: In nested directories such as `year=2025/month=10/` containing the data files
+    verdict: correct
+    justification: '`partitionBy("year", "month")` writes nested directories such as `year=2025/month=10/` that contain the data files.'
+  - text: In one file per year with a `month` column removed
+    verdict: incorrect
+    justification: Output is split into directories, and partition values are encoded in directory names.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 2.1-013
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A team considers `write.partitionBy("user_id")` where `user_id` has 50 million distinct values.
+
+    What does the Spark documentation say about this?
+  answers:
+  - text: '`partitionBy` automatically switches to bucketing for high-cardinality columns.'
+    verdict: incorrect
+    justification: '`partitionBy` does not switch to bucketing automatically.'
+  - text: '`partitionBy` fails for columns with more than 1,000 distinct values.'
+    verdict: incorrect
+    justification: There is no hard limit of 1,000 values; the issue is efficiency.
+  - text: '`partitionBy` creates a directory structure, so it has limited applicability to high-cardinality columns.'
+    verdict: correct
+    justification: The Spark docs say `partitionBy` creates a directory structure, so it has limited use for high-cardinality columns; `bucketBy` suits those better.
+  - text: '`partitionBy` works best with high-cardinality columns.'
+    verdict: incorrect
+    justification: High-cardinality columns create huge numbers of directories and small files, so they are a poor fit.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.1-014
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer calls `df.write.save("/mnt/out")` without specifying a format.
+
+    Which format is used by default in Apache Spark?
+  answers:
+  - text: Parquet, unless `spark.sql.sources.default` is configured otherwise
+    verdict: correct
+    justification: Without a format, `save` uses the default data source, which is Parquet unless `spark.sql.sources.default` changes it.
+  - text: JSON
+    verdict: incorrect
+    justification: JSON must be requested explicitly.
+  - text: CSV
+    verdict: incorrect
+    justification: CSV must be requested explicitly.
+  - text: ORC
+    verdict: incorrect
+    justification: ORC must be requested explicitly.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.1-015
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer writes a DataFrame to a path that already contains data, without setting a mode.
+
+    What happens?
+  answers:
+  - text: The write is silently skipped.
+    verdict: true_but_irrelevant
+    justification: Silently skipping is what `ignore` mode does, not the default.
+  - text: An exception is thrown, because the default save mode is `errorifexists`.
+    verdict: correct
+    justification: The default save mode is `errorifexists`, so writing to a path that has data throws an exception.
+  - text: The new data is appended.
+    verdict: true_but_irrelevant
+    justification: Appending is what `append` mode does, not the default.
+  - text: The existing data is overwritten.
+    verdict: true_but_irrelevant
+    justification: Overwriting is what `overwrite` mode does, not the default.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.1-016
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A daily job must add new rows to an existing Parquet dataset without touching previous files.
+
+    Which save mode should be used?
+  answers:
+  - text: '`ignore`'
+    verdict: incorrect
+    justification: '`ignore` writes nothing when data already exists.'
+  - text: '`errorifexists`'
+    verdict: incorrect
+    justification: '`errorifexists` fails when data already exists.'
+  - text: '`overwrite`'
+    verdict: incorrect
+    justification: '`overwrite` deletes the existing data.'
+  - text: '`append`'
+    verdict: correct
+    justification: '`append` adds the new data and leaves the existing files untouched.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.mode.html
+- id: 2.1-017
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads a CSV file that has a header row and wants Spark to infer column types.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.format("csv").load(path, schema="infer")`'
+    verdict: incorrect
+    justification: '`schema="infer"` is not valid; the schema must be a `StructType` or DDL string.'
+  - text: '`spark.read.csv(path, headers="first", types="auto")`'
+    verdict: incorrect
+    justification: There are no `headers` or `types` options with these values.
+  - text: '`spark.read.option("firstRowIsHeader", True).csv(path)`'
+    verdict: incorrect
+    justification: The option is called `header`, not `firstRowIsHeader`.
+  - text: '`spark.read.option("header", True).option("inferSchema", True).csv(path)`'
+    verdict: correct
+    justification: '`header=True` uses the first row as column names and `inferSchema=True` makes Spark infer column types.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 2.1-018
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer must read semicolon-separated files.
+
+    Which option sets the separator?
+  answers:
+  - text: '`.option("split", ";")`'
+    verdict: incorrect
+    justification: There is no `split` option.
+  - text: '`.option("sep", ";")`'
+    verdict: correct
+    justification: '`sep` sets the CSV field separator.'
+  - text: '`.option("token", ";")`'
+    verdict: incorrect
+    justification: There is no `token` option.
+  - text: '`.option("columnDelimiter", ";")`'
+    verdict: incorrect
+    justification: There is no `columnDelimiter` option.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 2.1-019
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data source contains JSON documents that each span several lines of a file.
+
+    Which option is required to read them correctly?
+  answers:
+  - text: '`.option("jsonLines", False)`'
+    verdict: incorrect
+    justification: There is no `jsonLines` option.
+  - text: '`.option("lineSep", "none")`'
+    verdict: incorrect
+    justification: '`lineSep` sets the line separator; it does not enable multi-line records.'
+  - text: '`.option("multiLine", True)`'
+    verdict: correct
+    justification: '`multiLine` lets the JSON reader parse records that span several lines.'
+  - text: '`.option("wholeFile", "yes")`'
+    verdict: incorrect
+    justification: '`wholeFile` is not the current JSON option; use `multiLine`.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-json.html
+- id: 2.1-020
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads a directory written with `partitionBy("country")` using `spark.read.parquet(path)`.
+
+    What happens to the `country` values?
+  answers:
+  - text: Spark discovers the partition directories and adds `country` as a column of the DataFrame.
+    verdict: correct
+    justification: When reading a directory written with `partitionBy`, Spark discovers the `country=...` directories and adds `country` as a column.
+  - text: Spark reads only the first partition directory.
+    verdict: incorrect
+    justification: Spark reads all partition directories under the path.
+  - text: Spark requires `basePath` to be set for every read.
+    verdict: incorrect
+    justification: '`basePath` is only needed when reading a subdirectory but keeping the partition column.'
+  - text: The `country` values are lost because they are not stored in the files.
+    verdict: incorrect
+    justification: The values are stored in directory names and are recovered by partition discovery.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html
+- id: 2.1-021
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A query filters a partitioned Parquet dataset with `WHERE country = 'FR'`, where `country` is the partition column.
+
+    Which optimization allows Spark to skip other directories?
+  answers:
+  - text: Speculative execution
+    verdict: true_but_irrelevant
+    justification: Speculative execution re-runs slow tasks.
+  - text: Partition pruning
+    verdict: correct
+    justification: Partition pruning skips directories whose partition values don't match the filter.
+  - text: Broadcast join
+    verdict: true_but_irrelevant
+    justification: A broadcast join is a join strategy, unrelated to skipping directories.
+  - text: Dynamic allocation
+    verdict: true_but_irrelevant
+    justification: Dynamic allocation changes the number of executors.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html
+- id: 2.1-022
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer wants to load the Unity Catalog table `main.sales.orders` into a DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`spark.table.read("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`spark.table` is a method, so `spark.table.read` is invalid; use `spark.table("...")` or `spark.read.table("...")`.'
+  - text: '`spark.read.parquet("main.sales.orders")`'
+    verdict: incorrect
+    justification: '`parquet` expects a file path, not a table name.'
+  - text: '`spark.read.load("main.sales.orders", format="table")`'
+    verdict: incorrect
+    justification: '`load` reads from a path with a data source format; `table` is not a format.'
+  - text: '`spark.read.table("main.sales.orders")`'
+    verdict: correct
+    justification: '`spark.read.table` loads a catalog table, such as a Unity Catalog table, into a DataFrame.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.table.html
+- id: 2.1-023
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer wants to replace the contents of the table `main.sales.daily` with a DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.overwrite().table("main.sales.daily")`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `overwrite()` or `table()` methods.'
+  - text: '`df.write.saveAsTable("main.sales.daily", replace=True)`'
+    verdict: incorrect
+    justification: '`saveAsTable` has no `replace` parameter.'
+  - text: '`df.write.mode("overwrite").saveAsTable("main.sales.daily")`'
+    verdict: correct
+    justification: '`mode("overwrite")` with `saveAsTable` replaces the table''s contents.'
+  - text: '`df.write.mode("ignore").saveAsTable("main.sales.daily")`'
+    verdict: incorrect
+    justification: '`ignore` does nothing if the table exists.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.saveAsTable.html
+- id: 2.1-024
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer on Databricks writes `df.write.saveAsTable("main.sales.daily")` without specifying a format.
+
+    Which format is used for the table by default on Databricks?
+  answers:
+  - text: Delta Lake
+    verdict: correct
+    justification: Databricks documents Delta Lake as the default format for all operations, so `saveAsTable` creates a Delta table.
+  - text: ORC
+    verdict: incorrect
+    justification: ORC is not the default format.
+  - text: CSV
+    verdict: incorrect
+    justification: CSV is not the default format.
+  - text: Parquet without a transaction log
+    verdict: incorrect
+    justification: Databricks uses Delta Lake (Parquet files plus a transaction log), not plain Parquet.
+  source_url: https://docs.databricks.com/aws/en/delta/
+- id: 2.1-025
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer writes a DataFrame to CSV and needs a header row in each file.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.format("csv").header().save("/mnt/out")`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `header()` method.'
+  - text: '`df.write.option("header", True).csv("/mnt/out")`'
+    verdict: correct
+    justification: The `header` option makes the CSV writer write a header row.
+  - text: '`df.write.csv("/mnt/out", firstRow=True)`'
+    verdict: incorrect
+    justification: '`csv()` has no `firstRow` parameter.'
+  - text: '`df.write.option("inferSchema", True).csv("/mnt/out")`'
+    verdict: incorrect
+    justification: '`inferSchema` is a read option; it does not add a header when writing.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-csv.html
+- id: 2.1-026
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer uses `df.write.insertInto("main.sales.orders")`.
+
+    How does `insertInto` match DataFrame columns to table columns?
+  answers:
+  - text: By position, so the DataFrame's column order must match the table's column order
+    verdict: correct
+    justification: '`insertInto` matches columns by position, so the DataFrame''s column order must match the table''s.'
+  - text: By the first column only, and the rest are inferred
+    verdict: incorrect
+    justification: All columns are matched, by position.
+  - text: By data type only
+    verdict: incorrect
+    justification: Types do not decide which column goes where.
+  - text: By name, ignoring column order
+    verdict: true_but_irrelevant
+    justification: Matching by name is how `saveAsTable` in append mode resolves columns, not `insertInto`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.insertInto.html
+- id: 2.1-027
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer uses overwrite mode and wonders whether it is safe if the job fails mid-write for plain Parquet files.
+
+    What does the Spark documentation say about save modes?
+  answers:
+  - text: Overwrite is atomic and rolls back on failure for all file formats.
+    verdict: incorrect
+    justification: Plain file writes are not atomic and do not roll back.
+  - text: Overwrite first writes the new data and then deletes the old data only on success.
+    verdict: incorrect
+    justification: 'The order is the reverse: existing data is deleted first.'
+  - text: Save modes lock the target path until the job finishes.
+    verdict: incorrect
+    justification: Save modes do not lock the target.
+  - text: Save modes do not use locking and are not atomic, and with overwrite the existing data is deleted before the new data is written.
+    verdict: correct
+    justification: The Spark docs warn that save modes use no locking and are not atomic; with overwrite, existing data is deleted before the new data is written.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.1-028
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer specifies both `dbtable` and `query` options for one JDBC read.
+
+    What happens?
+  answers:
+  - text: Spark joins the table and the query result.
+    verdict: incorrect
+    justification: Spark does not join the two.
+  - text: Spark reads both and unions the results.
+    verdict: incorrect
+    justification: Spark does not union the two.
+  - text: It is not allowed; only one of `dbtable` or `query` can be specified at a time.
+    verdict: correct
+    justification: The docs state that `dbtable` and `query` cannot be specified at the same time.
+  - text: Spark uses `query` and ignores `dbtable`.
+    verdict: incorrect
+    justification: Spark does not silently prefer one option; it rejects the combination.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html
+- id: 2.1-029
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer must read ORC files written by another system.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.orc("/mnt/raw/orc")`'
+    verdict: correct
+    justification: '`spark.read.orc(path)` reads ORC files.'
+  - text: '`spark.read.format("hive-orc").open("/mnt/raw/orc")`'
+    verdict: incorrect
+    justification: There is no `hive-orc` format or `open` method.
+  - text: '`spark.sql("READ ORC ''/mnt/raw/orc''")`'
+    verdict: incorrect
+    justification: '`READ ORC` is not a SQL statement; use ``SELECT * FROM orc.`path` ``.'
+  - text: '`spark.read.text("/mnt/raw/orc", format="orc")`'
+    verdict: incorrect
+    justification: '`text` reads plain text lines and has no `format` argument.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-orc.html
+- id: 2.1-030
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads raw log files with `spark.read.text(path)`.
+
+    What does the resulting DataFrame look like?
+  answers:
+  - text: One column per space-separated token
+    verdict: incorrect
+    justification: Lines are not split into tokens.
+  - text: A column for each detected field, with inferred types
+    verdict: incorrect
+    justification: No fields are detected or typed; each line stays one string.
+  - text: One string column named `value`, with one row per line
+    verdict: correct
+    justification: '`spark.read.text` produces a single string column named `value`, one row per line.'
+  - text: One row per file with the file name as a column
+    verdict: incorrect
+    justification: One row per file only happens with `wholetext=True`, and no file name column is added.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-text.html
+- id: 2.1-031
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer writes `df.write.mode("overwrite").partitionBy("date").parquet(path)` where `df` only contains data for one date, and the path holds data for many dates. Dynamic partition overwrite is not configured.
+
+    What happens to the existing data of other dates?
+  answers:
+  - text: It is kept, because only matching partitions are replaced by default.
+    verdict: true_but_irrelevant
+    justification: Replacing only the matching partitions is how dynamic partition overwrite behaves, which is not configured here.
+  - text: It is deleted, because overwrite replaces the whole target path by default.
+    verdict: correct
+    justification: In the default (static) partition overwrite mode, overwrite replaces the whole target path, so the data of other dates is deleted.
+  - text: It is moved to a backup folder.
+    verdict: incorrect
+    justification: Overwritten data is not backed up.
+  - text: The write fails because partitions conflict.
+    verdict: incorrect
+    justification: Partition values from different writes do not conflict.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.partitionBy.html
+- id: 2.1-032
+  category: using_spark_sql
+  objective: '2.1'
+  question: |-
+    A data engineer reads files from a folder that also contains unrelated `.txt` files and wants only `.csv` files.
+
+    Which generic file source option can be used?
+  answers:
+  - text: '`.option("extension", "csv")`'
+    verdict: incorrect
+    justification: There is no `extension` option.
+  - text: '`.option("fileFormat", "*.csv")`'
+    verdict: incorrect
+    justification: There is no `fileFormat` option for filtering files.
+  - text: '`.option("onlyType", "csv")`'
+    verdict: incorrect
+    justification: There is no `onlyType` option.
+  - text: '`.option("pathGlobFilter", "*.csv")`'
+    verdict: correct
+    justification: '`pathGlobFilter` includes only files whose names match the glob pattern, such as `*.csv`.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-generic-options.html

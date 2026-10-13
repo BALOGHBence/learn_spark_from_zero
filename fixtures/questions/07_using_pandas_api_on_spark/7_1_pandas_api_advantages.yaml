@@ -1,0 +1,610 @@
+# Objective 7.1: Explain the advantages of using Pandas API on Spark.
+- id: 7.1-001
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data science team has pandas code that works on samples but fails on the full 500 GB dataset.
+
+    What is the main advantage of the pandas API on Spark for them?
+  answers:
+  - text: It removes the need for any compute resources.
+    verdict: incorrect
+    justification: It still runs on Spark compute.
+  - text: It makes pandas run faster on a single machine.
+    verdict: incorrect
+    justification: It does not speed up pandas on one machine; it distributes the work.
+  - text: It converts pandas code to SQL automatically for a database.
+    verdict: incorrect
+    justification: It does not translate pandas code into SQL for a database.
+  - text: It provides pandas-equivalent APIs that run on Spark, so similar code can scale out across a cluster.
+    verdict: correct
+    justification: The pandas API on Spark provides pandas-equivalent APIs that run on Spark, so similar code scales across a cluster.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-002
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Why is pandas alone not enough for big data workloads?
+  answers:
+  - text: pandas cannot be used in notebooks.
+    verdict: incorrect
+    justification: pandas works in notebooks.
+  - text: pandas does not scale out to big data; it runs on a single machine.
+    verdict: correct
+    justification: Databricks notes that pandas does not scale out to big data; it runs on a single machine.
+  - text: pandas cannot read CSV files.
+    verdict: incorrect
+    justification: pandas can read CSV files.
+  - text: pandas has no group-by operations.
+    verdict: incorrect
+    justification: pandas has `groupby`.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-003
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Why can the pandas API on Spark be useful to PySpark users, not only pandas users?
+  answers:
+  - text: It supports tasks that are difficult in PySpark, such as plotting data directly from a distributed DataFrame.
+    verdict: correct
+    justification: Databricks notes that the pandas API on Spark supports tasks that are hard in PySpark, such as plotting directly from distributed data.
+  - text: It is the only way to run SQL in PySpark.
+    verdict: incorrect
+    justification: SQL runs in PySpark with `spark.sql`.
+  - text: It replaces the need for DataFrames.
+    verdict: incorrect
+    justification: It complements Spark DataFrames; they still exist.
+  - text: It disables lazy evaluation for faster results.
+    verdict: incorrect
+    justification: It does not disable lazy evaluation.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-004
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer has a pandas-on-Spark DataFrame `psdf` and needs a PySpark-only feature.
+
+    Which code converts it to a Spark DataFrame?
+  answers:
+  - text: '`psdf.to_pandas()`'
+    verdict: true_but_irrelevant
+    justification: '`to_pandas()` is valid, but it collects the data into a local pandas DataFrame.'
+  - text: '`spark.createDataFrame(psdf.values)`'
+    verdict: incorrect
+    justification: '`values` collects the data locally as a NumPy array, which defeats distribution.'
+  - text: '`psdf.to_spark()`'
+    verdict: correct
+    justification: '`to_spark()` converts a pandas-on-Spark DataFrame to a Spark DataFrame.'
+  - text: '`psdf.pandas_api()`'
+    verdict: true_but_irrelevant
+    justification: '`pandas_api()` goes the other way: it is a Spark DataFrame method that returns pandas-on-Spark.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-005
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: How does the pandas API on Spark documentation describe the relationship between pandas-on-Spark DataFrames and Spark DataFrames?
+  answers:
+  - text: They are virtually interchangeable, and you can convert between them with `to_spark()` and `pandas_api()`.
+    verdict: correct
+    justification: The docs describe them as virtually interchangeable, converted with `to_spark()` and `pandas_api()`.
+  - text: Conversion requires writing to disk first.
+    verdict: incorrect
+    justification: No write to disk is needed.
+  - text: Spark DataFrames can be converted to pandas-on-Spark but not back.
+    verdict: incorrect
+    justification: '`to_spark()` converts back.'
+  - text: They cannot be converted into each other.
+    verdict: incorrect
+    justification: They can be converted both ways.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-006
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer calls `psdf.to_pandas()` on a 1 TB pandas-on-Spark DataFrame.
+
+    What is the risk?
+  answers:
+  - text: The data is written to 1,000 files.
+    verdict: incorrect
+    justification: It does not write files.
+  - text: All data is collected to the client machine, which can run out of memory.
+    verdict: correct
+    justification: The docs warn that `to_pandas()` collects all data to the client machine, which can run out of memory.
+  - text: The call only returns the schema.
+    verdict: incorrect
+    justification: It returns all the data, not just the schema.
+  - text: The call is lazy, so nothing happens.
+    verdict: incorrect
+    justification: '`to_pandas()` executes immediately.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-007
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer converts a Spark DataFrame to a pandas-on-Spark DataFrame with `sdf.pandas_api()`.
+
+    What does the documentation warn about?
+  answers:
+  - text: The conversion is only possible for less than 1,000 rows.
+    verdict: incorrect
+    justification: There is no row limit.
+  - text: The schema is lost.
+    verdict: incorrect
+    justification: The schema is kept.
+  - text: The data is collected to the driver.
+    verdict: incorrect
+    justification: '`pandas_api()` keeps the data distributed.'
+  - text: A new default index is created, which adds overhead; specify an index column when possible.
+    verdict: correct
+    justification: The docs warn that converting from Spark creates a new default index, which adds overhead; specify an index column when possible.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-008
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What is the default value of `compute.default_index_type` in the pandas API on Spark?
+  answers:
+  - text: '`none`'
+    verdict: incorrect
+    justification: '`none` is not a valid default index type.'
+  - text: '`distributed`'
+    verdict: true_but_irrelevant
+    justification: '`distributed` is a valid index type, but not the default.'
+  - text: '`distributed-sequence`'
+    verdict: correct
+    justification: The options documentation lists `distributed-sequence` as the default index type.
+  - text: '`sequence`'
+    verdict: true_but_irrelevant
+    justification: '`sequence` is a valid index type, but not the default, and it should be avoided for large data.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/options.html
+- id: 7.1-009
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Why should the `sequence` default index type be avoided for large data?
+  answers:
+  - text: It is not supported in Spark 4.
+    verdict: incorrect
+    justification: It is supported; it is just not recommended for large data.
+  - text: It requires computation on a single partition, which does not scale.
+    verdict: correct
+    justification: The `sequence` index needs computation on a single partition, which does not scale for large data.
+  - text: It produces non-unique index values.
+    verdict: incorrect
+    justification: It produces unique, consecutive values.
+  - text: It triggers a broadcast join.
+    verdict: incorrect
+    justification: It uses a window function, not a broadcast join.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-010
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer converts a Spark DataFrame with a natural key column `order_id` to pandas-on-Spark.
+
+    What does the best practices guide recommend?
+  answers:
+  - text: Remove the key column before converting.
+    verdict: incorrect
+    justification: The key column is the ideal index.
+  - text: Call `to_pandas()` first, then convert back.
+    verdict: incorrect
+    justification: Converting to pandas collects everything to the driver.
+  - text: Specify `order_id` as the index column instead of relying on the default index.
+    verdict: correct
+    justification: The best practices guide recommends specifying the index column, for example `order_id`, instead of the default index.
+  - text: Always use the `sequence` default index.
+    verdict: incorrect
+    justification: '`sequence` is discouraged for large data.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-011
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: How can a data engineer predict whether a pandas-on-Spark operation is expensive before running it?
+  answers:
+  - text: Call `psdf.to_pandas()` and time it.
+    verdict: incorrect
+    justification: '`to_pandas()` collects the data, which may itself be expensive or fail.'
+  - text: Use `psdf.describe()`.
+    verdict: incorrect
+    justification: '`describe` computes statistics; it does not show the plan.'
+  - text: Use `ps.get_option("display.max_rows")`.
+    verdict: incorrect
+    justification: '`display.max_rows` controls printing only.'
+  - text: Check the execution plan with `psdf.spark.explain()`.
+    verdict: correct
+    justification: '`psdf.spark.explain()` shows the plan, so you can spot expensive operations such as shuffles before running them.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-012
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    The Spark plan of a long chain of pandas-on-Spark operations becomes huge and planning takes long.
+
+    What does the best practices guide suggest?
+  answers:
+  - text: Use `psdf.spark.checkpoint()` or `psdf.spark.local_checkpoint()` to truncate the plan.
+    verdict: correct
+    justification: The guide suggests `spark.checkpoint()` or `spark.local_checkpoint()` to cut a very long plan.
+  - text: Increase `display.max_rows`.
+    verdict: incorrect
+    justification: '`display.max_rows` only affects printing.'
+  - text: Use the `sequence` index type.
+    verdict: incorrect
+    justification: '`sequence` makes performance worse.'
+  - text: Call `to_pandas()` and continue in pandas.
+    verdict: incorrect
+    justification: Moving to pandas collects all data to one machine.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-013
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What does the pandas API on Spark best practices guide say about shuffling?
+  answers:
+  - text: Shuffles are free in the pandas API on Spark.
+    verdict: incorrect
+    justification: Shuffles are expensive here too.
+  - text: Even though it tries to reduce shuffles with Spark's optimizers, it is best to avoid shuffling on the application side whenever possible.
+    verdict: correct
+    justification: The guide says Spark's optimizers reduce shuffles, but applications should still avoid shuffling whenever possible.
+  - text: Shuffles must be triggered manually.
+    verdict: incorrect
+    justification: Shuffles are planned automatically.
+  - text: Shuffles happen only when `to_pandas()` is called.
+    verdict: incorrect
+    justification: Shuffles happen for operations such as sorting, grouping and joins.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-014
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer wants to change how many rows are shown when printing a pandas-on-Spark DataFrame.
+
+    Which call does this?
+  answers:
+  - text: '`ps.set_option("display.max_rows", 50)`'
+    verdict: correct
+    justification: '`ps.set_option("display.max_rows", ...)` sets how many rows are displayed.'
+  - text: '`spark.conf.set("display.max_rows", 50)`'
+    verdict: incorrect
+    justification: pandas-on-Spark options are set with `ps.set_option`, not Spark configuration.
+  - text: '`ps.options.rows = 50`'
+    verdict: incorrect
+    justification: There is no `ps.options.rows` option.
+  - text: '`psdf.show(50)`'
+    verdict: incorrect
+    justification: pandas-on-Spark DataFrames have no `show` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/options.html
+- id: 7.1-015
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What is the default plotting backend in the pandas API on Spark?
+  answers:
+  - text: bokeh
+    verdict: incorrect
+    justification: bokeh is not listed as a backend.
+  - text: seaborn
+    verdict: incorrect
+    justification: seaborn is not listed as a backend.
+  - text: plotly
+    verdict: correct
+    justification: The options documentation lists plotly as the default plotting backend.
+  - text: matplotlib
+    verdict: true_but_irrelevant
+    justification: matplotlib is a supported backend, but it is not the default.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/options.html
+- id: 7.1-016
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data scientist uses `psdf.plot.hist()` on a large pandas-on-Spark DataFrame.
+
+    Why is this an advantage over plain PySpark?
+  answers:
+  - text: Plotting requires collecting all data first in both cases.
+    verdict: incorrect
+    justification: pandas-on-Spark plots without the user collecting all the data manually.
+  - text: PySpark plots faster because it uses matplotlib.
+    verdict: incorrect
+    justification: PySpark DataFrames have no built-in plotting.
+  - text: PySpark cannot compute histograms at all.
+    verdict: incorrect
+    justification: PySpark can compute histograms; the advantage is the convenient plotting API.
+  - text: The pandas API on Spark offers pandas-style plotting directly from distributed data.
+    verdict: correct
+    justification: The pandas API on Spark offers pandas-style plotting directly from distributed data, which plain PySpark lacks.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-017
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer reads a CSV file directly into a pandas-on-Spark DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`spark.read.csv("/Volumes/main/raw/files/sales.csv").to_pandas()`'
+    verdict: incorrect
+    justification: Spark DataFrames have no `to_pandas` method; it is `toPandas()` or `pandas_api()`.
+  - text: '`pd.read_csv("/Volumes/main/raw/files/sales.csv").to_spark()`'
+    verdict: incorrect
+    justification: pandas DataFrames have no `to_spark` method, and plain pandas reads everything on one machine.
+  - text: '`ps.read_csv("/Volumes/main/raw/files/sales.csv")`'
+    verdict: correct
+    justification: '`ps.read_csv` reads a CSV file directly into a pandas-on-Spark DataFrame.'
+  - text: '`ps.DataFrame.read("/Volumes/main/raw/files/sales.csv")`'
+    verdict: incorrect
+    justification: pandas-on-Spark DataFrames have no `read` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.pandas/index.html
+- id: 7.1-018
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer has a small pandas DataFrame `pdf` and wants a pandas-on-Spark DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`ps.read_pandas(pdf, distributed=True)`'
+    verdict: incorrect
+    justification: There is no `read_pandas` function.
+  - text: '`ps.from_pandas(pdf)`'
+    verdict: correct
+    justification: '`ps.from_pandas(pdf)` converts a pandas DataFrame to pandas-on-Spark.'
+  - text: '`pdf.to_spark()`'
+    verdict: incorrect
+    justification: pandas DataFrames have no `to_spark` method.
+  - text: '`spark.pandas(pdf)`'
+    verdict: incorrect
+    justification: SparkSession has no `pandas` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-019
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Does the pandas API on Spark target 100% compatibility with pandas?
+  answers:
+  - text: Yes, but only for Series.
+    verdict: incorrect
+    justification: DataFrames are supported too.
+  - text: No; it only supports SQL.
+    verdict: incorrect
+    justification: It is a pandas-style API, not SQL-only.
+  - text: Yes; every pandas function is supported unchanged.
+    verdict: incorrect
+    justification: Not every pandas function is supported unchanged.
+  - text: No; it aims to provide most of the pandas API, and some workarounds may be needed when porting code.
+    verdict: correct
+    justification: The docs say the pandas API on Spark does not target 100% compatibility, so porting may need workarounds.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/pandas_pyspark.html
+- id: 7.1-020
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    Before migrating code, a team wants to know which pandas functions are implemented in the pandas API on Spark.
+
+    Where can they check this?
+  answers:
+  - text: In the "Supported pandas API" reference of the pandas API on Spark documentation
+    verdict: correct
+    justification: The documentation has a "Supported pandas API" reference that lists the implemented functions.
+  - text: In the cluster event log
+    verdict: incorrect
+    justification: The event log shows compute lifecycle events.
+  - text: In the Spark SQL function reference only
+    verdict: incorrect
+    justification: The SQL function reference does not list pandas API coverage.
+  - text: It cannot be checked in advance
+    verdict: incorrect
+    justification: The supported API list is published.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/supported_pandas_api.html
+- id: 7.1-021
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A team's existing Koalas code runs on old Databricks Runtime versions. They upgrade to a current runtime.
+
+    Which module should they use now?
+  answers:
+  - text: '`pandas` with a Spark plugin'
+    verdict: incorrect
+    justification: Plain pandas with a plugin is not the pandas API on Spark.
+  - text: '`pyspark.sql.pandas_compat`'
+    verdict: incorrect
+    justification: There is no `pyspark.sql.pandas_compat` module.
+  - text: '`pyspark.pandas`, the pandas API on Spark'
+    verdict: correct
+    justification: On current runtimes, Koalas code moves to `pyspark.pandas`, the pandas API on Spark.
+  - text: '`databricks.koalas`, which is the current module'
+    verdict: incorrect
+    justification: Databricks says to use Koalas only on Databricks Runtime 9.1 LTS and below.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-022
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What does the best practices guide recommend regarding mixing pandas API on Spark and PySpark code?
+  answers:
+  - text: Never use PySpark APIs together with pandas API on Spark.
+    verdict: incorrect
+    justification: The guide encourages combining them.
+  - text: Leverage PySpark APIs when useful, because pandas-on-Spark and Spark DataFrames are easy to convert between.
+    verdict: correct
+    justification: The guide recommends using PySpark APIs when useful, because conversion between the two is easy.
+  - text: PySpark APIs cannot be used on pandas-on-Spark data.
+    verdict: incorrect
+    justification: PySpark APIs can be used after converting with `to_spark()`.
+  - text: Always convert to pandas before using PySpark.
+    verdict: incorrect
+    justification: Converting to pandas collects all data.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-023
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What does the best practices guide recommend about using pandas API on Spark versus converting to pandas?
+  answers:
+  - text: Use the pandas API on Spark directly whenever possible instead of converting to pandas.
+    verdict: correct
+    justification: The guide recommends using the pandas API on Spark directly instead of converting to pandas.
+  - text: Always convert to pandas for every operation.
+    verdict: incorrect
+    justification: Converting everything to pandas removes the distribution.
+  - text: Use pandas API on Spark only for plotting.
+    verdict: incorrect
+    justification: The pandas API on Spark covers much more than plotting.
+  - text: Use pandas only for joins.
+    verdict: incorrect
+    justification: There is no such recommendation about joins.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-024
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer converts a Spark DataFrame to pandas-on-Spark and inspects the data types.
+
+    Which statement is correct?
+  answers:
+  - text: All columns become strings.
+    verdict: incorrect
+    justification: Columns are not converted to strings.
+  - text: Type information is lost and must be redefined.
+    verdict: incorrect
+    justification: Types are preserved through the mapping.
+  - text: All columns become object dtype.
+    verdict: incorrect
+    justification: Columns keep their mapped types, not object dtype.
+  - text: Spark data types are mapped to corresponding pandas and NumPy dtypes, as documented in the type mapping.
+    verdict: correct
+    justification: The type documentation maps Spark data types to pandas and NumPy dtypes.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/types.html
+- id: 7.1-025
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Why does the pandas API on Spark have a cost when creating a default index?
+  answers:
+  - text: The index is computed on the driver from all data.
+    verdict: incorrect
+    justification: The default index is computed in a distributed way (except `sequence`), not on the driver from all data.
+  - text: The index forces the data to be cached in memory twice.
+    verdict: incorrect
+    justification: The index does not force double caching.
+  - text: Spark DataFrames already have an index that must be dropped.
+    verdict: incorrect
+    justification: Spark DataFrames do not have an index.
+  - text: Pandas has an index concept that Spark DataFrames lack, so pandas-on-Spark must attach one, which requires extra computation.
+    verdict: correct
+    justification: pandas has an index concept that Spark DataFrames lack, so pandas-on-Spark must attach a default index, which costs extra computation.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/best_practices.html
+- id: 7.1-026
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A team compares pandas API on Spark with plain pandas for a 5 MB dataset used in a quick analysis.
+
+    Which statement is most accurate?
+  answers:
+  - text: Plain pandas may be simpler and faster here, because the data fits easily on one machine; pandas API on Spark pays off for large data.
+    verdict: correct
+    justification: For 5 MB, plain pandas is simpler and faster; the pandas API on Spark pays off for large data.
+  - text: Plain pandas cannot process 5 MB of data.
+    verdict: incorrect
+    justification: pandas handles 5 MB easily.
+  - text: Pandas API on Spark is always faster regardless of size.
+    verdict: incorrect
+    justification: Distribution adds overhead, so it is not faster for small data.
+  - text: Pandas API on Spark cannot process small data.
+    verdict: incorrect
+    justification: The pandas API on Spark can process small data; it is just not needed.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-027
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer applies a function to each pandas-on-Spark DataFrame batch, where the function receives a pandas DataFrame.
+
+    Which API does this?
+  answers:
+  - text: '`psdf.to_spark().apply(func)`'
+    verdict: incorrect
+    justification: Spark DataFrames have no `apply` method.
+  - text: '`psdf.batch(func).collect()`'
+    verdict: incorrect
+    justification: There is no `batch` method.
+  - text: '`psdf.pandas_on_spark.apply_batch(func)`'
+    verdict: correct
+    justification: '`pandas_on_spark.apply_batch` applies a function to each batch, which it receives as a pandas DataFrame.'
+  - text: '`psdf.apply_spark(func)`'
+    verdict: incorrect
+    justification: There is no `apply_spark` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/transform_apply.html
+- id: 7.1-028
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: What is the difference between `DataFrame.transform` and `DataFrame.apply` in the pandas API on Spark?
+  answers:
+  - text: There is no difference.
+    verdict: incorrect
+    justification: Their output length requirements differ.
+  - text: '`transform` must return output of the same length as its input, while `apply` can return output of a different length.'
+    verdict: correct
+    justification: The docs state that `transform` must return the same length as its input, while `apply` does not have to.
+  - text: '`transform` runs on the driver and `apply` on executors.'
+    verdict: incorrect
+    justification: Both run distributed on executors.
+  - text: '`apply` must return the same length as the input, while `transform` can change it.'
+    verdict: incorrect
+    justification: The rules are swapped.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/transform_apply.html
+- id: 7.1-029
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer adds a Series from one pandas-on-Spark DataFrame to another DataFrame.
+
+    Which option determines whether operations between two different DataFrames are allowed, since they require a join internally?
+  answers:
+  - text: '`plotting.backend`'
+    verdict: true_but_irrelevant
+    justification: '`plotting.backend` is a real option, but it sets the plotting library.'
+  - text: '`display.max_rows`'
+    verdict: true_but_irrelevant
+    justification: '`display.max_rows` is a real option, but it controls display.'
+  - text: '`compute.default_index_type`'
+    verdict: true_but_irrelevant
+    justification: '`compute.default_index_type` is a real option, but it sets the default index type.'
+  - text: '`compute.ops_on_diff_frames`'
+    verdict: correct
+    justification: '`compute.ops_on_diff_frames` controls whether operations between different DataFrames, which need a join, are allowed.'
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/options.html
+- id: 7.1-030
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: Which execution engine performs the computation when a data scientist runs a `groupby().mean()` on a pandas-on-Spark DataFrame?
+  answers:
+  - text: pandas on the driver only
+    verdict: incorrect
+    justification: The computation is distributed, not run with pandas on the driver.
+  - text: Apache Spark, distributed across the cluster
+    verdict: correct
+    justification: pandas-on-Spark operations run on Apache Spark, distributed across the cluster.
+  - text: NumPy on the client machine
+    verdict: incorrect
+    justification: The computation does not run with NumPy on the client.
+  - text: A separate Koalas server
+    verdict: incorrect
+    justification: Koalas is the old project name; there is no separate server.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 7.1-031
+  category: using_pandas_api_on_spark
+  objective: '7.1'
+  question: |-
+    A data engineer creates a pandas-on-Spark DataFrame from a dictionary.
+
+    Which code does this?
+  answers:
+  - text: '`ps.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})`'
+    verdict: correct
+    justification: '`ps.DataFrame(dict)` creates a pandas-on-Spark DataFrame, like `pd.DataFrame`.'
+  - text: '`ps.from_dict_spark({"a": [1, 2, 3]})`'
+    verdict: incorrect
+    justification: There is no `from_dict_spark` function.
+  - text: '`spark.pandas({"a": [1, 2, 3], "b": [4, 5, 6]})`'
+    verdict: incorrect
+    justification: SparkSession has no `pandas` method.
+  - text: '`ps.read_dict({"a": [1, 2, 3], "b": [4, 5, 6]})`'
+    verdict: incorrect
+    justification: There is no `read_dict` function.
+  source_url: https://spark.apache.org/docs/latest/api/python/getting_started/quickstart_ps.html

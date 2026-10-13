@@ -1,0 +1,640 @@
+# Objective 1.7: Identify the features of the Apache Spark Modules, including Core, Spark SQL, DataFrames, Pandas API on Spark, Structured Streaming, and MLib.
+- id: 1.7-001
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer lists the higher-level tools that ship with Apache Spark.
+
+    Which module is used for structured data processing with SQL and DataFrames?
+  answers:
+  - text: Spark SQL
+    verdict: correct
+    justification: Spark SQL is the module for structured data processing with SQL and DataFrames.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is a real Spark library, but it is for machine learning, not structured querying.
+  - text: Spark Core's RDD API
+    verdict: partially_correct
+    justification: The RDD API can process structured data, but it is low-level and has no SQL or schema-aware DataFrame support; that is what Spark SQL provides.
+  - text: GraphX
+    verdict: true_but_irrelevant
+    justification: GraphX is a real Spark library, but it is for graph processing.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.7-002
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team needs incremental computation over data that arrives continuously from Kafka.
+
+    Which Spark module is designed for this?
+  answers:
+  - text: Spark SQL's JDBC server
+    verdict: true_but_irrelevant
+    justification: Spark SQL can be accessed over JDBC, but that is about serving queries, not processing a stream.
+  - text: Pandas API on Spark
+    verdict: true_but_irrelevant
+    justification: The pandas API on Spark gives pandas-style batch analysis, not streaming.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning, not stream processing.
+  - text: Structured Streaming
+    verdict: correct
+    justification: Structured Streaming is the module for incremental computation over continuously arriving data, including from Kafka.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.7-003
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data scientist wants to train a distributed logistic regression model on a Spark DataFrame.
+
+    Which Spark module provides this?
+  answers:
+  - text: Structured Streaming
+    verdict: true_but_irrelevant
+    justification: Structured Streaming processes data streams; it does not train models.
+  - text: MLlib
+    verdict: correct
+    justification: MLlib provides distributed ML algorithms such as logistic regression on DataFrames.
+  - text: Spark Connect
+    verdict: true_but_irrelevant
+    justification: Spark Connect is a client-server protocol for running Spark remotely, not an ML library.
+  - text: Pandas API on Spark
+    verdict: true_but_irrelevant
+    justification: The pandas API on Spark offers pandas-style data manipulation, not distributed ML algorithms.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-004
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data scientist sees two MLlib APIs in the documentation: one in `pyspark.ml` and one in `pyspark.mllib`.
+
+    Which statement is correct?
+  answers:
+  - text: Both APIs were removed in Spark 4.
+    verdict: incorrect
+    justification: Both APIs still exist in Spark 4; only the RDD-based one is in maintenance mode.
+  - text: The DataFrame-based API only supports Scala.
+    verdict: incorrect
+    justification: The DataFrame-based API works in Python, Scala, Java and R.
+  - text: The DataFrame-based API is the primary API, while the RDD-based API is in maintenance mode.
+    verdict: correct
+    justification: The DataFrame-based API in `pyspark.ml` is MLlib's primary API; the RDD-based `pyspark.mllib` API is in maintenance mode and gets no new features.
+  - text: The RDD-based API is the primary API and gets all new features.
+    verdict: incorrect
+    justification: 'It is the other way round: the RDD-based API is in maintenance mode.'
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-005
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A colleague refers to "Spark ML".
+
+    What does this term usually refer to?
+  answers:
+  - text: The RDD-based MLlib API
+    verdict: incorrect
+    justification: The RDD-based API is `spark.mllib`, which is not what "Spark ML" refers to.
+  - text: The DataFrame-based API of MLlib, although it is not an official name
+    verdict: correct
+    justification: '"Spark ML" informally refers to MLlib''s DataFrame-based API; the MLlib guide notes it is not an official name.'
+  - text: The pandas API on Spark
+    verdict: incorrect
+    justification: The pandas API on Spark is a separate module, not "Spark ML".
+  - text: A separate machine learning engine outside Spark
+    verdict: incorrect
+    justification: It is not a separate engine; it is part of Spark's MLlib.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-006
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data analyst comfortable with pandas wants to work with a dataset too large for one machine, using familiar pandas syntax.
+
+    Which Spark module fits best?
+  answers:
+  - text: Pandas API on Spark (`pyspark.pandas`)
+    verdict: correct
+    justification: The pandas API on Spark (`pyspark.pandas`) offers pandas-like syntax on distributed data that doesn't fit on one machine.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning, not pandas-style data manipulation.
+  - text: Structured Streaming
+    verdict: true_but_irrelevant
+    justification: Structured Streaming is for streams, not pandas-style analysis.
+  - text: Spark Core RDDs
+    verdict: partially_correct
+    justification: RDDs can process large data, but they are low-level and offer nothing like pandas syntax.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-007
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A developer wants to use the pandas API on Spark in a notebook.
+
+    Which import statement is used?
+  answers:
+  - text: '`import pandas.spark as ps`'
+    verdict: incorrect
+    justification: There is no `pandas.spark` module.
+  - text: '`import databricks.koalas as ps`'
+    verdict: partially_correct
+    justification: '`databricks.koalas` was the old separate Koalas package for Databricks Runtime 9.1 LTS and below; current runtimes use `pyspark.pandas`.'
+  - text: '`from pyspark.sql import pandas as ps`'
+    verdict: incorrect
+    justification: '`pyspark.sql` has no `pandas` submodule for this API.'
+  - text: '`import pyspark.pandas as ps`'
+    verdict: correct
+    justification: The Databricks documentation imports the pandas API on Spark with `import pyspark.pandas as ps`.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-008
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer asks which module provides the low-level foundation of Spark, including task scheduling, memory management, fault recovery and the RDD abstraction.
+
+    Which module is it?
+  answers:
+  - text: MLlib
+    verdict: incorrect
+    justification: MLlib is a library on top of the core engine.
+  - text: Structured Streaming
+    verdict: incorrect
+    justification: Structured Streaming is built on Spark SQL, not the foundation itself.
+  - text: Spark Core
+    verdict: correct
+    justification: 'Spark Core provides the basic engine: task scheduling, memory management, fault recovery and the RDD abstraction.'
+  - text: Spark SQL
+    verdict: incorrect
+    justification: Spark SQL is built on top of Spark Core for structured processing.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.7-009
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team mixes SQL queries and DataFrame code in one pipeline and wonders whether they run on different engines.
+
+    Which statement from the Spark SQL guide is correct?
+  answers:
+  - text: SQL queries run on a separate SQL engine that does not use executors.
+    verdict: incorrect
+    justification: SQL queries run on the same distributed engine and executors as DataFrames.
+  - text: SQL queries are converted to RDD code by the user.
+    verdict: incorrect
+    justification: Users do not convert SQL to RDD code; Spark plans SQL itself.
+  - text: The same execution engine is used regardless of which API or language expresses the computation.
+    verdict: correct
+    justification: The Spark SQL guide states the same execution engine is used regardless of the API or language, so SQL and DataFrame code run on the same engine.
+  - text: DataFrame code is always faster than SQL because SQL is interpreted.
+    verdict: incorrect
+    justification: SQL and DataFrame code compile to the same plans, so neither is inherently faster.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-010
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: Why can Spark SQL optimize DataFrame queries more than the basic RDD API?
+  answers:
+  - text: Spark SQL interfaces give Spark more information about the structure of the data and the computation being performed.
+    verdict: correct
+    justification: Spark SQL knows the schema and the operations, which lets it apply extra optimizations that are impossible for opaque RDD functions.
+  - text: Spark SQL always uses more executors than the RDD API.
+    verdict: incorrect
+    justification: Spark SQL does not get more executors than RDD code.
+  - text: Spark SQL disables fault tolerance to gain speed.
+    verdict: incorrect
+    justification: Spark SQL keeps fault tolerance; it is not traded for speed.
+  - text: The RDD API is not distributed.
+    verdict: incorrect
+    justification: RDDs are distributed as well.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-011
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer wants to write a streaming computation the same way as a batch computation on static data.
+
+    Which property of Structured Streaming makes this possible?
+  answers:
+  - text: It converts all streams into static tables once per day.
+    verdict: incorrect
+    justification: Streams are processed incrementally, not converted into daily static tables.
+  - text: It requires a separate streaming API based on RDDs.
+    verdict: incorrect
+    justification: Structured Streaming uses the DataFrame API; the RDD-based DStream API is the legacy streaming API.
+  - text: It only works with SQL, not with DataFrames.
+    verdict: incorrect
+    justification: Structured Streaming supports both DataFrames and SQL.
+  - text: It is built on the Spark SQL engine and lets users express streaming computations with the same DataFrame operations as batch.
+    verdict: correct
+    justification: Structured Streaming runs on the Spark SQL engine, so streaming computations use the same DataFrame operations as batch.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 1.7-012
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team asks which languages Spark's high-level APIs support.
+
+    Which list is correct according to the Spark documentation?
+  answers:
+  - text: Java and JavaScript
+    verdict: partially_correct
+    justification: Java is supported, but JavaScript is not one of Spark's high-level APIs.
+  - text: Java, Scala, Python and R
+    verdict: correct
+    justification: The Spark documentation lists high-level APIs in Java, Scala, Python and R.
+  - text: Python only
+    verdict: partially_correct
+    justification: Python is supported, but so are Java, Scala and R.
+  - text: Scala and C++
+    verdict: partially_correct
+    justification: Scala is supported, but C++ is not one of Spark's high-level APIs.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.7-013
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A machine learning engineer wants to chain feature transformers and an estimator into one reusable workflow in MLlib.
+
+    Which MLlib concept is used?
+  answers:
+  - text: A broadcast variable
+    verdict: incorrect
+    justification: A broadcast variable shares read-only data with tasks.
+  - text: A `StreamingQuery`
+    verdict: incorrect
+    justification: '`StreamingQuery` represents a running streaming query, not an ML workflow.'
+  - text: A temporary view
+    verdict: incorrect
+    justification: A temporary view names a DataFrame for SQL queries.
+  - text: A `Pipeline` made of stages
+    verdict: correct
+    justification: MLlib's `Pipeline` chains transformers and an estimator as stages into one reusable workflow.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-014
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer runs SQL from PySpark with `spark.sql(...)`.
+
+    In what form are the results returned?
+  answers:
+  - text: As a DataFrame
+    verdict: correct
+    justification: '`spark.sql(...)` returns the results as a DataFrame.'
+  - text: As a Python list of tuples
+    verdict: incorrect
+    justification: It returns a DataFrame; a list of rows only comes from actions such as `collect()`.
+  - text: As a CSV string
+    verdict: incorrect
+    justification: It does not return CSV text.
+  - text: As an RDD of strings
+    verdict: incorrect
+    justification: It returns a DataFrame, not an RDD of strings.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-015
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team reads that the pandas API on Spark was previously a separate project.
+
+    What was it called before it was merged into Apache Spark?
+  answers:
+  - text: Photon
+    verdict: true_but_irrelevant
+    justification: Photon is the Databricks vectorized query engine, unrelated to the pandas API.
+  - text: Delta
+    verdict: true_but_irrelevant
+    justification: Delta Lake is a table storage format, unrelated to the pandas API.
+  - text: Koalas
+    verdict: correct
+    justification: Before it was added to Apache Spark, the pandas API on Spark was the separate Koalas project.
+  - text: Arrow
+    verdict: true_but_irrelevant
+    justification: Apache Arrow is a columnar memory format Spark uses for pandas conversions, not the predecessor of the pandas API.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-016
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer wants to know since which version the pandas API on Spark is part of Apache Spark.
+
+    Which version introduced it?
+  answers:
+  - text: Apache Spark 2.0
+    verdict: incorrect
+    justification: Spark 2.0 predates the pandas API on Spark.
+  - text: Apache Spark 3.2
+    verdict: correct
+    justification: Databricks documents that the pandas API on Spark is available from Apache Spark 3.2 (Databricks Runtime 10.0).
+  - text: Apache Spark 1.6
+    verdict: incorrect
+    justification: Spark 1.6 predates the pandas API on Spark.
+  - text: Apache Spark 4.0
+    verdict: incorrect
+    justification: It existed long before Spark 4.0; it was added in 3.2.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-017
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer asks how Structured Streaming processes data by default.
+
+    Which statement is correct?
+  answers:
+  - text: The driver processes every record before sending it to executors.
+    verdict: incorrect
+    justification: Records are processed by executors, not routed through the driver.
+  - text: By default, queries are processed by a micro-batch engine that treats the stream as a series of small batch jobs.
+    verdict: correct
+    justification: By default Structured Streaming uses a micro-batch engine that processes the stream as a series of small batch jobs.
+  - text: Data is processed once per day in a single large batch.
+    verdict: incorrect
+    justification: Micro-batches run continuously as data arrives, not once per day.
+  - text: Each record is processed by a separate Spark application.
+    verdict: incorrect
+    justification: All records are processed by one long-running streaming query, not a separate application per record.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 1.7-018
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team asks which kinds of tools MLlib includes besides learning algorithms.
+
+    Which list matches MLlib's scope?
+  answers:
+  - text: Cluster managers and schedulers
+    verdict: incorrect
+    justification: Cluster managers and schedulers are part of Spark's deployment and core, not MLlib.
+  - text: Stream sources and sinks
+    verdict: incorrect
+    justification: Stream sources and sinks belong to Structured Streaming.
+  - text: Featurization, pipelines, model persistence and utilities such as statistics
+    verdict: correct
+    justification: Besides algorithms, MLlib includes featurization, pipelines, model persistence and utilities such as statistics.
+  - text: JDBC drivers and connection pooling
+    verdict: incorrect
+    justification: JDBC connectivity belongs to Spark SQL's data sources.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-019
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer reads JSON, Parquet and JDBC sources and queries them together.
+
+    Which module provides the data source API used for this?
+  answers:
+  - text: Spark Core's broadcast API
+    verdict: incorrect
+    justification: Broadcast variables share values with tasks; they are not a data source API.
+  - text: GraphX
+    verdict: true_but_irrelevant
+    justification: GraphX is for graph processing.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning, not data sources.
+  - text: Spark SQL
+    verdict: correct
+    justification: Spark SQL's data source API reads JSON, Parquet, JDBC and more into DataFrames that can be queried together.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-020
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A PySpark user wants to plot data directly from a large distributed dataset with pandas-style syntax.
+
+    According to Databricks, which module helps with tasks like this?
+  answers:
+  - text: Pandas API on Spark
+    verdict: correct
+    justification: Databricks notes that the pandas API on Spark makes tasks like plotting directly from distributed data easy, which is hard in plain PySpark.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning, not plotting.
+  - text: Structured Streaming
+    verdict: true_but_irrelevant
+    justification: Structured Streaming is for streams, not plotting.
+  - text: Spark Connect
+    verdict: true_but_irrelevant
+    justification: Spark Connect is a remote client protocol, not a plotting tool.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-021
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team needs graph processing algorithms such as PageRank on Spark.
+
+    Which Spark library is listed for graph processing?
+  answers:
+  - text: GraphX
+    verdict: correct
+    justification: The Spark documentation lists GraphX for graph processing.
+  - text: Structured Streaming
+    verdict: true_but_irrelevant
+    justification: Structured Streaming is for stream processing.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning.
+  - text: Spark SQL
+    verdict: true_but_irrelevant
+    justification: Spark SQL is for structured data processing.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.7-022
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: Which Spark SQL capability lets external BI tools query Spark data?
+  answers:
+  - text: Spark SQL requires exporting data to a relational database first.
+    verdict: incorrect
+    justification: Spark SQL queries data in place; no export to a relational database is needed.
+  - text: Spark SQL only queries data stored on the driver.
+    verdict: incorrect
+    justification: Spark SQL queries distributed data on executors, not data on the driver.
+  - text: Spark SQL can only be used from Scala code.
+    verdict: incorrect
+    justification: Spark SQL is available from Python, SQL, Java, R and Scala.
+  - text: Spark SQL can be accessed over JDBC/ODBC and the command line, in addition to programmatic APIs.
+    verdict: correct
+    justification: Besides programmatic APIs, Spark SQL can be accessed over JDBC/ODBC and the command line, which lets BI tools query Spark.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-023
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer wants a streaming aggregation over event time with late data handling.
+
+    Which module offers event-time windows and watermarks?
+  answers:
+  - text: Pandas API on Spark
+    verdict: true_but_irrelevant
+    justification: The pandas API on Spark has no event-time watermarks.
+  - text: Structured Streaming
+    verdict: correct
+    justification: Structured Streaming supports event-time windows and watermarks for late data.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning.
+  - text: Spark Core
+    verdict: partially_correct
+    justification: Spark Core is the foundation, but event-time windows and watermarks are Structured Streaming features.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 1.7-024
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data scientist wants to save a trained MLlib pipeline model and load it later in another job.
+
+    Which MLlib feature supports this?
+  answers:
+  - text: Broadcast variables
+    verdict: incorrect
+    justification: Broadcast variables share read-only data within one application; they do not persist models.
+  - text: Temporary views
+    verdict: incorrect
+    justification: Temporary views are session-scoped names for DataFrames.
+  - text: Model persistence, which saves and loads algorithms, models and pipelines
+    verdict: correct
+    justification: MLlib's model persistence saves and loads algorithms, models and whole pipelines.
+  - text: Checkpoint locations of streaming queries
+    verdict: incorrect
+    justification: Streaming checkpoints store query progress and state, not ML models.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.7-025
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A developer needs fine-grained control over physical data distribution and works with unstructured records using arbitrary functions.
+
+    Which Spark API is the low-level option for this?
+  answers:
+  - text: MLlib's Pipeline API
+    verdict: incorrect
+    justification: MLlib's Pipeline API is for ML workflows.
+  - text: The pandas API on Spark
+    verdict: incorrect
+    justification: The pandas API on Spark is a high-level API.
+  - text: Spark SQL's SQL interface
+    verdict: incorrect
+    justification: Spark SQL works with structured data and gives less low-level control.
+  - text: The RDD API of Spark Core
+    verdict: correct
+    justification: The RDD API of Spark Core gives low-level control with arbitrary functions over unstructured records.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.7-026
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A data engineer compares a pandas-on-Spark DataFrame with a pandas DataFrame.
+
+    Which statement is correct?
+  answers:
+  - text: Both are held in the driver's memory.
+    verdict: incorrect
+    justification: Only the pandas DataFrame lives in one process's memory; the pandas-on-Spark one is distributed.
+  - text: A pandas-on-Spark DataFrame cannot be converted to a Spark DataFrame.
+    verdict: incorrect
+    justification: '`to_spark()` converts a pandas-on-Spark DataFrame to a Spark DataFrame.'
+  - text: A pandas-on-Spark DataFrame is distributed across the cluster, while a pandas DataFrame lives in one Python process.
+    verdict: correct
+    justification: A pandas-on-Spark DataFrame is distributed across the cluster; a pandas DataFrame lives in one Python process on one machine.
+  - text: A pandas DataFrame is automatically distributed when used in a notebook.
+    verdict: incorrect
+    justification: A pandas DataFrame is never distributed automatically.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.7-027
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: Which statement about the fault-tolerance guarantee of Structured Streaming is correct?
+  answers:
+  - text: It provides no fault tolerance; failed queries must be restarted from the beginning of the data.
+    verdict: incorrect
+    justification: Queries recover from their checkpoint; they do not restart from the beginning.
+  - text: It provides end-to-end exactly-once guarantees through checkpointing and write-ahead logs, with replayable sources and idempotent sinks.
+    verdict: correct
+    justification: Structured Streaming provides end-to-end exactly-once guarantees through checkpointing and write-ahead logs, given replayable sources and idempotent sinks.
+  - text: It guarantees exactly-once only for console sinks.
+    verdict: incorrect
+    justification: Exactly-once applies to supported idempotent sinks, not only the console sink (which is for debugging).
+  - text: It provides at-most-once delivery only.
+    verdict: incorrect
+    justification: The guarantee is exactly-once, not at-most-once.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 1.7-028
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team wants to run Spark client applications remotely from an IDE through a decoupled client-server architecture.
+
+    Which feature, introduced in Spark 3.4, provides this?
+  answers:
+  - text: Spark Connect
+    verdict: correct
+    justification: Spark Connect, introduced in Spark 3.4, is a decoupled client-server architecture for running Spark remotely from IDEs and applications.
+  - text: MLlib
+    verdict: true_but_irrelevant
+    justification: MLlib is for machine learning.
+  - text: Spark Core's RDD API
+    verdict: incorrect
+    justification: The RDD API is not a remote client-server architecture, and Spark Connect does not support it.
+  - text: GraphX
+    verdict: true_but_irrelevant
+    justification: GraphX is for graph processing.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.7-029
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: In which module are DataFrames implemented?
+  answers:
+  - text: GraphX
+    verdict: incorrect
+    justification: GraphX is a graph library and does not implement DataFrames.
+  - text: MLlib
+    verdict: incorrect
+    justification: MLlib uses DataFrames but does not implement them.
+  - text: Spark SQL
+    verdict: correct
+    justification: DataFrames are part of the Spark SQL module.
+  - text: Structured Streaming only
+    verdict: partially_correct
+    justification: Structured Streaming uses DataFrames, but they are implemented in Spark SQL and also used for batch.
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.7-030
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A team wants to train machine learning models on Databricks using Spark.
+
+    Which statement is correct?
+  answers:
+  - text: MLlib can be used for distributed training on Spark DataFrames, alongside other ML libraries supported on Databricks.
+    verdict: correct
+    justification: MLlib runs distributed training on Spark DataFrames on Databricks compute, alongside other ML libraries Databricks supports.
+  - text: MLlib only runs on serverless SQL warehouses.
+    verdict: incorrect
+    justification: SQL warehouses run SQL; MLlib runs on Spark compute such as clusters.
+  - text: Databricks removed MLlib from its runtime.
+    verdict: incorrect
+    justification: MLlib is part of Apache Spark in Databricks Runtime.
+  - text: MLlib requires converting DataFrames to pandas before training.
+    verdict: incorrect
+    justification: MLlib trains directly on Spark DataFrames without converting to pandas.
+  source_url: https://docs.databricks.com/aws/en/machine-learning/
+- id: 1.7-031
+  category: apache_spark_architecture_and_components
+  objective: '1.7'
+  question: |-
+    A developer converts a Spark DataFrame to a pandas-on-Spark DataFrame.
+
+    Which method does this?
+  answers:
+  - text: '`sdf.toPandas()`'
+    verdict: true_but_irrelevant
+    justification: '`toPandas()` exists, but it collects the data into a local pandas DataFrame on the driver, not a distributed pandas-on-Spark DataFrame.'
+  - text: '`sdf.pandas_api()`'
+    verdict: correct
+    justification: '`pandas_api()` converts a Spark DataFrame to a pandas-on-Spark DataFrame.'
+  - text: '`sdf.to_koalas()`'
+    verdict: partially_correct
+    justification: '`to_koalas()` came from the old Koalas package; current Spark uses `pandas_api()`.'
+  - text: '`sdf.asPandas()`'
+    verdict: incorrect
+    justification: There is no `asPandas()` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.pandas_api.html

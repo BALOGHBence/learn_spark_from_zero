@@ -1,0 +1,673 @@
+# Objective 1.1: Identify the advantages and challenges of implementing Spark.
+- id: 1.1-001
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team runs a nightly pipeline as a chain of Hadoop MapReduce jobs that write intermediate results to disk between every step. They are considering Apache Spark.
+
+    Which characteristic of Spark is the main reason it can run such multi-step pipelines faster?
+  answers:
+  - text: Spark runs every step of the pipeline on a single, very large machine.
+    verdict: incorrect
+    justification: 'The opposite is true: Spark distributes the work over many executors on many machines instead of relying on one large machine.'
+  - text: Spark compiles Python code to native machine code before running it.
+    verdict: incorrect
+    justification: PySpark code is not compiled to native machine code; DataFrame operations are planned and executed by Spark's JVM-based engine.
+  - text: Spark stores all data in a relational database to avoid disk I/O.
+    verdict: incorrect
+    justification: Spark is a processing engine, not a database; it reads from and writes to external storage and does not put data into a relational database.
+  - text: Spark can keep intermediate data in memory across operations instead of writing it to disk after each step.
+    verdict: correct
+    justification: MapReduce materializes intermediate results to disk between jobs; Spark can keep intermediate data in memory and chain many steps in one application, which removes most of that I/O.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.1-002
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A company wants one engine for batch ETL, SQL analytics, streaming ingestion and machine learning, instead of maintaining four separate systems.
+
+    Which advantage of Apache Spark addresses this need?
+  answers:
+  - text: Spark replaces the need for any storage layer because it persists data internally.
+    verdict: incorrect
+    justification: Spark has no storage layer of its own; it relies on external storage such as cloud object storage or Delta Lake tables.
+  - text: Spark ships a separate cluster manager for each workload type.
+    verdict: incorrect
+    justification: Spark runs all its libraries on whatever single cluster manager is in use; there is no separate cluster manager per workload.
+  - text: Spark is a unified engine with libraries for SQL, Structured Streaming, MLlib and more on top of the same core.
+    verdict: correct
+    justification: 'Spark is a unified analytics engine: Spark SQL, Structured Streaming, MLlib and the pandas API on Spark all run on the same core engine, so one platform covers all four workloads.'
+  - text: Spark automatically converts batch jobs into streaming jobs without code changes.
+    verdict: incorrect
+    justification: Batch and streaming share the DataFrame API, but a batch job does not become a streaming job by itself; you still use `readStream`/`writeStream`.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.1-003
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer explains to a manager why a failed executor did not cause the whole Spark job to restart from scratch.
+
+    Which Spark mechanism allows lost partitions to be recomputed?
+  answers:
+  - text: Spark tracks the lineage of transformations, so it can recompute lost partitions from their source data.
+    verdict: correct
+    justification: Each DataFrame/RDD remembers the lineage of transformations that produced it, so Spark can recompute only the lost partitions from the source data after an executor failure.
+  - text: Spark writes a full checkpoint of every DataFrame to disk after each transformation.
+    verdict: incorrect
+    justification: Spark does not checkpoint after every transformation; checkpointing is optional, and normal fault recovery uses lineage.
+  - text: The driver keeps a copy of all partitions in its own memory.
+    verdict: incorrect
+    justification: The driver does not hold the data partitions; it only coordinates the job. Keeping all partitions on the driver would defeat distributed processing.
+  - text: Spark replicates every DataFrame to three nodes by default.
+    verdict: incorrect
+    justification: Spark does not replicate DataFrames by default; replication only happens with replicated storage levels such as `MEMORY_AND_DISK_2`, and even then it is not the recovery mechanism described here.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.1-004
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    One team builds a pipeline in PySpark, another uses Scala and a third uses SQL, all against the same data.
+
+    Which statement describes this advantage of Spark?
+  answers:
+  - text: Spark translates all code into SQL text before running it.
+    verdict: incorrect
+    justification: Spark does not convert code into SQL text; all APIs are translated into the same logical plan representation, not SQL strings.
+  - text: Spark offers high-level APIs in several languages, including Python, Scala, Java, R and SQL, on the same engine.
+    verdict: correct
+    justification: Spark exposes high-level APIs in Python, Scala, Java and R, plus SQL, all executed by the same engine and optimizer, so teams can choose their language for the same data.
+  - text: Only Scala code is optimized; Python and SQL queries bypass the optimizer.
+    verdict: incorrect
+    justification: DataFrame and SQL queries from Python and SQL are optimized by the same optimizer as Scala DataFrame code.
+  - text: Each language requires its own separate Spark cluster type.
+    verdict: incorrect
+    justification: All languages run on the same cluster; there is no separate cluster type per language.
+  source_url: https://spark.apache.org/docs/latest/index.html
+- id: 1.1-005
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A startup processes a 50 MB CSV file once a day on a large Spark cluster and notices that most of the runtime is spent on job scheduling and task startup.
+
+    Which challenge of Spark does this illustrate?
+  answers:
+  - text: Spark always shuffles data at least twice per job.
+    verdict: incorrect
+    justification: Shuffles happen only for wide operations such as joins or aggregations; simple jobs may not shuffle at all.
+  - text: Spark cannot read CSV files smaller than one block.
+    verdict: incorrect
+    justification: Spark can read CSV files of any size, including files smaller than one block.
+  - text: Distributed processing adds overhead that can outweigh its benefits for small datasets.
+    verdict: correct
+    justification: Spark's scheduling, task launch and coordination overhead is fixed per job; with only 50 MB of data that overhead dominates, so distributed processing brings little benefit.
+  - text: Spark requires all input data to be cached before processing.
+    verdict: incorrect
+    justification: Spark does not require caching before processing; caching is an optional optimization.
+  source_url: https://docs.databricks.com/aws/en/compute/cluster-config-best-practices
+- id: 1.1-006
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    An application written with the DataFrame API runs much faster than an equivalent one written with low-level RDD transformations.
+
+    Which Spark feature mainly explains the difference?
+  answers:
+  - text: RDD operations are executed sequentially, one record at a time across the cluster.
+    verdict: incorrect
+    justification: RDD operations also run in parallel across partitions; they are not processed one record at a time across the cluster.
+  - text: DataFrame queries carry schema information that lets Spark SQL's optimizer and execution engine optimize them, which plain RDD code does not benefit from.
+    verdict: correct
+    justification: DataFrames have a schema, so Spark SQL's optimizer can rewrite the query plan and the execution engine can generate efficient code; plain RDD lambdas are opaque and get none of these optimizations.
+  - text: DataFrames run on the driver, which avoids network communication.
+    verdict: incorrect
+    justification: DataFrame computations run on the executors, not on the driver.
+  - text: RDDs are always stored on disk while DataFrames are always stored in memory.
+    verdict: incorrect
+    justification: 'Neither abstraction has a fixed storage location: both are computed on executors and can be cached in memory or on disk.'
+  source_url: https://spark.apache.org/docs/latest/sql-programming-guide.html
+- id: 1.1-007
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer runs a wide join and notices the job writes and reads large amounts of data across the network between stages.
+
+    Which challenge of distributed Spark processing is this?
+  answers:
+  - text: Spark writes the full input dataset to the driver before every join.
+    verdict: incorrect
+    justification: Spark does not send the input dataset to the driver before a join; data stays distributed on the executors.
+  - text: Joins are always executed on the driver, which overloads the network.
+    verdict: incorrect
+    justification: Joins are executed by tasks on the executors, not on the driver.
+  - text: Spark replicates the joined DataFrame to every worker after each join.
+    verdict: incorrect
+    justification: Spark does not replicate the join result to every worker; only a broadcast join copies the small input to executors.
+  - text: Shuffles are expensive because they move data across executors over the network and involve disk I/O and serialization.
+    verdict: correct
+    justification: 'A wide join triggers a shuffle: data is redistributed by key across executors, which involves network transfer, disk I/O and serialization, making it one of the most expensive operations.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.1-008
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team adds a row-at-a-time Python UDF to a heavily used PySpark pipeline and observes a noticeable slowdown.
+
+    Which challenge of implementing Spark with Python does this reflect?
+  answers:
+  - text: Python UDFs require data to be serialized between the JVM and Python worker processes, which adds overhead.
+    verdict: correct
+    justification: A row-at-a-time Python UDF runs in Python worker processes, so every row must be serialized from the JVM to Python and back, which adds significant overhead compared with built-in functions.
+  - text: Python UDFs always run on the driver only.
+    verdict: incorrect
+    justification: Python UDFs run in Python workers on the executors, not on the driver.
+  - text: Python UDFs force Spark to cache the DataFrame on disk.
+    verdict: incorrect
+    justification: UDFs do not force caching; nothing is cached unless `cache()` or `persist()` is called.
+  - text: Python UDFs disable lazy evaluation for the whole query.
+    verdict: incorrect
+    justification: A UDF does not change lazy evaluation; the query is still planned lazily and runs when an action is called.
+  source_url: https://docs.databricks.com/aws/en/udf/
+- id: 1.1-009
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer must explain why Spark can process datasets larger than a single machine's memory.
+
+    Which statement is correct?
+  answers:
+  - text: Spark compresses every dataset until it fits into the driver's memory.
+    verdict: incorrect
+    justification: Spark does not try to fit data into the driver; the driver only coordinates, and the data is processed on executors.
+  - text: Spark partitions data across many executors and can spill data to disk when it does not fit in memory.
+    verdict: correct
+    justification: Spark splits data into partitions spread across executors, and operations such as shuffles and sorts can spill to disk when memory is insufficient, so the dataset never has to fit on one machine.
+  - text: Spark streams all data through the driver one row at a time.
+    verdict: incorrect
+    justification: Data does not stream through the driver; executors read and process their partitions in parallel.
+  - text: Spark refuses to process datasets that do not fit in cluster memory.
+    verdict: incorrect
+    justification: Spark can process datasets larger than total cluster memory by spilling to disk and processing partitions in waves.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.1-010
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A reporting team needs millisecond-latency single-row lookups and updates for an operational web application.
+
+    Why is Apache Spark a poor fit as the primary engine for this workload?
+  answers:
+  - text: Spark only supports batch jobs that run at least once per hour.
+    verdict: incorrect
+    justification: Spark supports streaming and can run batch jobs at any frequency; there is no hourly minimum.
+  - text: Spark does not support filtering on a primary key column.
+    verdict: incorrect
+    justification: Spark can filter on any column, including key columns.
+  - text: Spark cannot read data that is stored in tables.
+    verdict: incorrect
+    justification: Spark reads tables without any problem, for example with `spark.read.table`.
+  - text: Spark is designed for large-scale parallel analytical processing, not for low-latency transactional point lookups and updates.
+    verdict: correct
+    justification: Spark is built for large-scale parallel analytics; launching distributed jobs for single-row reads and updates adds latency that an operational (OLTP) database avoids.
+  source_url: https://docs.databricks.com/aws/en/spark/
+- id: 1.1-011
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team scales its Spark cluster from 10 to 40 workers to process growing data volumes without changing code.
+
+    Which advantage of Spark does this illustrate?
+  answers:
+  - text: Automatic code rewriting that adapts transformations to the cluster size.
+    verdict: incorrect
+    justification: Spark does not rewrite user code for the cluster size; the same plan simply gets more parallel tasks running at once.
+  - text: Data replication, which requires four times more storage per worker.
+    verdict: incorrect
+    justification: Adding workers does not multiply storage requirements; Spark does not replicate data per worker.
+  - text: Horizontal scalability, where work is spread across more executors by partitioning the data.
+    verdict: correct
+    justification: Horizontal scaling means adding more machines; because Spark partitions data, the same code automatically spreads the work across more executors.
+  - text: Vertical scalability, where Spark requires a larger driver for every new worker.
+    verdict: incorrect
+    justification: Adding workers does not require a larger driver for each one; scaling here is horizontal, not vertical.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.1-012
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    After a join on `customer_id`, one task in a stage runs for 40 minutes while the other 199 tasks finish in under a minute.
+
+    Which common challenge of Spark processing is the most likely cause?
+  answers:
+  - text: Data skew, where a few keys hold a disproportionate share of the rows.
+    verdict: correct
+    justification: When one task out of 200 runs far longer after a join, a few join keys most likely hold a disproportionate share of the rows, so one partition is much larger than the others — that is data skew.
+  - text: Too many executors competing for the same partition.
+    verdict: incorrect
+    justification: Each partition is processed by exactly one task; executors do not compete for the same partition.
+  - text: Lazy evaluation delaying the start of the slow task.
+    verdict: incorrect
+    justification: Lazy evaluation only delays when a job starts as a whole; it does not make one task within a stage run 40 times longer.
+  - text: The driver running out of disk space.
+    verdict: incorrect
+    justification: Driver disk space does not affect how long an individual task runs on an executor.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/one-spark-task
+- id: 1.1-013
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A developer calls `collect()` on a DataFrame with hundreds of millions of rows and the application fails.
+
+    Which Spark challenge does this illustrate?
+  answers:
+  - text: The `collect()` method triggers a shuffle to every executor, which always fails on large data.
+    verdict: incorrect
+    justification: '`collect()` does not trigger a shuffle to every executor; it moves results from executors to the driver.'
+  - text: The `collect()` method writes all rows to a temporary table first, which fills the storage.
+    verdict: incorrect
+    justification: '`collect()` does not write to a temporary table; it transfers rows to the driver.'
+  - text: Pulling large results back to the driver can exhaust its memory, because the driver is a single process.
+    verdict: correct
+    justification: '`collect()` returns all rows to the driver, a single process with limited memory, so collecting hundreds of millions of rows can crash the application.'
+  - text: The `collect()` method cannot be used on DataFrames, only on RDDs.
+    verdict: incorrect
+    justification: '`collect()` is a standard DataFrame action; it is not limited to RDDs.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-driver-overloaded
+- id: 1.1-014
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team new to Spark finds that its jobs fail with out-of-memory errors or run slowly until the number of partitions, executor memory and cluster size are adjusted.
+
+    Which challenge of implementing Spark does this describe?
+  answers:
+  - text: Spark requires all configuration to be recompiled into the application JAR.
+    verdict: incorrect
+    justification: Spark configuration is set at session or cluster level and does not need to be compiled into a JAR.
+  - text: Getting good performance often requires understanding and tuning partitioning, memory and cluster configuration.
+    verdict: correct
+    justification: Spark exposes many knobs (partitions, executor memory, cluster sizing), and good performance often depends on understanding and tuning them for the workload.
+  - text: Spark cannot run until every configuration property is set explicitly.
+    verdict: incorrect
+    justification: Spark has sensible defaults for almost all properties; you do not need to set every one before running.
+  - text: Spark ignores all configuration set after the cluster starts.
+    verdict: incorrect
+    justification: Many configurations, such as `spark.sql.shuffle.partitions`, can be changed at runtime in a session.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.1-015
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer chains `filter`, `select` and `withColumn` calls on a DataFrame, and Spark combines them into one optimized plan before running anything.
+
+    Which Spark advantage makes this possible?
+  answers:
+  - text: Spark caches the result of every transformation automatically.
+    verdict: incorrect
+    justification: Spark does not cache transformation results automatically; caching must be requested explicitly.
+  - text: Eager evaluation runs each step immediately so errors are found sooner.
+    verdict: incorrect
+    justification: Spark evaluates transformations lazily, not eagerly; eager evaluation would prevent whole-plan optimization.
+  - text: Spark executes transformations on the driver to reduce latency.
+    verdict: incorrect
+    justification: Transformations are executed by tasks on executors, not on the driver.
+  - text: Lazy evaluation lets Spark see the whole chain of transformations and optimize it before execution.
+    verdict: correct
+    justification: 'Transformations are lazy: Spark records them in a plan and only executes when an action is called, so the optimizer can combine and reorder the whole chain first.'
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.1-016
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team needs to process a stream of events and also re-run the same business logic over historical data.
+
+    Which advantage of Spark helps the team avoid writing the logic twice?
+  answers:
+  - text: Structured Streaming uses the same DataFrame API as batch processing, so the same transformations can be applied to both.
+    verdict: correct
+    justification: Structured Streaming is built on the Spark SQL engine and uses the same DataFrame API, so the same transformation logic can run on streaming and historical (batch) data.
+  - text: Spark converts streams into batch files automatically every hour.
+    verdict: incorrect
+    justification: Spark does not convert streams into hourly batch files; streams are processed incrementally as micro-batches.
+  - text: Structured Streaming requires RDD code, while batch uses DataFrames.
+    verdict: incorrect
+    justification: Structured Streaming uses the DataFrame API, not RDD code.
+  - text: Structured Streaming only supports SQL queries, which batch jobs share.
+    verdict: incorrect
+    justification: Structured Streaming supports both the DataFrame API and SQL; it is not SQL-only.
+  source_url: https://spark.apache.org/docs/latest/streaming/index.html
+- id: 1.1-017
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer is asked which storage systems Spark can read from without first moving data into a proprietary format.
+
+    Which statement describes this advantage of Spark?
+  answers:
+  - text: Spark requires all data to be loaded into HDFS before it can be processed.
+    verdict: incorrect
+    justification: Spark does not require HDFS; it reads from cloud object storage, local files, databases and more.
+  - text: Spark can read and write many data sources and formats, such as Parquet, JSON, CSV, ORC, JDBC databases and Delta Lake tables.
+    verdict: correct
+    justification: Spark's data source API reads and writes many formats and systems directly, including Parquet, JSON, CSV, ORC, JDBC databases and Delta Lake tables.
+  - text: Spark only reads Delta Lake tables; other formats must be converted first.
+    verdict: incorrect
+    justification: Spark reads many formats directly; Delta Lake is only one of them.
+  - text: Spark can only read data that was written by another Spark application.
+    verdict: incorrect
+    justification: Spark can read data written by any system, as long as the format is supported.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources.html
+- id: 1.1-018
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A job writes its output as 120,000 files of a few kilobytes each, and downstream queries on that data become slow.
+
+    Which Spark challenge does this illustrate?
+  answers:
+  - text: Small files prevent Spark from using predicate pushdown entirely.
+    verdict: incorrect
+    justification: Predicate pushdown still works with small files; the slowdown comes from per-file overhead.
+  - text: Small files are automatically merged by the driver on every read, which is slow.
+    verdict: incorrect
+    justification: Spark does not merge small files on the driver during reads; files are read by tasks on executors.
+  - text: Writing too many small files creates overhead for listing and opening files in later reads.
+    verdict: correct
+    justification: Each file adds listing, opening and metadata overhead; with 120,000 tiny files that overhead dominates and slows later reads — the classic small-file problem.
+  - text: Spark cannot read more than 10,000 files in a single query.
+    verdict: incorrect
+    justification: Spark has no 10,000-file limit per query; the problem is overhead, not a hard limit.
+  source_url: https://docs.databricks.com/aws/en/optimizations/
+- id: 1.1-019
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A manager asks why the Spark code in production needs careful tuning even though Spark has an optimizer.
+
+    Which statement is accurate?
+  answers:
+  - text: The optimizer improves query plans, but issues such as data skew, poor partitioning and undersized memory still need attention from the engineer.
+    verdict: correct
+    justification: The optimizer improves plans, but it cannot fix data skew, a poor partition count or undersized memory, so engineers still need to tune and design for these issues.
+  - text: The optimizer only works for Scala code, so PySpark code must be tuned by hand.
+    verdict: incorrect
+    justification: The optimizer works for DataFrame and SQL code in every language, including PySpark.
+  - text: The optimizer rewrites the cluster configuration at runtime, so no tuning is required.
+    verdict: incorrect
+    justification: The optimizer changes query plans, not the cluster configuration, and does not remove the need for tuning.
+  - text: The optimizer is disabled by default and must be turned on manually.
+    verdict: incorrect
+    justification: Spark's optimizer is always active for DataFrame and SQL queries; it does not need to be turned on.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.1-020
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer must choose between pandas on a single laptop and Apache Spark for a 2 TB dataset that grows daily.
+
+    Which reason best supports choosing Spark?
+  answers:
+  - text: Spark does not need any memory because it streams every row from disk.
+    verdict: incorrect
+    justification: Spark uses memory heavily for processing and caching; it does not stream every row from disk without memory.
+  - text: Spark guarantees lower latency than pandas for every dataset size.
+    verdict: incorrect
+    justification: Spark adds distribution overhead and is often slower than pandas for small data, so it cannot guarantee lower latency at every size.
+  - text: Spark automatically buys more hardware when the dataset grows.
+    verdict: incorrect
+    justification: Spark does not buy hardware; scaling the cluster is a configuration choice (for example autoscaling), not automatic purchasing.
+  - text: Spark distributes data and computation across a cluster, so it can process data volumes that do not fit on one machine.
+    verdict: correct
+    justification: A 2 TB growing dataset does not fit on one laptop; Spark spreads data and computation across a cluster, so it can scale with the data.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark
+- id: 1.1-021
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team debugging a slow Spark job finds it hard to reason about where the time goes, because work is split into jobs, stages and tasks across many machines.
+
+    Which challenge of Spark does this reflect?
+  answers:
+  - text: Spark does not provide any monitoring interface.
+    verdict: incorrect
+    justification: Spark provides a web UI with jobs, stages, executors and SQL plans, plus logs and metrics.
+  - text: Spark only logs errors to the client application.
+    verdict: incorrect
+    justification: Logs are written by the driver and executors and are available beyond the client application.
+  - text: Debugging and monitoring distributed execution is harder than for single-process programs and often requires the Spark UI and logs.
+    verdict: correct
+    justification: Work is split into jobs, stages and tasks running on many machines, so understanding performance requires tools such as the Spark UI and driver/executor logs — harder than for a single-process program.
+  - text: Spark hides the number of tasks to simplify the user experience.
+    verdict: incorrect
+    justification: The Spark UI shows the number of tasks for every stage; they are not hidden.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 1.1-022
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team wants to train a regression model on a large dataset using the same Spark cluster that prepared the features.
+
+    Which Spark advantage supports this?
+  answers:
+  - text: Spark ships pandas as its default machine learning library.
+    verdict: incorrect
+    justification: pandas is not an ML library and is not Spark's default ML library; Spark's ML library is MLlib.
+  - text: MLlib provides distributed machine learning algorithms that run on the same Spark engine and DataFrames.
+    verdict: correct
+    justification: MLlib provides distributed ML algorithms that work on Spark DataFrames, so the same cluster that prepared the features can train the model.
+  - text: MLlib only runs on the driver, so the data must be collected first.
+    verdict: incorrect
+    justification: MLlib algorithms are distributed across executors; they do not require collecting the data to the driver.
+  - text: Spark requires exporting all features to a separate ML cluster.
+    verdict: incorrect
+    justification: No separate ML cluster is required; MLlib runs on the same Spark cluster.
+  source_url: https://spark.apache.org/docs/latest/ml-guide.html
+- id: 1.1-023
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer caches a DataFrame that is reused by five downstream aggregations.
+
+    Which benefit of Spark's design does this use?
+  answers:
+  - text: Spark can persist a dataset in memory so that later actions reuse it instead of recomputing it.
+    verdict: correct
+    justification: Caching (persisting) keeps a computed dataset in memory or on disk, so the five later aggregations reuse it instead of recomputing its lineage each time.
+  - text: Caching copies the DataFrame to the driver so aggregations run locally.
+    verdict: incorrect
+    justification: Caching stores partitions on the executors, not on the driver.
+  - text: Caching makes the DataFrame immutable, which is otherwise not the case.
+    verdict: incorrect
+    justification: DataFrames are always immutable; caching does not change that.
+  - text: Caching disables lineage tracking to save memory.
+    verdict: incorrect
+    justification: Caching does not disable lineage; lineage is still kept so lost cached partitions can be recomputed.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 1.1-024
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    During peak load, several Spark executors fail with out-of-memory errors while processing a wide aggregation.
+
+    Which statement about Spark memory is the most accurate?
+  answers:
+  - text: Executor memory is automatically doubled when an out-of-memory error occurs.
+    verdict: incorrect
+    justification: Spark does not automatically double executor memory after an error; the configuration has to be changed.
+  - text: Spark executors have unlimited memory because they spill everything to the driver.
+    verdict: incorrect
+    justification: Executor memory is finite, and executors do not spill to the driver; they spill to local disk.
+  - text: Out-of-memory errors only happen on the driver, never on executors.
+    verdict: incorrect
+    justification: Executors can run out of memory as well as the driver.
+  - text: Executor memory is finite, so too few shuffle partitions, skew or large broadcasts can cause out-of-memory failures that need tuning.
+    verdict: correct
+    justification: Executors have a fixed amount of memory; causes such as too few shuffle partitions, skew or large broadcasts can exceed it and cause out-of-memory failures that need tuning.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 1.1-025
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A company evaluating Spark asks whether it requires a specific cluster manager.
+
+    Which statement is correct?
+  answers:
+  - text: Spark is agnostic to the cluster manager and can run on its standalone manager, YARN or Kubernetes.
+    verdict: correct
+    justification: 'Spark is agnostic to the cluster manager: it runs on its own standalone manager, Hadoop YARN or Kubernetes, as long as it can acquire executor processes.'
+  - text: Spark can only run on Hadoop YARN.
+    verdict: incorrect
+    justification: YARN is only one of several supported cluster managers.
+  - text: Spark does not use a cluster manager; executors start themselves.
+    verdict: incorrect
+    justification: Spark acquires executors through a cluster manager; executors do not start themselves.
+  - text: Spark requires Kubernetes for every deployment.
+    verdict: incorrect
+    justification: Kubernetes is one option, not a requirement.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.1-026
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team must join two very large DataFrames that are partitioned on different keys.
+
+    Which cost should the team expect because of Spark's distributed design?
+  answers:
+  - text: Spark will convert both DataFrames to RDDs and join them on one executor.
+    verdict: incorrect
+    justification: Spark keeps DataFrame joins distributed across many executors; it does not run them on one executor.
+  - text: Spark will copy both DataFrames to the driver to perform the join.
+    verdict: incorrect
+    justification: Spark joins large DataFrames on the executors; copying both to the driver would not scale.
+  - text: Spark will usually shuffle both sides so that rows with the same join key end up in the same partition.
+    verdict: correct
+    justification: For a sort-merge join of two large inputs that are not co-partitioned, Spark shuffles both sides so that rows with the same key land in the same partition.
+  - text: Spark will refuse to join DataFrames that are partitioned differently.
+    verdict: incorrect
+    justification: Spark joins DataFrames regardless of their current partitioning; it repartitions them through a shuffle.
+  source_url: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+- id: 1.1-027
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer argues that Spark is "always faster than a database". A colleague disagrees.
+
+    Which statement best supports the colleague?
+  answers:
+  - text: Spark is only faster when data is stored in CSV format.
+    verdict: incorrect
+    justification: Spark's performance does not depend on CSV; columnar formats like Parquet and Delta are usually much faster.
+  - text: Spark's advantages come from parallel processing of large datasets; for small datasets or simple point queries, the distribution overhead can make it slower.
+    verdict: correct
+    justification: Spark's speed comes from parallel processing of large data; for small data or point lookups, its distribution overhead can make it slower than a database.
+  - text: Spark cannot run SQL, so it cannot be compared with a database.
+    verdict: incorrect
+    justification: Spark runs SQL through Spark SQL.
+  - text: Spark is always slower than a database because it lacks an optimizer.
+    verdict: incorrect
+    justification: Spark has an optimizer for DataFrames and SQL, and it is often faster than a database for large analytical workloads, so "always slower" is wrong.
+  source_url: https://docs.databricks.com/aws/en/spark/
+- id: 1.1-028
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer writes a PySpark DataFrame transformation and wonders why it runs at nearly the same speed as the equivalent Scala DataFrame code.
+
+    Which explanation is correct?
+  answers:
+  - text: Scala DataFrames are executed by the Python interpreter as well.
+    verdict: incorrect
+    justification: Scala code runs in the JVM; the Python interpreter is not involved in executing Scala DataFrames.
+  - text: PySpark compiles the Python code into Scala source at runtime.
+    verdict: incorrect
+    justification: PySpark does not compile Python to Scala; it sends a plan to the engine.
+  - text: PySpark always runs on the driver, so it avoids network overhead.
+    verdict: incorrect
+    justification: PySpark DataFrame operations run on the executors, not only on the driver.
+  - text: PySpark DataFrame operations are executed by the same Spark engine and optimizer, so Python only builds the query plan.
+    verdict: correct
+    justification: PySpark DataFrame code only builds a query plan; the plan is optimized and executed by the same Spark engine as Scala code, so performance is nearly identical.
+  source_url: https://docs.databricks.com/aws/en/pyspark/
+- id: 1.1-029
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer explains that Spark's in-memory processing is an advantage but also a challenge.
+
+    Which statement describes the challenge?
+  answers:
+  - text: In-memory processing requires every node to hold the full dataset.
+    verdict: incorrect
+    justification: Each node holds only its partitions, not the full dataset.
+  - text: Workloads that need more memory than is available can spill to disk or fail, so memory must be sized and managed carefully.
+    verdict: correct
+    justification: In-memory processing is fast, but when a workload needs more memory than is available, Spark has to spill to disk (slower) or may fail, so memory must be sized and managed.
+  - text: In-memory processing prevents Spark from reading data from disk.
+    verdict: incorrect
+    justification: Spark can always read from disk; in-memory processing does not prevent it.
+  - text: Spark deletes data that does not fit in memory without warning.
+    verdict: incorrect
+    justification: Spark does not silently delete data; it spills to disk, recomputes uncached partitions, or fails with an error.
+  source_url: https://spark.apache.org/docs/latest/tuning.html
+- id: 1.1-030
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team using Databricks wants to understand where Apache Spark fits on the platform.
+
+    Which statement is accurate?
+  answers:
+  - text: Databricks is built on Apache Spark, and Spark powers data processing on Databricks compute, including notebooks, jobs and pipelines.
+    verdict: correct
+    justification: Databricks is built on Apache Spark; Spark powers the data processing on Databricks compute for notebooks, jobs and pipelines.
+  - text: Databricks replaced Apache Spark with a proprietary engine that uses a different API.
+    verdict: incorrect
+    justification: Databricks still uses Apache Spark and its APIs; it has not replaced Spark with a different API.
+  - text: Databricks only uses Spark for machine learning workloads.
+    verdict: incorrect
+    justification: Spark on Databricks is used for ETL, SQL, streaming and ML, not only ML.
+  - text: Spark on Databricks only supports Scala.
+    verdict: incorrect
+    justification: Spark on Databricks supports Python, SQL, Scala and R.
+  source_url: https://docs.databricks.com/aws/en/spark/
+- id: 1.1-031
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A data engineer must process a large dataset where each record can be transformed independently and the data can be split by key.
+
+    Why is this a good fit for Spark?
+  answers:
+  - text: Spark only processes data that has no dependencies between steps.
+    verdict: partially_correct
+    justification: It is true that independent work parallelizes well, but Spark also handles dependencies between steps (for example through shuffles), so "only" makes this statement wrong.
+  - text: Spark requires each step to run on a different cluster.
+    verdict: incorrect
+    justification: All steps of a Spark application run on the same cluster.
+  - text: The work can be parallelized across partitions, which Spark processes concurrently on many executor cores.
+    verdict: correct
+    justification: Independent records split by key can be processed in parallel partitions, which Spark runs concurrently as tasks on many executor cores.
+  - text: Spark processes partitions one after another on a single core.
+    verdict: incorrect
+    justification: Spark runs many partitions in parallel on many cores, not one after another on a single core.
+  source_url: https://spark.apache.org/docs/latest/cluster-overview.html
+- id: 1.1-032
+  category: apache_spark_architecture_and_components
+  objective: '1.1'
+  question: |-
+    A team considers rewriting a stable pandas script that processes 200 MB of data in 30 seconds on a laptop into Spark.
+
+    What is the most reasonable assessment?
+  answers:
+  - text: The rewrite is required because Spark is the only way to run Python on Databricks.
+    verdict: incorrect
+    justification: Databricks runs plain Python and pandas as well; Spark is not the only way to run Python.
+  - text: The rewrite will always make the script at least ten times faster.
+    verdict: incorrect
+    justification: Spark is not guaranteed to be faster; for small data it is often slower because of distribution overhead.
+  - text: The rewrite is required because pandas cannot process CSV files.
+    verdict: incorrect
+    justification: pandas reads CSV files with `pandas.read_csv`.
+  - text: The rewrite may add complexity and overhead without benefit, because the data easily fits on one machine.
+    verdict: correct
+    justification: With 200 MB that fits on one machine and a script that already runs in 30 seconds, rewriting to Spark adds complexity and distributed overhead without a clear benefit.
+  source_url: https://docs.databricks.com/aws/en/pandas/pandas-on-spark

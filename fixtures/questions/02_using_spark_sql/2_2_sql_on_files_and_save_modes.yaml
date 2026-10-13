@@ -1,0 +1,656 @@
+# Objective 2.2: Execute SQL queries directly on files, including ORC Files, JSON Files, CSV Files, Text Files, and Delta Files, and understand the different save modes for outputting data in Spark SQL.
+- id: 2.2-001
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants to query a Parquet file with SQL without first loading it into a DataFrame or creating a table.
+
+    Which statement does this?
+  answers:
+  - text: '`SELECT * FROM ''/mnt/raw/users.parquet'' AS parquet`'
+    verdict: incorrect
+    justification: A quoted path is not a table reference, and `AS parquet` would only be an alias.
+  - text: '`SELECT * FROM FILE(''/mnt/raw/users.parquet'')`'
+    verdict: incorrect
+    justification: There is no `FILE()` table function for this in Spark SQL.
+  - text: '`` SELECT * FROM parquet.`/mnt/raw/users.parquet` ``'
+    verdict: correct
+    justification: 'Spark SQL can query files directly by prefixing the path with the format and enclosing it in backticks: ``parquet.`path` ``.'
+  - text: '`SELECT * FROM parquet(''/mnt/raw/users.parquet'')`'
+    verdict: incorrect
+    justification: The format is a qualifier before a backticked path, not a function call.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-002
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer needs to query JSON files in a directory directly with SQL.
+
+    Which statement is correct?
+  answers:
+  - text: '`READ JSON ''/mnt/raw/events/''`'
+    verdict: incorrect
+    justification: '`READ JSON` is not a SQL statement.'
+  - text: '`SELECT * FROM JSON_FILE(''/mnt/raw/events/'')`'
+    verdict: incorrect
+    justification: There is no `JSON_FILE` function.
+  - text: '`` SELECT * FROM `/mnt/raw/events/`.json ``'
+    verdict: incorrect
+    justification: The format must come before the path, as ``json.`path` ``, not after it.
+  - text: '`` SELECT * FROM json.`/mnt/raw/events/` ``'
+    verdict: correct
+    justification: '``json.`/path/` `` queries all JSON files in the directory directly.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-003
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer queries ORC files directly with SQL.
+
+    Which statement is correct?
+  answers:
+  - text: '`` SELECT * FROM orc.`/mnt/raw/orc_data` ``'
+    verdict: correct
+    justification: '``orc.`path` `` queries ORC files directly.'
+  - text: '`SELECT * FROM ORC ''/mnt/raw/orc_data''`'
+    verdict: incorrect
+    justification: '`ORC ''<path>''` is not valid syntax.'
+  - text: '`SELECT * FROM orc_table(''/mnt/raw/orc_data'')`'
+    verdict: incorrect
+    justification: There is no `orc_table` function.
+  - text: '`` SELECT * FROM `orc:/mnt/raw/orc_data` ``'
+    verdict: incorrect
+    justification: The format is not part of the backticked path; it is a separate qualifier.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-004
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer queries a folder of log files with `` SELECT * FROM text.`/mnt/logs/` ``.
+
+    What is the result?
+  answers:
+  - text: A table with one column per word
+    verdict: incorrect
+    justification: Lines are not split into words.
+  - text: A table with one string column named `value`, containing one row per line of text
+    verdict: correct
+    justification: The text source returns one string column named `value` with one row per line, also when queried directly in SQL.
+  - text: A table with the file names only
+    verdict: incorrect
+    justification: The rows are the lines of the files, not file names.
+  - text: An error, because text files cannot be queried directly
+    verdict: incorrect
+    justification: Text files can be queried directly with ``text.`path` ``.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-005
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer on Databricks wants to query the Delta table stored at `/Volumes/main/raw/files/orders_delta` directly by its path.
+
+    Which statement is correct?
+  answers:
+  - text: '`SELECT * FROM DELTA(''/Volumes/main/raw/files/orders_delta'')`'
+    verdict: incorrect
+    justification: There is no `DELTA()` function.
+  - text: '`` SELECT * FROM `/Volumes/main/raw/files/orders_delta`.delta ``'
+    verdict: incorrect
+    justification: The format qualifier must come before the backticked path.
+  - text: '`` SELECT * FROM delta.`/Volumes/main/raw/files/orders_delta` ``'
+    verdict: correct
+    justification: '``delta.`path` `` queries a Delta table by its path.'
+  - text: '`` SELECT * FROM parquet.`/Volumes/main/raw/files/orders_delta/_delta_log` ``'
+    verdict: incorrect
+    justification: '`_delta_log` holds JSON and checkpoint files of the transaction log, not the table data; reading it as Parquet does not return the table.'
+  source_url: https://docs.databricks.com/aws/en/delta/
+- id: 2.2-006
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer runs `` SELECT * FROM csv.`/mnt/raw/sales.csv` `` on a CSV file with a header row.
+
+    What happens to the header?
+  answers:
+  - text: It is automatically used for column names.
+    verdict: incorrect
+    justification: Header handling must be enabled explicitly, which a direct path query cannot do.
+  - text: It is read as a regular data row with default column names such as `_c0`, because header handling is not enabled in this direct query.
+    verdict: correct
+    justification: 'A direct CSV path query uses default options, so `header` is off: the header line becomes a data row and columns get default names such as `_c0`.'
+  - text: The query fails because CSV cannot be queried directly.
+    verdict: incorrect
+    justification: CSV files can be queried directly; only the options are missing.
+  - text: The first row is skipped and columns are named `col1`, `col2`, and so on.
+    verdict: incorrect
+    justification: The first row is not skipped, and default column names are `_c0`, `_c1`, and so on.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-007
+  category: using_spark_sql
+  objective: '2.2'
+  question: A data engineer needs to query a CSV file with SQL while setting options such as `header`. On Databricks, which approach supports this?
+  answers:
+  - text: Set `spark.sql.csv.header` before running the direct query.
+    verdict: incorrect
+    justification: There is no `spark.sql.csv.header` configuration for direct path queries.
+  - text: Add the option to the backtick path, such as `` csv.`/path?header=true` ``.
+    verdict: incorrect
+    justification: Options cannot be appended to the backticked path.
+  - text: Use `` SELECT HEADER * FROM csv.`/path` ``.
+    verdict: incorrect
+    justification: '`SELECT HEADER` is not valid SQL.'
+  - text: Use the `read_files` table-valued function or create a temporary view with `USING CSV OPTIONS (...)`.
+    verdict: correct
+    justification: Databricks recommends `read_files` (which accepts options such as `header`), and a temporary view created with `USING CSV OPTIONS (...)` also lets you set options.
+  source_url: https://docs.databricks.com/aws/en/query/formats/csv
+- id: 2.2-008
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer writes `df.write.mode("ignore").parquet(path)` and the path already contains data.
+
+    What happens?
+  answers:
+  - text: The DataFrame is not saved and the existing data is not changed.
+    verdict: correct
+    justification: '`ignore` skips the write when data already exists, leaving the existing data unchanged.'
+  - text: An exception is thrown.
+    verdict: true_but_irrelevant
+    justification: Throwing an exception is what the default `errorifexists` mode does.
+  - text: The new rows are appended.
+    verdict: true_but_irrelevant
+    justification: Appending is what `append` mode does.
+  - text: The existing data is overwritten.
+    verdict: true_but_irrelevant
+    justification: Overwriting existing data is what `overwrite` mode does.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-009
+  category: using_spark_sql
+  objective: '2.2'
+  question: Which save mode behaves like `CREATE TABLE IF NOT EXISTS` in SQL?
+  answers:
+  - text: '`ignore`'
+    verdict: correct
+    justification: 'The Spark docs compare `ignore` to `CREATE TABLE IF NOT EXISTS`: it writes only when no data exists yet.'
+  - text: '`overwrite`'
+    verdict: incorrect
+    justification: '`overwrite` replaces existing data.'
+  - text: '`errorifexists`'
+    verdict: incorrect
+    justification: '`errorifexists` fails when data exists instead of silently doing nothing.'
+  - text: '`append`'
+    verdict: incorrect
+    justification: '`append` adds data even when data exists.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-010
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants a write to fail if the output path already contains data, to avoid accidental overwrites.
+
+    Which mode gives this behavior, and is it the default?
+  answers:
+  - text: '`failfast`, which must be set explicitly'
+    verdict: true_but_irrelevant
+    justification: '`FAILFAST` is a read parsing mode for malformed records, not a save mode.'
+  - text: '`ignore`, which is the default mode'
+    verdict: partially_correct
+    justification: '`ignore` does avoid touching existing data, but it silently skips the write instead of failing, and it is not the default.'
+  - text: '`overwrite`, which is the default mode'
+    verdict: incorrect
+    justification: '`overwrite` replaces data and is not the default.'
+  - text: '`errorifexists` (or `error`), which is the default mode'
+    verdict: correct
+    justification: '`errorifexists` (alias `error`) fails if data exists and is the default save mode.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-011
+  category: using_spark_sql
+  objective: '2.2'
+  question: Which list contains only valid save modes for `DataFrameWriter.mode()`?
+  answers:
+  - text: '`append`, `replace`, `skip`, `fail`'
+    verdict: incorrect
+    justification: '`replace`, `skip` and `fail` are not save modes.'
+  - text: '`append`, `overwrite`, `ignore`, `error`'
+    verdict: correct
+    justification: '`append`, `overwrite`, `ignore` and `error` (`errorifexists`) are the valid save modes.'
+  - text: '`insert`, `update`, `merge`, `delete`'
+    verdict: incorrect
+    justification: '`insert`, `update`, `merge` and `delete` are DML operations, not save modes.'
+  - text: '`add`, `overwrite`, `ignore`, `abort`'
+    verdict: partially_correct
+    justification: '`overwrite` and `ignore` are valid, but `add` and `abort` are not save modes.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.mode.html
+- id: 2.2-012
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer converts the result of a direct SQL query on Parquet files into a Delta table.
+
+    Which statement does this?
+  answers:
+  - text: '`` CONVERT parquet.`/mnt/raw/users.parquet` INTO main.sales.users ``'
+    verdict: incorrect
+    justification: '`CONVERT ... INTO` is not valid; Databricks'' `CONVERT TO DELTA` converts files in place and does not use this syntax.'
+  - text: '`` COPY parquet.`/mnt/raw/users.parquet` TO TABLE main.sales.users ``'
+    verdict: incorrect
+    justification: '`COPY ... TO TABLE` is not valid; Databricks'' `COPY INTO` uses different syntax.'
+  - text: '`` CREATE TABLE main.sales.users AS SELECT * FROM parquet.`/mnt/raw/users.parquet` ``'
+    verdict: correct
+    justification: '`CREATE TABLE ... AS SELECT` from a direct Parquet query creates a table, which on Databricks defaults to Delta.'
+  - text: '`` INSERT TABLE main.sales.users FROM parquet.`/mnt/raw/users.parquet` ``'
+    verdict: incorrect
+    justification: '`INSERT TABLE ... FROM` is not valid SQL.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-013
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants to replace all data in the table `main.sales.daily` using SQL with the result of a query.
+
+    Which statement does this?
+  answers:
+  - text: '`UPDATE main.sales.daily SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`UPDATE` changes rows with `SET`; it does not take a query.'
+  - text: '`INSERT INTO main.sales.daily REPLACE SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`INSERT INTO ... REPLACE` is not valid syntax.'
+  - text: '`INSERT IGNORE main.sales.daily SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`INSERT IGNORE` is MySQL syntax, not Spark SQL.'
+  - text: '`INSERT OVERWRITE main.sales.daily SELECT * FROM staging_daily`'
+    verdict: correct
+    justification: '`INSERT OVERWRITE` replaces the table''s data with the query result.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-dml-insert-into
+- id: 2.2-014
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants to append the result of a query to the table `main.sales.daily` using SQL.
+
+    Which statement does this?
+  answers:
+  - text: '`APPEND main.sales.daily SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`APPEND` is not a SQL statement.'
+  - text: '`INSERT INTO main.sales.daily SELECT * FROM staging_daily`'
+    verdict: correct
+    justification: '`INSERT INTO ... SELECT` appends the query result to the table.'
+  - text: '`INSERT OVERWRITE main.sales.daily SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`INSERT OVERWRITE` replaces the existing data instead of appending.'
+  - text: '`MERGE INTO main.sales.daily SELECT * FROM staging_daily`'
+    verdict: incorrect
+    justification: '`MERGE INTO` needs `USING`, `ON` and `WHEN` clauses and is for upserts, not plain appends.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-dml-insert-into
+- id: 2.2-015
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer passes `mode("overwrite")` when writing to an existing table with `saveAsTable`.
+
+    What happens?
+  answers:
+  - text: The write fails because the table exists.
+    verdict: true_but_irrelevant
+    justification: Failing when the table exists is what the default `errorifexists` mode does.
+  - text: The write is skipped because the table exists.
+    verdict: true_but_irrelevant
+    justification: Skipping when the table exists is what `ignore` mode does.
+  - text: The existing data of the table is replaced by the DataFrame's contents.
+    verdict: correct
+    justification: With `mode("overwrite")`, `saveAsTable` replaces the existing table's data.
+  - text: The new rows are added to the existing data.
+    verdict: true_but_irrelevant
+    justification: Adding rows is what `append` mode does.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.mode.html
+- id: 2.2-016
+  category: using_spark_sql
+  objective: '2.2'
+  question: Which statement describes querying files directly with SQL?
+  answers:
+  - text: The file format is used as a qualifier and the path is enclosed in backticks, as in `` format.`path` ``.
+    verdict: correct
+    justification: 'Direct file queries use the format as a qualifier and a backticked path: ``format.`path` ``.'
+  - text: The path is enclosed in single quotes after the `FROM FILE` keyword.
+    verdict: incorrect
+    justification: There is no `FROM FILE` syntax.
+  - text: Only Parquet files can be queried this way.
+    verdict: incorrect
+    justification: Many formats work, such as JSON, CSV, ORC, text and Delta.
+  - text: The path must be registered as a table before it can be queried.
+    verdict: incorrect
+    justification: No table registration is needed; that is the point of direct queries.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-017
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A team writes the same DataFrame twice with `mode("append")` by mistake.
+
+    What is the result?
+  answers:
+  - text: The second write fails because the data already exists.
+    verdict: incorrect
+    justification: '`append` does not fail when data exists.'
+  - text: The data is duplicated, because append adds the DataFrame's contents to the existing data each time.
+    verdict: correct
+    justification: '`append` adds the DataFrame''s rows on every run, so writing it twice duplicates the data.'
+  - text: The second write replaces the first.
+    verdict: incorrect
+    justification: '`append` never replaces existing data.'
+  - text: The second write is skipped automatically.
+    verdict: incorrect
+    justification: '`append` does not detect or skip duplicates.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-018
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer counts the rows of a JSON dataset directly in SQL without creating any table or view.
+
+    Which statement does this?
+  answers:
+  - text: '`` SELECT count(*) FROM `/mnt/raw/clicks/` USING json ``'
+    verdict: incorrect
+    justification: '`USING json` is used when creating tables or views, not in a `FROM` clause.'
+  - text: '`SELECT count(*) FROM ''/mnt/raw/clicks/''`'
+    verdict: incorrect
+    justification: A quoted path is not a table reference.
+  - text: '`COUNT json ''/mnt/raw/clicks/''`'
+    verdict: incorrect
+    justification: '`COUNT json` is not a SQL statement.'
+  - text: '`` SELECT count(*) FROM json.`/mnt/raw/clicks/` ``'
+    verdict: correct
+    justification: '``json.`path` `` lets you aggregate directly over JSON files, for example with `count(*)`.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-019
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants a table that reads CSV files with a header row from a path, defined entirely in SQL.
+
+    Which statement does this?
+  answers:
+  - text: |-
+      ```sql
+      CREATE CSV TABLE sales_raw
+      PATH '/mnt/raw/sales' (header=true)
+      ```
+    verdict: incorrect
+    justification: '`CREATE CSV TABLE ... PATH` is not valid syntax.'
+  - text: |-
+      ```sql
+      CREATE TABLE sales_raw
+      AS csv.`/mnt/raw/sales` HEADER
+      ```
+    verdict: incorrect
+    justification: '`AS csv.`...` HEADER` is not valid; CTAS needs a `SELECT`, and options cannot be passed this way.'
+  - text: |-
+      ```sql
+      CREATE TABLE sales_raw
+      USING CSV
+      OPTIONS (header "true")
+      LOCATION '/mnt/raw/sales'
+      ```
+    verdict: correct
+    justification: '`CREATE TABLE ... USING CSV OPTIONS (header "true") LOCATION ''...''` defines a table over CSV files with options.'
+  - text: |-
+      ```sql
+      CREATE TABLE sales_raw
+      FROM CSV '/mnt/raw/sales'
+      WITH HEADER
+      ```
+    verdict: incorrect
+    justification: '`FROM CSV ... WITH HEADER` is not valid syntax.'
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-table-using
+- id: 2.2-020
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer runs a job twice that writes with `mode("errorifexists")` to the same path.
+
+    What happens on the second run?
+  answers:
+  - text: The second run fails with an error because data already exists at the path.
+    verdict: correct
+    justification: With `errorifexists`, the second write fails because the path already has data.
+  - text: The second run succeeds without writing anything.
+    verdict: true_but_irrelevant
+    justification: Succeeding without writing is what `ignore` mode does.
+  - text: The second run appends data.
+    verdict: true_but_irrelevant
+    justification: Appending is what `append` mode does.
+  - text: The second run overwrites data.
+    verdict: true_but_irrelevant
+    justification: Overwriting is what `overwrite` mode does.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-021
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants idempotent daily writes where re-running the job for the same full snapshot must not create duplicates.
+
+    Which save mode fits best for a full-snapshot output path?
+  answers:
+  - text: '`overwrite`'
+    verdict: correct
+    justification: '`overwrite` replaces the snapshot on each run, so reruns produce the same result without duplicates.'
+  - text: '`errorifexists`'
+    verdict: partially_correct
+    justification: '`errorifexists` avoids duplicates, but every rerun fails once data exists.'
+  - text: '`ignore` on every run'
+    verdict: partially_correct
+    justification: '`ignore` avoids duplicates, but later runs never write a new snapshot once data exists.'
+  - text: '`append`'
+    verdict: incorrect
+    justification: '`append` adds the snapshot again on every rerun, creating duplicates.'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-022
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer reads a JSON dataset with SQL on Databricks and needs to set options such as `multiLine`.
+
+    Which approach is supported?
+  answers:
+  - text: Use `SET json.multiLine = true` and then a direct path query.
+    verdict: incorrect
+    justification: There is no such session setting for direct path queries.
+  - text: Use `` SELECT * FROM json(multiLine).`/path` ``.
+    verdict: incorrect
+    justification: The format qualifier cannot take options in parentheses.
+  - text: Use `` SELECT * FROM json.`/path` MULTILINE ``.
+    verdict: incorrect
+    justification: '`MULTILINE` is not valid SQL syntax after a direct path query.'
+  - text: Use `read_files` with options, for example `SELECT * FROM read_files('/path', format => 'json', multiLine => true)`.
+    verdict: correct
+    justification: Databricks recommends `read_files`, which accepts options such as `format` and `multiLine`.
+  source_url: https://docs.databricks.com/aws/en/query/formats/json
+- id: 2.2-023
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer runs `INSERT OVERWRITE` on a table partitioned by `date`, with a `PARTITION (date = '2025-10-01')` clause.
+
+    What is replaced?
+  answers:
+  - text: Nothing, because partition clauses cannot be used with `INSERT OVERWRITE`
+    verdict: incorrect
+    justification: The `PARTITION` clause is supported by `INSERT OVERWRITE`.
+  - text: Only the data of the specified partition
+    verdict: correct
+    justification: '`INSERT OVERWRITE` with a `PARTITION` clause replaces only that partition''s data.'
+  - text: Only the table metadata
+    verdict: incorrect
+    justification: The data of the partition is replaced, not just metadata.
+  - text: All partitions of the table
+    verdict: incorrect
+    justification: Only the specified partition is overwritten.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-dml-insert-into
+- id: 2.2-024
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer wants to inspect a small sample of Delta table rows without registering the table, by path.
+
+    Which statement is valid?
+  answers:
+  - text: '`` SELECT * FROM `delta:/mnt/delta/events` LIMIT 10 ``'
+    verdict: incorrect
+    justification: The format qualifier is not part of the backticked path.
+  - text: '`SHOW ROWS delta ''/mnt/delta/events'' 10`'
+    verdict: incorrect
+    justification: '`SHOW ROWS` is not a SQL statement.'
+  - text: '`` SELECT * FROM delta.`/mnt/delta/events` LIMIT 10 ``'
+    verdict: correct
+    justification: '``delta.`path` `` with `LIMIT` returns a sample of a Delta table by path.'
+  - text: '`SELECT * FROM ''/mnt/delta/events'' FORMAT DELTA LIMIT 10`'
+    verdict: incorrect
+    justification: '`FORMAT DELTA` is not valid in a `FROM` clause.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-025
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A team writes `df.write.format("json").mode("overwrite").save("/mnt/out")`.
+
+    What does `format("json")` determine?
+  answers:
+  - text: The data source used to write the output files, here JSON
+    verdict: correct
+    justification: '`format("json")` chooses the data source used for writing, so the output files are JSON.'
+  - text: The schema inference mode
+    verdict: incorrect
+    justification: Schema inference is a read concept; `format` selects the source.
+  - text: The format used to name the output directory
+    verdict: incorrect
+    justification: It does not affect the directory name.
+  - text: The format of the log messages
+    verdict: incorrect
+    justification: It has nothing to do with log messages.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-026
+  category: using_spark_sql
+  objective: '2.2'
+  question: Querying files directly with SQL is convenient, but what is a limitation compared with tables?
+  answers:
+  - text: Direct queries cannot be filtered with `WHERE`.
+    verdict: incorrect
+    justification: Direct queries support `WHERE` like any query.
+  - text: Data source options such as headers or schemas cannot be passed in the direct path query, so formats like CSV may be parsed with defaults.
+    verdict: correct
+    justification: Direct path queries cannot pass data source options such as `header` or a schema, so formats like CSV are parsed with defaults.
+  - text: Direct queries always scan only the first file.
+    verdict: incorrect
+    justification: Direct queries read all files in the path.
+  - text: Direct queries cannot be joined with tables.
+    verdict: incorrect
+    justification: Direct queries can be joined with tables.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html
+- id: 2.2-027
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer writes with `df.write.mode("error").json(path)`.
+
+    How does `"error"` behave?
+  answers:
+  - text: It writes the rows that cause errors to a separate path.
+    verdict: incorrect
+    justification: No rows are written to a separate error path.
+  - text: It ignores existing data and writes nothing.
+    verdict: true_but_irrelevant
+    justification: Skipping the write when data exists is what `ignore` does.
+  - text: 'The same as `errorifexists`: the write fails if data already exists.'
+    verdict: correct
+    justification: '`error` is an alias of `errorifexists`: the write fails if data exists.'
+  - text: It overwrites the data only if it contains errors.
+    verdict: incorrect
+    justification: Save modes do not depend on data errors.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.mode.html
+- id: 2.2-028
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer needs to save a DataFrame as ORC files.
+
+    Which code does this?
+  answers:
+  - text: '`df.write.orcFile("/mnt/out/orc")`'
+    verdict: incorrect
+    justification: There is no `orcFile` method.
+  - text: '`df.write.saveAs("orc", "/mnt/out/orc")`'
+    verdict: incorrect
+    justification: '`DataFrameWriter` has no `saveAs` method.'
+  - text: '`df.save.orc("/mnt/out/orc")`'
+    verdict: incorrect
+    justification: DataFrames have no `save` attribute; writing goes through `df.write`.
+  - text: '`df.write.format("orc").save("/mnt/out/orc")`'
+    verdict: correct
+    justification: '`write.format("orc").save(path)` writes ORC files (as does `write.orc(path)`).'
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-029
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer writes a DataFrame with `df.write.text(path)`.
+
+    What requirement must the DataFrame meet?
+  answers:
+  - text: It must contain a column named `line_number`.
+    verdict: incorrect
+    justification: No `line_number` column is required.
+  - text: It can contain any number of columns, which are joined with tabs.
+    verdict: incorrect
+    justification: Multiple columns are not supported; concatenate them into one string column first.
+  - text: It must have a single string column, because the text writer writes one line per row.
+    verdict: correct
+    justification: The text writer requires a DataFrame with exactly one string column and writes one line per row.
+  - text: It must contain only numeric columns.
+    verdict: incorrect
+    justification: Numeric columns are not supported; the single column must be a string.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.text.html
+- id: 2.2-030
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A team uses `mode("overwrite")` on a Delta table instead of plain Parquet files.
+
+    Why is this safer on Databricks?
+  answers:
+  - text: Delta Lake overwrites by deleting files first, like Parquet, but faster.
+    verdict: incorrect
+    justification: Delta Lake does not delete files before writing; old files stay until the commit and later `VACUUM`.
+  - text: Delta Lake writes are transactional, so readers see either the old or the new version, and failed writes do not leave partial data.
+    verdict: correct
+    justification: Delta Lake writes are ACID transactions, so readers see the old or the new version and a failed overwrite leaves no partial data.
+  - text: Delta Lake ignores overwrite mode and always appends.
+    verdict: incorrect
+    justification: Delta Lake supports overwrite mode.
+  - text: Delta Lake locks the table for all readers during the write.
+    verdict: incorrect
+    justification: Readers keep reading the previous snapshot during the write; they are not blocked.
+  source_url: https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html
+- id: 2.2-031
+  category: using_spark_sql
+  objective: '2.2'
+  question: |-
+    A data engineer joins a table with a set of Parquet files queried directly.
+
+    Which statement is valid?
+  answers:
+  - text: '`SELECT o.*, c.name FROM orders o JOIN FILE(''/mnt/raw/customers'') c ON o.customer_id = c.id`'
+    verdict: incorrect
+    justification: There is no `FILE()` function.
+  - text: '`SELECT o.*, c.name FROM orders o JOIN ''/mnt/raw/customers'' AS parquet c ON o.customer_id = c.id`'
+    verdict: incorrect
+    justification: A quoted path is not a table reference.
+  - text: Direct file queries cannot be joined with tables.
+    verdict: incorrect
+    justification: Direct file queries can be joined with tables.
+  - text: '`` SELECT o.*, c.name FROM orders o JOIN parquet.`/mnt/raw/customers` c ON o.customer_id = c.id ``'
+    verdict: correct
+    justification: Direct file queries such as ``parquet.`path` `` can be aliased and joined like any table.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-file.html

@@ -1,0 +1,646 @@
+# Objective 3.7: Perform operations on DataFrames such as sorting, iterating, printing schema, and conversion between DataFrame and sequence/list formats.
+- id: 3.7-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer sorts a DataFrame by `amount` from highest to lowest.
+
+    Which code does this?
+  answers:
+  - text: '`df.orderBy("amount", descending=True)`'
+    verdict: incorrect
+    justification: '`orderBy` has no `descending` parameter; it uses `ascending=False`.'
+  - text: '`df.orderBy(col("amount").desc())`'
+    verdict: correct
+    justification: '`col("amount").desc()` sorts from highest to lowest.'
+  - text: '`df.sort("amount").reverse()`'
+    verdict: incorrect
+    justification: DataFrames have no `reverse()` method.
+  - text: '`df.orderBy(desc=["amount"])`'
+    verdict: incorrect
+    justification: '`orderBy` has no `desc` keyword argument.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.orderBy.html
+- id: 3.7-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer sorts by `country` ascending and then `amount` descending.
+
+    Which code does this?
+  answers:
+  - text: '`df.sort(asc("country")).sort(desc("amount"))`'
+    verdict: incorrect
+    justification: The second `sort` replaces the first ordering, so the result is sorted only by `amount`.
+  - text: '`df.sort(["country", "-amount"])`'
+    verdict: incorrect
+    justification: A `-` prefix on a column name is not supported; `"-amount"` is read as a column name.
+  - text: '`df.sort(col("country").asc(), col("amount").desc())`'
+    verdict: correct
+    justification: Passing several sort expressions sorts by `country` ascending, then by `amount` descending within each country.
+  - text: '`df.sort("country", "amount", ascending=True)`'
+    verdict: incorrect
+    justification: '`ascending=True` sorts both columns ascending.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.sort.html
+- id: 3.7-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: Which code is equivalent to `df.orderBy(col("amount").desc())`?
+  answers:
+  - text: '`df.orderBy("amount", ascending=False)`'
+    verdict: correct
+    justification: '`ascending=False` sorts descending, just like `col("amount").desc()`.'
+  - text: '`df.orderBy("amount").desc()`'
+    verdict: incorrect
+    justification: '`.desc()` is a Column method; the DataFrame returned by `orderBy` has no `desc` method.'
+  - text: '`df.orderBy("-amount")`'
+    verdict: incorrect
+    justification: '`"-amount"` is not parsed as a descending sort.'
+  - text: '`df.orderBy("amount", reverse=True)`'
+    verdict: incorrect
+    justification: '`orderBy` has no `reverse` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.orderBy.html
+- id: 3.7-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: What is the relationship between `sort` and `orderBy` on DataFrames?
+  answers:
+  - text: '`orderBy` is an action and `sort` is a transformation.'
+    verdict: incorrect
+    justification: Both are transformations.
+  - text: '`sort` only works on numeric columns.'
+    verdict: incorrect
+    justification: Both work on any sortable type.
+  - text: '`sort` sorts within partitions and `orderBy` sorts globally.'
+    verdict: true_but_irrelevant
+    justification: Sorting only within partitions is what `sortWithinPartitions` does.
+  - text: '`orderBy` is an alias of `sort`; both return a globally sorted DataFrame.'
+    verdict: correct
+    justification: '`orderBy` is an alias of `sort`; both perform a global sort.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.sort.html
+- id: 3.7-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer sorts ascending by `ship_date` but wants null dates at the end.
+
+    Which code does this?
+  answers:
+  - text: '`df.orderBy(col("ship_date").desc_nulls_first())`'
+    verdict: true_but_irrelevant
+    justification: '`desc_nulls_first` is a valid method, but it sorts descending with nulls at the start.'
+  - text: '`df.orderBy(col("ship_date").asc_nulls_last())`'
+    verdict: correct
+    justification: '`asc_nulls_last()` sorts ascending and puts nulls at the end.'
+  - text: '`df.orderBy("ship_date", nullsLast=True)`'
+    verdict: incorrect
+    justification: '`orderBy` has no `nullsLast` parameter.'
+  - text: '`df.orderBy(col("ship_date").asc())`'
+    verdict: incorrect
+    justification: Plain `asc()` puts nulls first.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.asc_nulls_last.html
+- id: 3.7-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: Where do null values appear by default when sorting ascending in Spark?
+  answers:
+  - text: They are removed
+    verdict: incorrect
+    justification: Sorting never removes rows.
+  - text: In random positions
+    verdict: incorrect
+    justification: Null placement is deterministic.
+  - text: First
+    verdict: correct
+    justification: In ascending sorts Spark places nulls first by default; in descending sorts nulls come last.
+  - text: Last
+    verdict: true_but_irrelevant
+    justification: Nulls come last by default only in descending sorts.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-orderby.html
+- id: 3.7-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer wants rows sorted inside each partition only, avoiding a global sort shuffle.
+
+    Which method does this?
+  answers:
+  - text: '`df.sortWithinPartitions("ts")`'
+    verdict: correct
+    justification: '`sortWithinPartitions` sorts each partition locally without a global-sort shuffle.'
+  - text: '`df.repartitionByRange("ts")`'
+    verdict: incorrect
+    justification: '`repartitionByRange` shuffles the data and does not sort within partitions.'
+  - text: '`df.orderBy("ts")`'
+    verdict: incorrect
+    justification: '`orderBy` performs a global sort with a shuffle.'
+  - text: '`df.sort("ts", local=True)`'
+    verdict: incorrect
+    justification: '`sort` has no `local` parameter.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.sortWithinPartitions.html
+- id: 3.7-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer wants to view column names, data types and nullability as a tree.
+
+    Which method does this?
+  answers:
+  - text: '`df.describe()`'
+    verdict: incorrect
+    justification: '`describe` computes statistics.'
+  - text: '`df.show(schema=True)`'
+    verdict: incorrect
+    justification: '`show` has no `schema` parameter.'
+  - text: '`df.schema()`'
+    verdict: incorrect
+    justification: '`schema` is a property, not a method; it returns a `StructType` object instead of printing a tree.'
+  - text: '`df.printSchema()`'
+    verdict: correct
+    justification: '`printSchema()` prints names, types and nullability as a tree.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.printSchema.html
+- id: 3.7-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer needs a Python list of column names.
+
+    Which attribute provides it?
+  answers:
+  - text: '`df.schema.names()`'
+    verdict: incorrect
+    justification: '`schema.names` is a property, not a method.'
+  - text: '`df.dtypes.names`'
+    verdict: incorrect
+    justification: '`dtypes` is a list of tuples and has no `names` attribute.'
+  - text: '`df.columns`'
+    verdict: correct
+    justification: '`df.columns` is a property that returns the column names as a list.'
+  - text: '`df.columns()`'
+    verdict: incorrect
+    justification: '`columns` is a property, so calling it fails.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.columns.html
+- id: 3.7-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: What does `df.schema` return?
+  answers:
+  - text: A string with the schema tree
+    verdict: true_but_irrelevant
+    justification: A printed tree is what `printSchema()` shows.
+  - text: A `StructType` describing the columns
+    verdict: correct
+    justification: '`df.schema` returns a `StructType` of `StructField`s.'
+  - text: A pandas DataFrame of types
+    verdict: incorrect
+    justification: It does not return a pandas object.
+  - text: A list of column names
+    verdict: true_but_irrelevant
+    justification: A list of column names is what `df.columns` returns.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.schema.html
+- id: 3.7-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer needs the values of the `id` column as a Python list.
+
+    Which code does this?
+  answers:
+  - text: '`df.select("id").toList()`'
+    verdict: incorrect
+    justification: DataFrames have no `toList` method.
+  - text: '`list(df.id)`'
+    verdict: incorrect
+    justification: A Column is not iterable.
+  - text: '`df.select("id").collect().values()`'
+    verdict: incorrect
+    justification: '`collect()` returns a list, which has no `values()` method.'
+  - text: '`[row["id"] for row in df.select("id").collect()]`'
+    verdict: correct
+    justification: '`collect()` returns `Row` objects, and a list comprehension extracts `id` from each.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html
+- id: 3.7-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: What type of objects does `df.collect()` return?
+  answers:
+  - text: A list of `Row` objects
+    verdict: correct
+    justification: '`collect()` returns a list of `Row` objects.'
+  - text: A NumPy array
+    verdict: incorrect
+    justification: It does not return a NumPy array.
+  - text: A pandas DataFrame
+    verdict: incorrect
+    justification: A pandas DataFrame comes from `toPandas()`.
+  - text: A list of dictionaries
+    verdict: incorrect
+    justification: Rows are `Row` objects; `asDict()` converts one to a dictionary.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html
+- id: 3.7-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer converts a `Row` object to a Python dictionary.
+
+    Which method does this?
+  answers:
+  - text: '`row.toDict()`'
+    verdict: incorrect
+    justification: '`Row` has no `toDict` method.'
+  - text: '`row.asDict()`'
+    verdict: correct
+    justification: '`Row.asDict()` returns a dictionary of field names and values.'
+  - text: '`dict.fromRow(row)`'
+    verdict: incorrect
+    justification: '`dict` has no `fromRow` method.'
+  - text: '`row.items()`'
+    verdict: incorrect
+    justification: '`Row` is a tuple subclass and has no `items` method.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.Row.asDict.html
+- id: 3.7-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer converts a small aggregated DataFrame to pandas for plotting.
+
+    Which method does this?
+  answers:
+  - text: '`df.toPandas()`'
+    verdict: correct
+    justification: '`toPandas()` converts a Spark DataFrame to a local pandas DataFrame.'
+  - text: '`df.collect().pandas()`'
+    verdict: incorrect
+    justification: '`collect()` returns a list, which has no `pandas` method.'
+  - text: '`df.to_pandas()`'
+    verdict: true_but_irrelevant
+    justification: '`to_pandas()` is the pandas-on-Spark method; a Spark DataFrame uses `toPandas()`.'
+  - text: '`pd.DataFrame(df)`'
+    verdict: incorrect
+    justification: pandas cannot build a DataFrame directly from a Spark DataFrame.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toPandas.html
+- id: 3.7-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: Why should `toPandas()` only be used on small DataFrames?
+  answers:
+  - text: It writes all data to disk on the executors.
+    verdict: incorrect
+    justification: It sends data to the driver; it does not write to executor disks.
+  - text: It fails for DataFrames with more than 100 columns.
+    verdict: incorrect
+    justification: There is no 100-column limit.
+  - text: It collects all data to the driver into a single pandas DataFrame, which must fit in driver memory.
+    verdict: correct
+    justification: '`toPandas()` loads all rows into one pandas DataFrame on the driver, so the data must fit in driver memory.'
+  - text: It converts data to strings, which loses types.
+    verdict: incorrect
+    justification: Types are kept and mapped to pandas types.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toPandas.html
+- id: 3.7-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer speeds up `toPandas()` and `createDataFrame(pandas_df)`.
+
+    Which technology does Spark use to make these conversions efficient?
+  answers:
+  - text: Apache Avro
+    verdict: true_but_irrelevant
+    justification: Avro is a row-based file format, not the transfer mechanism for pandas conversions.
+  - text: JSON encoding
+    verdict: incorrect
+    justification: Data is not converted to JSON.
+  - text: Java serialization
+    verdict: incorrect
+    justification: Java serialization is not used for this; Arrow is.
+  - text: Apache Arrow
+    verdict: correct
+    justification: Spark uses Apache Arrow to transfer data efficiently between the JVM and pandas.
+  source_url: https://spark.apache.org/docs/latest/api/python/tutorial/sql/arrow_pandas.html
+- id: 3.7-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer converts a pandas DataFrame `pdf` into a Spark DataFrame.
+
+    Which code does this?
+  answers:
+  - text: '`spark.createDataFrame(pdf)`'
+    verdict: correct
+    justification: '`spark.createDataFrame(pdf)` converts a pandas DataFrame to a Spark DataFrame.'
+  - text: '`spark.read.pandas(pdf)`'
+    verdict: incorrect
+    justification: '`DataFrameReader` has no `pandas` method.'
+  - text: '`spark.table(pdf)`'
+    verdict: incorrect
+    justification: '`spark.table` takes a table name.'
+  - text: '`pdf.toSpark()`'
+    verdict: incorrect
+    justification: pandas DataFrames have no `toSpark` method.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.createDataFrame.html
+- id: 3.7-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer creates a DataFrame from a list of Python dictionaries.
+
+    Which code is valid?
+  answers:
+  - text: '`spark.read.json([{"id": 1, "name": "a"}])`'
+    verdict: incorrect
+    justification: '`read.json` reads files or an RDD of strings, not Python dictionaries.'
+  - text: '`spark.createDataFrame(dict(id=[1, 2], name=["a", "b"]).items(), schema=None).collect()`'
+    verdict: incorrect
+    justification: This creates rows of (key, list) pairs and calls `collect()`, which returns a list instead of a DataFrame.
+  - text: '`spark.DataFrame([{"id": 1}, {"id": 2}])`'
+    verdict: incorrect
+    justification: SparkSession has no `DataFrame` method.
+  - text: '`spark.createDataFrame([{"id": 1, "name": "a"}, {"id": 2, "name": "b"}])`'
+    verdict: correct
+    justification: '`createDataFrame` accepts a list of dictionaries and infers the schema from their keys.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.createDataFrame.html
+- id: 3.7-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer needs a DataFrame with a single column of numbers from 0 to 999.
+
+    Which code does this?
+  answers:
+  - text: '`spark.sequence(1000)`'
+    verdict: incorrect
+    justification: SparkSession has no `sequence` method.
+  - text: '`spark.range(1000)`'
+    verdict: correct
+    justification: '`spark.range(1000)` returns a single `id` column from 0 to 999.'
+  - text: '`spark.createDataFrame(range(1000))`'
+    verdict: incorrect
+    justification: '`createDataFrame` cannot infer a schema from a range of plain integers.'
+  - text: '`spark.range(0, 999, inclusive=True)`'
+    verdict: incorrect
+    justification: '`range` has no `inclusive` parameter, and the end is exclusive.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.range.html
+- id: 3.7-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer loops over all rows on the driver of a DataFrame too large to collect at once.
+
+    Which code is appropriate?
+  answers:
+  - text: |-
+      ```python
+      for row in df.collect():
+          process(row)
+      ```
+    verdict: partially_correct
+    justification: The loop works, but `collect()` loads all rows into driver memory at once, which is what must be avoided.
+  - text: |-
+      ```python
+      df.foreachLocal(process)
+      ```
+    verdict: incorrect
+    justification: DataFrames have no `foreachLocal` method.
+  - text: |-
+      ```python
+      for row in df.toLocalIterator():
+          process(row)
+      ```
+    verdict: correct
+    justification: '`toLocalIterator()` streams the rows to the driver partition by partition.'
+  - text: |-
+      ```python
+      for row in df:
+          process(row)
+      ```
+    verdict: incorrect
+    justification: DataFrames are not iterable.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toLocalIterator.html
+- id: 3.7-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer must call an external API for every row in a distributed way, without returning results to the driver.
+
+    Which method fits?
+  answers:
+  - text: '`df.toPandas().apply(send_row)`'
+    verdict: incorrect
+    justification: '`toPandas()` collects everything to the driver and runs there.'
+  - text: '`df.foreach(send_row)` or `df.foreachPartition(send_partition)`'
+    verdict: correct
+    justification: '`foreach`/`foreachPartition` run the function on the executors in parallel, without sending results to the driver.'
+  - text: '`df.map(send_row).show()`'
+    verdict: incorrect
+    justification: DataFrames have no `map` method in PySpark, and `show` would not return results.
+  - text: '`for row in df.collect(): send_row(row)`'
+    verdict: partially_correct
+    justification: This calls the API for every row, but on the driver, one row at a time, after collecting everything.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.foreach.html
+- id: 3.7-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: Where does the function passed to `df.foreach()` run?
+  answers:
+  - text: On the executors, once per row
+    verdict: correct
+    justification: The `foreach` function runs on the executors, once per row.
+  - text: On the driver, once per partition
+    verdict: true_but_irrelevant
+    justification: Running once per partition is what `foreachPartition` does, and that also happens on the executors.
+  - text: On the cluster manager
+    verdict: incorrect
+    justification: The cluster manager never runs user code.
+  - text: On the driver, once per row
+    verdict: incorrect
+    justification: It runs on the executors, not on the driver.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.foreach.html
+- id: 3.7-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer prints 50 rows without truncating long string values.
+
+    Which code does this?
+  answers:
+  - text: '`df.limit(50).print()`'
+    verdict: incorrect
+    justification: DataFrames have no `print` method.
+  - text: '`df.show(truncate=50)`'
+    verdict: partially_correct
+    justification: An integer `truncate` sets the maximum string length (50 characters) and shows only the default 20 rows.
+  - text: '`df.show(rows=50, full=True)`'
+    verdict: incorrect
+    justification: '`show` has no `rows` or `full` parameters.'
+  - text: '`df.show(50, truncate=False)`'
+    verdict: correct
+    justification: '`show(50, truncate=False)` prints 50 rows with full values.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.show.html
+- id: 3.7-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer wants each row printed vertically, which helps with wide DataFrames.
+
+    Which code does this?
+  answers:
+  - text: '`df.show(mode="vertical")`'
+    verdict: incorrect
+    justification: '`show` has no `mode` parameter.'
+  - text: '`df.show(transpose=True)`'
+    verdict: incorrect
+    justification: '`show` has no `transpose` parameter.'
+  - text: '`df.show(vertical=True)`'
+    verdict: correct
+    justification: '`show(vertical=True)` prints each row vertically.'
+  - text: '`df.printSchema(vertical=True)`'
+    verdict: incorrect
+    justification: '`printSchema` prints the schema, not rows.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.show.html
+- id: 3.7-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer needs the first 3 rows as a Python list.
+
+    Which code returns a list of `Row` objects?
+  answers:
+  - text: '`df.sample(3)`'
+    verdict: incorrect
+    justification: '`sample` takes a fraction and returns a DataFrame.'
+  - text: '`df.take(3)`'
+    verdict: correct
+    justification: '`take(3)` returns the first 3 rows as a list of `Row` objects.'
+  - text: '`df.show(3)`'
+    verdict: incorrect
+    justification: '`show(3)` prints rows and returns `None`.'
+  - text: '`df.limit(3)`'
+    verdict: incorrect
+    justification: '`limit(3)` returns a DataFrame.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.take.html
+- id: 3.7-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer needs the top 10 products by revenue.
+
+    Which code is efficient and correct?
+  answers:
+  - text: '`df.limit(10).orderBy(col("revenue").desc())`'
+    verdict: incorrect
+    justification: Limiting first keeps 10 arbitrary rows, which are then sorted.
+  - text: '`df.orderBy("revenue").take(-10)`'
+    verdict: incorrect
+    justification: '`take` does not accept negative numbers.'
+  - text: '`df.orderBy(col("revenue").desc()).limit(10)`'
+    verdict: correct
+    justification: Sorting descending and then limiting returns the 10 highest revenues.
+  - text: '`df.sortWithinPartitions(col("revenue").desc()).limit(10)`'
+    verdict: incorrect
+    justification: Sorting within partitions does not give a global top 10.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.orderBy.html
+- id: 3.7-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer runs `df.agg(max("amount")).collect()[0][0]`.
+
+    What is returned?
+  answers:
+  - text: The maximum amount as a Python value
+    verdict: correct
+    justification: '`agg` returns a one-row DataFrame; `collect()[0][0]` extracts the single value.'
+  - text: The name of the column
+    verdict: incorrect
+    justification: Indexing the row returns the value, not the column name.
+  - text: A list of all amounts
+    verdict: incorrect
+    justification: Only the maximum is returned.
+  - text: A DataFrame with one row
+    verdict: true_but_irrelevant
+    justification: The `agg` call alone returns a DataFrame; `collect()[0][0]` turns it into a Python value.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html
+- id: 3.7-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A Spark 4 user wants the DataFrame contents as a PyArrow Table on the driver.
+
+    Which method does this?
+  answers:
+  - text: '`df.toPandas(arrow=True)`'
+    verdict: incorrect
+    justification: '`toPandas` has no `arrow` parameter; it returns pandas, not PyArrow.'
+  - text: '`pyarrow.from_spark(df)`'
+    verdict: incorrect
+    justification: PyArrow has no `from_spark` function.
+  - text: '`df.to_arrow_table(spark)`'
+    verdict: incorrect
+    justification: There is no `to_arrow_table` method.
+  - text: '`df.toArrow()`'
+    verdict: correct
+    justification: Spark 4 adds `DataFrame.toArrow()`, which returns a PyArrow Table.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.toArrow.html
+- id: 3.7-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer selects all columns except those starting with `tmp_`.
+
+    Which code does this?
+  answers:
+  - text: '`df.columns.remove("tmp_")`'
+    verdict: incorrect
+    justification: '`columns` is a plain list, and `remove` changes only that list, not the DataFrame.'
+  - text: '`df.drop("tmp_*")`'
+    verdict: incorrect
+    justification: '`drop` does not support wildcards; `"tmp_*"` matches no column, so nothing is dropped.'
+  - text: '`df.select(regex="^(?!tmp_)")`'
+    verdict: incorrect
+    justification: '`select` has no `regex` parameter.'
+  - text: '`df.select([c for c in df.columns if not c.startswith("tmp_")])`'
+    verdict: correct
+    justification: A list comprehension over `df.columns` selects the columns that don't start with `tmp_`.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.columns.html
+- id: 3.7-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer prints the schema of a DataFrame read from JSON that contains an array of structs.
+
+    How is the nested structure shown?
+  answers:
+  - text: As an indented tree with `element` entries for the array and nested fields under it
+    verdict: correct
+    justification: '`printSchema` shows an indented tree, with arrays shown as `element` and struct fields nested under them.'
+  - text: As JSON text
+    verdict: true_but_irrelevant
+    justification: JSON text is what `df.schema.json()` returns, not `printSchema`.
+  - text: As a flat list of column names
+    verdict: incorrect
+    justification: Nested structure is shown, not a flat list.
+  - text: As a SQL `CREATE TABLE` statement
+    verdict: incorrect
+    justification: '`printSchema` does not print DDL.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.printSchema.html
+- id: 3.7-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.7'
+  question: |-
+    A data engineer builds a Python set of distinct country codes for use in driver code.
+
+    Which code does this?
+  answers:
+  - text: '`df.select("country").distinct().toSet()`'
+    verdict: incorrect
+    justification: DataFrames have no `toSet` method.
+  - text: '`{r.country for r in df.select("country").distinct().collect()}`'
+    verdict: correct
+    justification: Collecting the distinct values and building a set comprehension gives a Python set on the driver.
+  - text: '`set(df.select("country"))`'
+    verdict: incorrect
+    justification: A DataFrame is not iterable, so `set(...)` fails.
+  - text: '`df.country.unique()`'
+    verdict: incorrect
+    justification: Columns have no `unique` method (that is pandas).
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html

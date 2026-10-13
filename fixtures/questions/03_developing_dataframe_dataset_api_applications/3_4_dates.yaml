@@ -1,0 +1,640 @@
+# Objective 3.4: Manipulate and utilize Date data type, such as Unix epoch to date string, and extract date component.
+- id: 3.4-001
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A column `epoch_s` holds Unix epoch seconds. The engineer needs a string like `2025-10-30`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("day", date_format(col("epoch_s")))`'
+    verdict: incorrect
+    justification: '`date_format` needs a date or timestamp and a format string; neither is given here.'
+  - text: '`df.withColumn("day", from_unixtime(col("epoch_s"), "yyyy-MM-dd"))`'
+    verdict: correct
+    justification: '`from_unixtime` converts epoch seconds to a string in the given format; `yyyy-MM-dd` produces values like `2025-10-30`.'
+  - text: '`df.withColumn("day", to_date(col("epoch_s"), "yyyy-MM-dd"))`'
+    verdict: incorrect
+    justification: '`to_date` parses strings or timestamps, not epoch seconds.'
+  - text: '`df.withColumn("day", from_unixtime(col("epoch_s"), "YYYY-mm-DD"))`'
+    verdict: partially_correct
+    justification: '`from_unixtime` is the right function, but in the pattern `YYYY` is the week-based year, `mm` is minutes and `DD` is the day of the year.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.from_unixtime.html
+- id: 3.4-002
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: What is the default format of `from_unixtime` when no format is given?
+  answers:
+  - text: '`yyyy-MM-dd HH:mm:ss`'
+    verdict: correct
+    justification: The default format of `from_unixtime` is `yyyy-MM-dd HH:mm:ss`.
+  - text: '`yyyy-MM-dd`'
+    verdict: incorrect
+    justification: The default includes the time.
+  - text: ISO 8601 with milliseconds and time zone
+    verdict: incorrect
+    justification: The default has no milliseconds or time zone.
+  - text: '`MM/dd/yyyy hh:mm a`'
+    verdict: incorrect
+    justification: Spark does not default to a US 12-hour format.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.from_unixtime.html
+- id: 3.4-003
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer applies `from_unixtime` to a BIGINT column of epoch seconds and checks the schema of the result.
+
+    What is the data type of the returned column?
+  answers:
+  - text: Timestamp
+    verdict: true_but_irrelevant
+    justification: A timestamp type is what `timestamp_seconds` returns.
+  - text: Long
+    verdict: incorrect
+    justification: The input is a long; the output is a string.
+  - text: String
+    verdict: correct
+    justification: '`from_unixtime` returns a STRING with the formatted timestamp.'
+  - text: Date
+    verdict: incorrect
+    justification: It returns a formatted string, not a date.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/functions/from_unixtime
+- id: 3.4-004
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A column `epoch_ms` holds epoch milliseconds, for example `1761782400000`. The engineer needs a date string.
+
+    Which code is correct?
+  answers:
+  - text: '`df.withColumn("d", to_date(col("epoch_ms")))`'
+    verdict: incorrect
+    justification: '`to_date` does not interpret epoch numbers.'
+  - text: '`df.withColumn("d", from_unixtime(col("epoch_ms"), "yyyy-MM-dd"))`'
+    verdict: incorrect
+    justification: Passing milliseconds as seconds puts the date tens of thousands of years in the future.
+  - text: '`df.withColumn("d", from_unixtime(col("epoch_ms") * 1000, "yyyy-MM-dd"))`'
+    verdict: incorrect
+    justification: Multiplying makes the value even larger; you must divide.
+  - text: '`df.withColumn("d", from_unixtime(col("epoch_ms") / 1000, "yyyy-MM-dd"))`'
+    verdict: correct
+    justification: '`from_unixtime` expects seconds, so milliseconds must be divided by 1000 first.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.from_unixtime.html
+- id: 3.4-005
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer wants a `TimestampType` column, not a string, from epoch seconds in `epoch_s`.
+
+    Which function returns a timestamp directly?
+  answers:
+  - text: '`from_unixtime(col("epoch_s"))`'
+    verdict: partially_correct
+    justification: '`from_unixtime` converts epoch seconds, but it returns a string, not a timestamp.'
+  - text: '`unix_timestamp(col("epoch_s"))`'
+    verdict: incorrect
+    justification: '`unix_timestamp` converts in the other direction: from a time string to epoch seconds.'
+  - text: '`date_format(col("epoch_s"), "yyyy-MM-dd HH:mm:ss")`'
+    verdict: incorrect
+    justification: '`date_format` formats an existing date or timestamp into a string.'
+  - text: '`timestamp_seconds(col("epoch_s"))`'
+    verdict: correct
+    justification: '`timestamp_seconds` converts epoch seconds directly to a `TimestampType` column.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.timestamp_seconds.html
+- id: 3.4-006
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer converts a string `"2025-10-30 14:00:00"` in column `ts_str` into epoch seconds.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("epoch", date_format(col("ts_str"), "epoch"))`'
+    verdict: incorrect
+    justification: '`date_format` returns a formatted string; `"epoch"` is not a valid pattern for seconds.'
+  - text: '`df.withColumn("epoch", from_unixtime(col("ts_str")))`'
+    verdict: incorrect
+    justification: '`from_unixtime` converts the other way, from seconds to a string.'
+  - text: '`df.withColumn("epoch", unix_timestamp(col("ts_str"), "yyyy-MM-dd HH:mm:ss"))`'
+    verdict: correct
+    justification: '`unix_timestamp(col, format)` parses the string with the pattern and returns epoch seconds.'
+  - text: '`df.withColumn("epoch", to_date(col("ts_str")).cast("epoch"))`'
+    verdict: incorrect
+    justification: '`epoch` is not a data type for `cast`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.unix_timestamp.html
+- id: 3.4-007
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A column `order_dt` contains strings like `30/10/2025`. The engineer needs a `DateType` column.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("order_date", to_date(col("order_dt"), "dd/MM/yyyy"))`'
+    verdict: correct
+    justification: The pattern `dd/MM/yyyy` matches day/month/year strings like `30/10/2025`.
+  - text: '`df.withColumn("order_date", to_date(col("order_dt"), "dd/mm/yyyy"))`'
+    verdict: incorrect
+    justification: '`mm` means minutes, not month.'
+  - text: '`df.withColumn("order_date", col("order_dt").cast("date", "dd/MM/yyyy"))`'
+    verdict: incorrect
+    justification: '`cast` takes one type argument and cannot use a custom pattern.'
+  - text: '`df.withColumn("order_date", to_date(col("order_dt"), "MM/dd/yyyy"))`'
+    verdict: incorrect
+    justification: '`MM/dd/yyyy` expects the month first, so `30` is not a valid month.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.to_date.html
+- id: 3.4-008
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: In Spark datetime patterns, what is the difference between `MM` and `mm`?
+  answers:
+  - text: '`MM` is a two-digit month and `mm` is a three-letter month name.'
+    verdict: incorrect
+    justification: A three-letter month name is `MMM`; `mm` is minutes.
+  - text: '`MM` is the month of the year and `mm` is the minute of the hour.'
+    verdict: correct
+    justification: In Spark datetime patterns, `MM` is month-of-year and `mm` is minute-of-hour.
+  - text: Both mean month; case does not matter.
+    verdict: incorrect
+    justification: Pattern letters are case-sensitive.
+  - text: '`MM` is the minute and `mm` is the month.'
+    verdict: incorrect
+    justification: The meanings are swapped.
+  source_url: https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html
+- id: 3.4-009
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer formats timestamps with a 24-hour clock.
+
+    Which pattern letter represents the hour of day from 0 to 23?
+  answers:
+  - text: '`HH`'
+    verdict: correct
+    justification: '`HH` is the hour of day from 0 to 23.'
+  - text: '`kk`'
+    verdict: incorrect
+    justification: '`k` is the clock hour of day from 1 to 24.'
+  - text: '`hh`'
+    verdict: incorrect
+    justification: '`hh` is the clock hour of AM/PM, from 1 to 12.'
+  - text: '`KK`'
+    verdict: incorrect
+    justification: '`K` is the hour of AM/PM from 0 to 11.'
+  source_url: https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html
+- id: 3.4-010
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer needs the full name of the weekday, such as `Thursday`, from a date column `d`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("weekday", date_format(col("d"), "dddd"))`'
+    verdict: incorrect
+    justification: '`d` is day-of-month, and `dddd` is not a valid pattern.'
+  - text: '`df.withColumn("weekday", date_format(col("d"), "EEEE"))`'
+    verdict: correct
+    justification: '`EEEE` formats the full day-of-week name, such as `Thursday`.'
+  - text: '`df.withColumn("weekday", dayofweek(col("d")))`'
+    verdict: partially_correct
+    justification: '`dayofweek` gives the weekday, but as a number (1–7), not a name.'
+  - text: '`df.withColumn("weekday", date_format(col("d"), "WW"))`'
+    verdict: incorrect
+    justification: '`W` is not a day-name pattern, so it does not produce the weekday''s name.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.date_format.html
+- id: 3.4-011
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer extracts the year from a timestamp column `ts`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("yr", extract_year("ts"))`'
+    verdict: incorrect
+    justification: There is no `extract_year` function.
+  - text: '`df.withColumn("yr", col("ts").year)`'
+    verdict: incorrect
+    justification: Columns have no `year` attribute.
+  - text: '`df.withColumn("yr", year(col("ts")))`'
+    verdict: correct
+    justification: '`year(col)` extracts the year as an integer.'
+  - text: '`df.withColumn("yr", date_format(col("ts"), "y").cast("year"))`'
+    verdict: incorrect
+    justification: '`year` is not a data type for `cast`.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.year.html
+- id: 3.4-012
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer extracts the month number (1–12) from a date column `d`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("m", dayofmonth(col("d")))`'
+    verdict: incorrect
+    justification: '`dayofmonth` returns the day, not the month.'
+  - text: '`df.withColumn("m", col("d").getMonth())`'
+    verdict: incorrect
+    justification: Columns have no `getMonth` method.
+  - text: '`df.withColumn("m", date_format(col("d"), "mm"))`'
+    verdict: incorrect
+    justification: '`mm` formats minutes, not months.'
+  - text: '`df.withColumn("m", month(col("d")))`'
+    verdict: correct
+    justification: '`month(col)` returns the month number 1–12.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.month.html
+- id: 3.4-013
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: What does `dayofweek` return for a date that falls on a Sunday?
+  answers:
+  - text: '0'
+    verdict: incorrect
+    justification: Numbering starts at 1, not 0.
+  - text: '1'
+    verdict: correct
+    justification: The PySpark docs state `dayofweek` ranges from 1 for Sunday to 7 for Saturday.
+  - text: '6'
+    verdict: incorrect
+    justification: 6 is Friday.
+  - text: '7'
+    verdict: incorrect
+    justification: 7 is Saturday.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.dayofweek.html
+- id: 3.4-014
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer keeps only weekend rows using `dayofweek`.
+
+    Which filter is correct?
+  answers:
+  - text: '`df.filter(dayofweek("d").isin(6, 7))`'
+    verdict: incorrect
+    justification: 6 is Friday, so this keeps Friday and Saturday.
+  - text: '`df.filter(dayofweek("d") > 5)`'
+    verdict: incorrect
+    justification: '`> 5` keeps Friday (6) and Saturday (7) and misses Sunday (1).'
+  - text: '`df.filter(dayofweek("d").isin(1, 7))`'
+    verdict: correct
+    justification: With Sunday = 1 and Saturday = 7, the weekend is `isin(1, 7)`.
+  - text: '`df.filter(dayofweek("d").isin(0, 6))`'
+    verdict: incorrect
+    justification: 0 is not a valid value, and 6 is Friday.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.dayofweek.html
+- id: 3.4-015
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer extracts the day of the month from a date.
+
+    Which function does this?
+  answers:
+  - text: '`dayofmonth`'
+    verdict: correct
+    justification: '`dayofmonth` returns the day of the month (1–31).'
+  - text: '`dayofyear`'
+    verdict: incorrect
+    justification: '`dayofyear` returns the day of the year (1–366).'
+  - text: '`weekofyear`'
+    verdict: incorrect
+    justification: '`weekofyear` returns the week number.'
+  - text: '`dayofweek`'
+    verdict: incorrect
+    justification: '`dayofweek` returns the weekday number.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.dayofmonth.html
+- id: 3.4-016
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer counts events per hour of day from timestamp `ts`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy(minute("ts").alias("h")).count()`'
+    verdict: incorrect
+    justification: '`minute` extracts minutes.'
+  - text: '`df.groupBy(date_format("ts", "mm").alias("h")).count()`'
+    verdict: incorrect
+    justification: '`mm` is minutes, not hours.'
+  - text: '`df.groupBy(date_trunc("ts", "hour")).count()`'
+    verdict: incorrect
+    justification: '`date_trunc` takes the unit first, and truncating keeps the date, so it groups by each hour of each day rather than hour of day.'
+  - text: '`df.groupBy(hour("ts").alias("h")).count()`'
+    verdict: correct
+    justification: '`hour(ts)` extracts the hour of day, so grouping by it counts events per hour.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.hour.html
+- id: 3.4-017
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer needs the week number of the year from a date column.
+
+    Which function provides this?
+  answers:
+  - text: '`weekofyear`'
+    verdict: correct
+    justification: '`weekofyear` returns the week number of the year.'
+  - text: '`month`'
+    verdict: incorrect
+    justification: '`month` returns the month.'
+  - text: '`dayofweek`'
+    verdict: incorrect
+    justification: '`dayofweek` returns the weekday.'
+  - text: '`date_trunc("week")` alone'
+    verdict: partially_correct
+    justification: '`date_trunc("week", ...)` gives the start of the week as a timestamp, not a week number, and it also needs a column.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.weekofyear.html
+- id: 3.4-018
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer needs the number of days between `start_date` and `end_date`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("days", months_between(col("end_date"), col("start_date")))`'
+    verdict: incorrect
+    justification: '`months_between` returns months, not days.'
+  - text: '`df.withColumn("days", datediff(col("end_date"), col("start_date")))`'
+    verdict: correct
+    justification: '`datediff(end, start)` returns the number of days from `start` to `end`.'
+  - text: '`df.withColumn("days", col("end_date") - col("start_date")).cast("days")`'
+    verdict: incorrect
+    justification: Subtracting dates and casting to `"days"` is not valid; `days` is not a type.
+  - text: '`df.withColumn("days", datediff(col("start_date"), col("end_date")))`'
+    verdict: incorrect
+    justification: The arguments are swapped, so the result has the wrong sign.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.datediff.html
+- id: 3.4-019
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer computes `datediff(lit("2025-01-01"), lit("2025-01-31"))`.
+
+    What is the result?
+  answers:
+  - text: '-31'
+    verdict: incorrect
+    justification: The magnitude is 30, not 31.
+  - text: '31'
+    verdict: incorrect
+    justification: There are 30 days between January 1 and January 31, not 31.
+  - text: '-30'
+    verdict: correct
+    justification: '`datediff(end, start)` = end − start; from January 31 to January 1 that is −30.'
+  - text: '30'
+    verdict: incorrect
+    justification: The sign is wrong because the end date is earlier.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.datediff.html
+- id: 3.4-020
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer computes a due date 30 days after `invoice_date`.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("due", date_add(30, col("invoice_date")))`'
+    verdict: incorrect
+    justification: The arguments are in the wrong order.
+  - text: '`df.withColumn("due", col("invoice_date") + "30 days")`'
+    verdict: incorrect
+    justification: Adding a string does not add days to a date column.
+  - text: '`df.withColumn("due", add_months(col("invoice_date"), 30))`'
+    verdict: incorrect
+    justification: '`add_months` adds 30 months, not 30 days.'
+  - text: '`df.withColumn("due", date_add(col("invoice_date"), 30))`'
+    verdict: correct
+    justification: '`date_add(start, days)` adds days to a date.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.date_add.html
+- id: 3.4-021
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer computes how many months passed between `signup` and `today`.
+
+    Which function is designed for this?
+  answers:
+  - text: '`month(col("today")) - month(col("signup"))`'
+    verdict: partially_correct
+    justification: Subtracting month numbers works within one year, but it ignores the years and the days.
+  - text: '`date_trunc("month", col("today") - col("signup"))`'
+    verdict: incorrect
+    justification: '`date_trunc` truncates a timestamp; it cannot work on a date difference.'
+  - text: '`datediff(col("today"), col("signup")) / 12`'
+    verdict: incorrect
+    justification: Dividing a number of days by 12 does not give months.
+  - text: '`months_between(col("today"), col("signup"))`'
+    verdict: correct
+    justification: '`months_between(end, start)` returns the number of months between two dates.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.months_between.html
+- id: 3.4-022
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer truncates timestamp `ts` to the start of its month, keeping a timestamp type.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("month_start", date_trunc(col("ts"), "month"))`'
+    verdict: incorrect
+    justification: 'The arguments are in the wrong order: the format comes first.'
+  - text: '`df.withColumn("month_start", date_trunc("month", col("ts")))`'
+    verdict: correct
+    justification: '`date_trunc("month", ts)` returns a timestamp at the start of the month.'
+  - text: '`df.withColumn("month_start", month(col("ts")))`'
+    verdict: incorrect
+    justification: '`month` returns an integer, not a timestamp.'
+  - text: '`df.withColumn("month_start", date_format(col("ts"), "MM"))`'
+    verdict: incorrect
+    justification: '`date_format` returns a string of the month number, not a timestamp.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.date_trunc.html
+- id: 3.4-023
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer needs the last day of the month for each `invoice_date`.
+
+    Which function does this?
+  answers:
+  - text: '`date_trunc("month", col("invoice_date"))`'
+    verdict: incorrect
+    justification: '`date_trunc("month", ...)` returns the first day of the month.'
+  - text: '`dayofmonth(col("invoice_date"))`'
+    verdict: incorrect
+    justification: '`dayofmonth` returns the day number of the date itself.'
+  - text: '`last_day(col("invoice_date"))`'
+    verdict: correct
+    justification: '`last_day` returns the last day of the month of the given date.'
+  - text: '`next_day(col("invoice_date"), "month")`'
+    verdict: incorrect
+    justification: '`next_day` takes a weekday name such as `"Mon"` and returns the next such day.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.last_day.html
+- id: 3.4-024
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer filters orders from the last 7 days.
+
+    Which code does this?
+  answers:
+  - text: '`df.filter(col("order_date") >= date_sub(current_date(), 7))`'
+    verdict: correct
+    justification: '`date_sub(current_date(), 7)` is the date 7 days ago; filtering on `>=` keeps the last 7 days.'
+  - text: '`df.filter(col("order_date") >= current_date() - "7")`'
+    verdict: incorrect
+    justification: Subtracting a string from a date does not compute a date 7 days ago.
+  - text: '`df.filter(datediff(col("order_date"), current_date()) > 7)`'
+    verdict: incorrect
+    justification: '`datediff(order_date, today) > 7` keeps dates more than 7 days in the future.'
+  - text: '`df.filter(col("order_date") >= date_add(current_date(), 7))`'
+    verdict: incorrect
+    justification: '`date_add(current_date(), 7)` is a week in the future, so the filter keeps future dates.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.current_date.html
+- id: 3.4-025
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A column contains strings like `2025-10-30T14:05:00`. The engineer needs a timestamp column.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("ts", from_unixtime(col("ts_str")))`'
+    verdict: incorrect
+    justification: '`from_unixtime` expects epoch seconds, not a timestamp string.'
+  - text: '`df.withColumn("ts", to_timestamp(col("ts_str"), "yyyy-MM-ddTHH:mm:ss"))`'
+    verdict: incorrect
+    justification: An unquoted `T` is not a valid pattern letter, so parsing fails.
+  - text: '`df.withColumn("ts", to_timestamp(col("ts_str"), "yyyy-MM-dd''T''HH:mm:ss"))`'
+    verdict: correct
+    justification: Literal text in patterns must be quoted, so the `T` is written `'T'`.
+  - text: '`df.withColumn("ts", to_date(col("ts_str"), "yyyy-MM-dd''T''HH:mm:ss"))`'
+    verdict: partially_correct
+    justification: The pattern is right, but `to_date` returns only the date and drops the time.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.to_timestamp.html
+- id: 3.4-026
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer converts a timestamp column `ts` into a date, dropping the time part.
+
+    Which code does this?
+  answers:
+  - text: '`df.withColumn("d", from_unixtime(col("ts")))`'
+    verdict: incorrect
+    justification: '`from_unixtime` expects epoch seconds, not a timestamp.'
+  - text: '`df.withColumn("d", hour(col("ts")) == 0)`'
+    verdict: incorrect
+    justification: '`hour(ts) == 0` returns a boolean.'
+  - text: '`df.withColumn("d", date_format(col("ts"), "date"))`'
+    verdict: incorrect
+    justification: '`date_format` returns a string, and `"date"` is not a valid pattern.'
+  - text: '`df.withColumn("d", to_date(col("ts")))`'
+    verdict: correct
+    justification: '`to_date(ts)` converts a timestamp to a date, dropping the time.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.to_date.html
+- id: 3.4-027
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer formats a date `d` as `2025/10` (year and month).
+
+    Which code does this?
+  answers:
+  - text: '`date_format(col("d"), "yyyy/MM")`'
+    verdict: correct
+    justification: '`yyyy/MM` gives the year and the two-digit month, such as `2025/10`.'
+  - text: '`to_date(col("d"), "yyyy/MM")`'
+    verdict: incorrect
+    justification: '`to_date` parses strings into dates; it does not format a date.'
+  - text: '`date_format(col("d"), "yyyy/mm")`'
+    verdict: incorrect
+    justification: '`mm` is minutes, not month.'
+  - text: '`date_format(col("d"), "YYYY/mm")`'
+    verdict: incorrect
+    justification: '`YYYY` is the week-based year and `mm` is minutes.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.date_format.html
+- id: 3.4-028
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: What is the data type of the column returned by `date_format`?
+  answers:
+  - text: Date
+    verdict: incorrect
+    justification: The result is a string, not a date.
+  - text: String
+    verdict: correct
+    justification: '`date_format` returns a string formatted with the given pattern.'
+  - text: Long
+    verdict: incorrect
+    justification: The result is a string, not a number.
+  - text: Timestamp
+    verdict: incorrect
+    justification: The result is a string, not a timestamp.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.date_format.html
+- id: 3.4-029
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A column `ts_epoch` holds epoch seconds. The engineer extracts the hour after conversion.
+
+    Which code is correct?
+  answers:
+  - text: '`df.withColumn("h", col("ts_epoch") % 24)`'
+    verdict: incorrect
+    justification: '`ts_epoch % 24` takes the remainder of the seconds count, not the hour.'
+  - text: '`df.withColumn("h", hour(timestamp_seconds(col("ts_epoch"))))`'
+    verdict: correct
+    justification: '`timestamp_seconds` turns epoch seconds into a timestamp, and `hour` then extracts the hour.'
+  - text: '`df.withColumn("h", date_format(col("ts_epoch"), "HH"))`'
+    verdict: incorrect
+    justification: '`date_format` expects a date or timestamp, not a raw long of seconds.'
+  - text: '`df.withColumn("h", hour(col("ts_epoch")))`'
+    verdict: incorrect
+    justification: '`hour` expects a timestamp; a plain long of epoch seconds is not a timestamp.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.from_unixtime.html
+- id: 3.4-030
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer formats a timestamp with the pattern `"yyyy-MM-dd hh:mm a"`.
+
+    What does `a` represent?
+  answers:
+  - text: The AM/PM marker
+    verdict: correct
+    justification: In Spark datetime patterns, `a` is the AM/PM marker.
+  - text: The time zone abbreviation
+    verdict: incorrect
+    justification: Time zone names are `z`.
+  - text: The abbreviated weekday
+    verdict: incorrect
+    justification: The weekday is `E`.
+  - text: The day of the year
+    verdict: incorrect
+    justification: The day of the year is `D`.
+  source_url: https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-datetime-pattern
+- id: 3.4-031
+  category: developing_dataframe_dataset_api_applications
+  objective: '3.4'
+  question: |-
+    A data engineer groups sales by year and month of `order_date`.
+
+    Which code does this?
+  answers:
+  - text: '`df.groupBy(date_format("order_date", "yyyy-mm")).agg(sum("amount"))`'
+    verdict: incorrect
+    justification: '`mm` is minutes, so the grouping key is wrong.'
+  - text: '`df.groupBy("order_date.year", "order_date.month").agg(sum("amount"))`'
+    verdict: incorrect
+    justification: '`order_date` is a date, not a struct with `year` and `month` fields.'
+  - text: '`df.groupBy(dayofmonth("order_date")).agg(sum("amount"))`'
+    verdict: incorrect
+    justification: Grouping by day of month mixes all months together.
+  - text: '`df.groupBy(year("order_date").alias("y"), month("order_date").alias("m")).agg(sum("amount"))`'
+    verdict: correct
+    justification: Grouping by `year(...)` and `month(...)` aggregates per year and month.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.year.html

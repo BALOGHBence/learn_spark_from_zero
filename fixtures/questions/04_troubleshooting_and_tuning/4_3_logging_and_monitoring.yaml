@@ -1,0 +1,637 @@
+# Objective 4.3: Perform logging and monitoring of Spark applications - publish, customize, and analyze Driver logs and Executor logs to diagnose out-of-memory errors, cluster underutilization, etc.
+- id: 4.3-001
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: On classic Databricks compute, where do direct `print` and log statements from notebook driver code go?
+  answers:
+  - text: To the Spark driver logs, available on the Driver logs tab of the compute details page
+    verdict: correct
+    justification: Databricks states that direct print and log statements from notebooks, jobs and libraries go to the Spark driver logs, shown on the Driver logs tab.
+  - text: They are discarded
+    verdict: incorrect
+    justification: The output is kept in the driver logs.
+  - text: To the executor logs of every worker
+    verdict: incorrect
+    justification: Driver-side code does not write to the executor logs.
+  - text: To the compute event log
+    verdict: incorrect
+    justification: The event log records compute lifecycle events, not print output.
+  source_url: https://docs.databricks.com/aws/en/compute/clusters-manage
+- id: 4.3-002
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer wants to inspect Spark worker (executor) logs on a classic compute resource.
+
+    Where can they be viewed?
+  answers:
+  - text: In the notebook output only
+    verdict: incorrect
+    justification: Executor output does not appear in the notebook.
+  - text: Through the Spark UI tab of the compute
+    verdict: correct
+    justification: Databricks says to view Spark worker logs through the compute's Spark UI tab.
+  - text: In the Unity Catalog audit log
+    verdict: incorrect
+    justification: Audit logs record governance events, not executor logs.
+  - text: On the compute event log tab
+    verdict: incorrect
+    justification: The event log shows lifecycle events, not executor output.
+  source_url: https://docs.databricks.com/aws/en/compute/clusters-manage
+- id: 4.3-003
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A team must keep driver and worker logs after the compute terminates, for later analysis.
+
+    Which feature should be configured?
+  answers:
+  - text: The Spark UI's Storage tab
+    verdict: incorrect
+    justification: The Storage tab shows cached data.
+  - text: The compute event log export
+    verdict: partially_correct
+    justification: Exporting the event log keeps lifecycle events, but not the driver and worker logs.
+  - text: A log delivery location for the compute, where driver and worker logs are delivered
+    verdict: correct
+    justification: A log delivery location receives the driver and worker logs so they can be kept and analyzed after the compute terminates.
+  - text: A temporary view of the logs
+    verdict: incorrect
+    justification: Temporary views do not store logs.
+  source_url: https://docs.databricks.com/aws/en/compute/clusters-manage
+- id: 4.3-004
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: What does the compute event log show?
+  answers:
+  - text: Every `print` statement from notebooks
+    verdict: incorrect
+    justification: Print statements go to the driver logs.
+  - text: The log4j output of every executor
+    verdict: incorrect
+    justification: Executor log4j output is in the worker logs.
+  - text: The SQL plans of every query
+    verdict: incorrect
+    justification: SQL plans are in the Spark UI.
+  - text: Compute lifecycle events such as creation, termination and configuration edits
+    verdict: correct
+    justification: The compute event log records lifecycle events such as creation, termination and configuration edits.
+  source_url: https://docs.databricks.com/aws/en/compute/clusters-manage
+- id: 4.3-005
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: A streaming job fails right after starting. Where should the engineer look for the exception's stack trace?
+  answers:
+  - text: In the Storage tab
+    verdict: incorrect
+    justification: The Storage tab shows cached data.
+  - text: In the Environment tab
+    verdict: incorrect
+    justification: The Environment tab shows configuration.
+  - text: In the driver logs
+    verdict: correct
+    justification: Databricks recommends checking the driver logs for exceptions that happen when a streaming job starts.
+  - text: In the compute event log only
+    verdict: incorrect
+    justification: The event log shows lifecycle events, not stack traces.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-006
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A few tasks of a stage misbehave and the engineer wants the logs of those specific tasks.
+
+    What does the Databricks guide recommend?
+  answers:
+  - text: Open the Environment tab.
+    verdict: incorrect
+    justification: The Environment tab shows configuration, not task logs.
+  - text: Restart the compute to regenerate logs.
+    verdict: incorrect
+    justification: Restarting the compute loses the logs instead of creating them.
+  - text: Check the driver's stdout only.
+    verdict: incorrect
+    justification: Task errors are logged on the executors, not only on the driver.
+  - text: Open the executor logs of the worker where the task ran and check its log4j output.
+    verdict: correct
+    justification: For specific misbehaving tasks, open the executor logs of the worker that ran them and check the log4j output.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-007
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    On a compute resource with standard access mode, a data engineer looks for executor logs.
+
+    What does the documentation say?
+  answers:
+  - text: Executor logs are available to all users.
+    verdict: incorrect
+    justification: They are not available on standard access mode at all.
+  - text: Executor logs are not available for compute with standard access mode.
+    verdict: correct
+    justification: The Databricks guide states that executor logs are not available on standard access mode compute.
+  - text: Executor logs are merged into the notebook output.
+    verdict: incorrect
+    justification: Executor logs are not merged into notebook output.
+  - text: Executor logs are available only through the event log.
+    verdict: incorrect
+    justification: The event log does not contain executor logs.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-008
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A task appears to hang. The engineer wants to see what its JVM thread is doing.
+
+    Which Spark UI feature helps?
+  answers:
+  - text: A thread dump from the Executors tab for the executor running the task
+    verdict: correct
+    justification: A thread dump from the Executors tab shows the JVM thread state of the task, which helps debug hanging tasks.
+  - text: The SQL plan of the query
+    verdict: incorrect
+    justification: The SQL plan shows the query structure, not thread states.
+  - text: The Environment tab
+    verdict: incorrect
+    justification: The Environment tab shows configuration.
+  - text: The Storage tab
+    verdict: incorrect
+    justification: The Storage tab shows cached data.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-009
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A job fails with `ExecutorLostFailure (executor 4 exited caused by one of the running tasks) Reason: Remote RPC client disassociated. Likely due to containers exceeding thresholds`.
+
+    What is a likely explanation?
+  answers:
+  - text: The driver ran out of disk space.
+    verdict: incorrect
+    justification: Driver disk space would not cause an executor to be lost this way.
+  - text: The table was dropped during the job.
+    verdict: incorrect
+    justification: A dropped table produces a different error.
+  - text: The SQL query had a syntax error.
+    verdict: incorrect
+    justification: A syntax error fails before any tasks run.
+  - text: The executor ran out of memory or exceeded its container limits, which is a common symptom of a memory issue.
+    verdict: correct
+    justification: '`ExecutorLostFailure` with "containers exceeding thresholds" is a common symptom of an executor running out of memory.'
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 4.3-010
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    The Databricks guide says memory error messages are often generic.
+
+    How can a data engineer confirm that a failure is caused by memory?
+  answers:
+  - text: Switch the table format from Delta to CSV.
+    verdict: incorrect
+    justification: Switching to CSV does not verify a memory issue.
+  - text: Double the memory per core, for example by using a worker type with the same cores and twice the memory, and see whether the failure changes.
+    verdict: correct
+    justification: The guide suggests doubling the memory per core; if the failure changes or disappears, memory is likely the cause.
+  - text: Disable the driver logs.
+    verdict: incorrect
+    justification: Disabling logs removes diagnostic information.
+  - text: Halve the number of executors.
+    verdict: incorrect
+    justification: Halving the executors does not test memory per core.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 4.3-011
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer suspects executors spend too long in garbage collection.
+
+    Which Spark UI page shows GC time per executor?
+  answers:
+  - text: The Executors page
+    verdict: correct
+    justification: The Executors page shows GC time per executor.
+  - text: The Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: The Jobs page
+    verdict: incorrect
+    justification: The Jobs page lists jobs.
+  - text: The Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration, not GC time.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-012
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer wants to verify which Spark configuration values were actually applied to the application.
+
+    Which Spark UI page shows them?
+  answers:
+  - text: The Jobs page
+    verdict: incorrect
+    justification: The Jobs page shows jobs.
+  - text: The Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: The Environment page
+    verdict: correct
+    justification: The Environment page lists the Spark configuration properties in effect.
+  - text: The Executors page
+    verdict: incorrect
+    justification: The Executors page shows executor resources and metrics.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-013
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer looks for failed tasks and their error messages for a stage.
+
+    Where can these be found?
+  answers:
+  - text: Only in the compute event log
+    verdict: incorrect
+    justification: The event log does not list task errors.
+  - text: On the Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: On the Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration.
+  - text: On the stage detail page, in the task table, including the error for each failed task
+    verdict: correct
+    justification: The stage detail page has a task table with the status and error of each failed task.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-014
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    In Spark Classic, a data engineer wants less verbose Spark log output for an application.
+
+    Which call sets the log level to `WARN`?
+  answers:
+  - text: '`spark.sparkContext.setLogLevel("WARN")`'
+    verdict: correct
+    justification: '`sparkContext.setLogLevel("WARN")` changes the log level in Spark Classic.'
+  - text: '`logging.disable("WARN")`'
+    verdict: incorrect
+    justification: '`logging.disable` affects Python''s logging module, not Spark''s JVM log level.'
+  - text: '`spark.conf.set("log.level", "WARN")`'
+    verdict: incorrect
+    justification: '`log.level` is not a Spark configuration property.'
+  - text: '`spark.setLogLevel("WARN")`'
+    verdict: incorrect
+    justification: SparkSession has no `setLogLevel` method; it is on the SparkContext.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.SparkContext.setLogLevel.html
+- id: 4.3-015
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A team wants to view the Spark UI of an application after it has finished on a self-managed Spark cluster.
+
+    What is required?
+  answers:
+  - text: The executors must be kept running.
+    verdict: incorrect
+    justification: The UI is served by the driver or the history server, not by executors.
+  - text: The application must be restarted.
+    verdict: incorrect
+    justification: Restarting creates a new application with a new UI.
+  - text: Event logging must be enabled so the history server can reconstruct the UI from the event logs.
+    verdict: correct
+    justification: With event logging enabled, the history server can rebuild the UI of finished applications from their event logs.
+  - text: Nothing; the UI on port 4040 stays available forever.
+    verdict: incorrect
+    justification: The UI on port 4040 is served by the driver and disappears when the application ends.
+  source_url: https://spark.apache.org/docs/latest/monitoring.html
+- id: 4.3-016
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: Which configuration enables writing Spark events to the event log for later viewing in the history server?
+  answers:
+  - text: '`spark.history.enabled`'
+    verdict: incorrect
+    justification: '`spark.history.enabled` is not the event logging property.'
+  - text: '`spark.eventLog.enabled`'
+    verdict: correct
+    justification: '`spark.eventLog.enabled` turns on event logging for the history server.'
+  - text: '`spark.log.events`'
+    verdict: incorrect
+    justification: '`spark.log.events` is not a Spark property.'
+  - text: '`spark.ui.enabled`'
+    verdict: incorrect
+    justification: '`spark.ui.enabled` controls the live UI, not event logging.'
+  source_url: https://spark.apache.org/docs/latest/monitoring.html
+- id: 4.3-017
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    Many concurrent streams and notebook queries run on one all-purpose compute, and jobs show long gaps while workers sit idle.
+
+    Which diagnosis fits?
+  answers:
+  - text: The executors have too much memory.
+    verdict: incorrect
+    justification: Plenty of executor memory does not cause gaps.
+  - text: AQE is disabled.
+    verdict: incorrect
+    justification: AQE settings do not cause gaps between jobs.
+  - text: The driver is overloaded by too many concurrent workloads.
+    verdict: correct
+    justification: Many concurrent workloads on one cluster overload the driver, which shows as gaps while workers are idle.
+  - text: The tables are partitioned incorrectly.
+    verdict: incorrect
+    justification: Partitioning problems show as slow stages, not gaps.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-driver-overloaded
+- id: 4.3-018
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: Which Spark UI columns of a stage show how much data it read from storage and how much it moved through shuffles?
+  answers:
+  - text: GC Time and Peak Memory only
+    verdict: incorrect
+    justification: GC time and peak memory describe resource usage, not data volumes.
+  - text: Input, Output, Shuffle Read and Shuffle Write
+    verdict: correct
+    justification: The Input, Output, Shuffle Read and Shuffle Write columns show data read, written and shuffled by the stage.
+  - text: Accumulators and Storage Level
+    verdict: incorrect
+    justification: Accumulators and storage levels are not stage I/O columns.
+  - text: Duration, Tasks and Locality
+    verdict: incorrect
+    justification: These columns describe time and task placement, not data volumes.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage
+- id: 4.3-019
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A streaming query's average processing time per batch approaches the batch interval.
+
+    What risk does the Databricks guide describe?
+  answers:
+  - text: The query switches to continuous processing automatically.
+    verdict: incorrect
+    justification: The query does not switch to continuous processing.
+  - text: The checkpoint is deleted.
+    verdict: incorrect
+    justification: The checkpoint is not deleted.
+  - text: The driver logs stop being written.
+    verdict: incorrect
+    justification: Logging continues normally.
+  - text: Batches start to queue up, building a backlog that can eventually bring down the streaming job.
+    verdict: correct
+    justification: When processing time approaches the batch interval, batches queue up and the backlog can bring the job down.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-020
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A team wants to send Spark metrics to an external monitoring system.
+
+    Which built-in Spark mechanism supports this?
+  answers:
+  - text: The configurable metrics system with sinks such as JMX, CSV or Prometheus-style endpoints
+    verdict: correct
+    justification: Spark's metrics system can send metrics to sinks such as JMX, CSV files or a Prometheus servlet.
+  - text: The `explain()` method
+    verdict: incorrect
+    justification: '`explain` shows query plans.'
+  - text: Temporary views
+    verdict: incorrect
+    justification: Temporary views are not monitoring tools.
+  - text: The compute event log
+    verdict: incorrect
+    justification: The event log records lifecycle events, not metrics for external systems.
+  source_url: https://spark.apache.org/docs/latest/monitoring.html
+- id: 4.3-021
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer wants to monitor the input rate, processing rate and batch duration of a streaming query programmatically.
+
+    Which API returns these metrics for the most recent micro-batch?
+  answers:
+  - text: '`query.explain()`'
+    verdict: incorrect
+    justification: '`StreamingQuery` has no `explain()` that returns progress metrics; `explain` shows the plan.'
+  - text: '`df.describe()`'
+    verdict: incorrect
+    justification: '`describe` computes column statistics.'
+  - text: '`query.lastProgress`'
+    verdict: correct
+    justification: '`lastProgress` returns the most recent micro-batch''s progress, including input rate, processing rate and durations.'
+  - text: '`spark.catalog.listTables()`'
+    verdict: incorrect
+    justification: '`listTables` lists tables.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/api/pyspark.sql.streaming.StreamingQuery.lastProgress.html
+- id: 4.3-022
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer wants to push streaming progress events to an external system whenever a micro-batch finishes.
+
+    Which approach is supported?
+  answers:
+  - text: Implement a `StreamingQueryListener` and register it with the SparkSession.
+    verdict: correct
+    justification: A `StreamingQueryListener` is called on query progress events and can push them to external systems.
+  - text: Use a broadcast variable.
+    verdict: incorrect
+    justification: Broadcast variables share read-only data.
+  - text: Read the driver logs every minute.
+    verdict: incorrect
+    justification: Polling logs is fragile and not a supported progress API.
+  - text: Call `query.awaitTermination()` in a loop.
+    verdict: incorrect
+    justification: '`awaitTermination` blocks until the query stops; it does not report progress.'
+  source_url: https://docs.databricks.com/aws/en/structured-streaming/stream-monitoring
+- id: 4.3-023
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    An executor shows a high number of failed tasks in the Spark UI Executors page, while others have none.
+
+    What should the engineer check next?
+  answers:
+  - text: The Storage page for cached tables
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: The Environment page for typos
+    verdict: incorrect
+    justification: Configuration typos would affect all executors, not one.
+  - text: The driver's stdout only
+    verdict: incorrect
+    justification: Task errors are logged on the executors.
+  - text: The logs of that executor to find the errors, such as out-of-memory errors or a faulty node
+    verdict: correct
+    justification: The executor's logs show why its tasks failed, for example out-of-memory errors or a faulty node.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-024
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A job fails with an out-of-memory error on the driver after a `collect()` of a large DataFrame.
+
+    Which is the most appropriate fix?
+  answers:
+  - text: Increase executor memory only.
+    verdict: true_but_irrelevant
+    justification: More executor memory helps executors, but `collect()` exhausts the driver's memory.
+  - text: Avoid collecting large data to the driver, for example by writing results to a table or using `take` or aggregations.
+    verdict: correct
+    justification: Collecting too much data overloads the driver; write results to a table or use `take` or aggregations instead.
+  - text: Increase the number of shuffle partitions.
+    verdict: incorrect
+    justification: Shuffle partitions do not affect how much data `collect()` returns.
+  - text: Enable the disk cache.
+    verdict: incorrect
+    justification: The disk cache does not change what `collect()` returns.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-memory-issues
+- id: 4.3-025
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A cluster looks underutilized: the Spark UI timeline shows idle executors and gaps between jobs on an all-purpose compute used interactively.
+
+    What does Databricks suggest as the most likely explanation and option?
+  answers:
+  - text: The tasks are skewed; enable salting.
+    verdict: incorrect
+    justification: Skew shows as long tasks inside stages, not gaps between jobs.
+  - text: There is simply no work between query submissions; consider serverless compute so idle time is not paid for.
+    verdict: correct
+    justification: Databricks says gaps on all-purpose compute usually just mean no work between submissions, and suggests serverless to avoid paying for idle time.
+  - text: The executors are crashing; increase executor memory.
+    verdict: incorrect
+    justification: Crashing executors would show failures, not idle gaps.
+  - text: AQE is creating gaps; disable AQE.
+    verdict: incorrect
+    justification: AQE does not create gaps between jobs.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/spark-job-gaps
+- id: 4.3-026
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer opens the Storage page of the Spark UI.
+
+    What information does it show?
+  answers:
+  - text: Executor logs
+    verdict: incorrect
+    justification: Logs are not on the Storage page.
+  - text: Shuffle files on disk for all stages
+    verdict: incorrect
+    justification: Shuffle files are not listed there.
+  - text: All tables in Unity Catalog
+    verdict: incorrect
+    justification: Unity Catalog tables are shown in Catalog Explorer, not the Spark UI.
+  - text: Cached RDDs and DataFrames with their storage levels, sizes and the fraction cached
+    verdict: correct
+    justification: The Storage page lists cached RDDs/DataFrames with storage level, size and fraction cached.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-027
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A stage shows a high "Peak Execution Memory" and spill metrics in the Spark UI.
+
+    What do these indicate?
+  answers:
+  - text: The stage needed a lot of memory for shuffles, joins, sorts or aggregations and had to spill to disk.
+    verdict: correct
+    justification: High peak execution memory and spill mean the stage needed lots of memory for shuffles, joins, sorts or aggregations and spilled to disk.
+  - text: The stage was skipped.
+    verdict: incorrect
+    justification: Skipped stages have no task metrics.
+  - text: The stage cached too many DataFrames.
+    verdict: incorrect
+    justification: Caching uses storage memory, which is shown on the Storage page.
+  - text: The driver ran out of memory.
+    verdict: incorrect
+    justification: These are executor task metrics, not driver metrics.
+  source_url: https://docs.databricks.com/aws/en/optimizations/spark-ui-guide/long-spark-stage-page
+- id: 4.3-028
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer writes `print("rows:", n)` inside a Python UDF that runs on executors, and expects to see it in the notebook output.
+
+    Where does that output go?
+  answers:
+  - text: To the notebook cell output
+    verdict: incorrect
+    justification: Executor prints do not appear in the notebook.
+  - text: To the compute event log
+    verdict: incorrect
+    justification: The event log does not capture stdout.
+  - text: To the stdout logs of the executors that ran the tasks, not the notebook output
+    verdict: correct
+    justification: Output printed on executors goes to the executors' stdout, not to the driver or the notebook.
+  - text: To the driver logs
+    verdict: incorrect
+    justification: Driver logs contain driver output, not executor prints.
+  source_url: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+- id: 4.3-029
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer checks that a streaming query's tasks run on multiple executors.
+
+    Why does the Databricks guide recommend this?
+  answers:
+  - text: To reduce the size of the checkpoint.
+    verdict: incorrect
+    justification: Executor distribution does not affect checkpoint size.
+  - text: To ensure enough parallelism; if only one executor does all the work, the job is not using the compute well.
+    verdict: correct
+    justification: Tasks spread across several executors give enough parallelism; a single busy executor means the compute is underused.
+  - text: To avoid writing logs.
+    verdict: incorrect
+    justification: Logs are still written.
+  - text: To ensure the driver is not used.
+    verdict: incorrect
+    justification: The driver is always involved in coordinating the job.
+  source_url: https://docs.databricks.com/aws/en/compute/troubleshooting/debugging-spark-ui
+- id: 4.3-030
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A data engineer wants to see which stage of a long SQL query took the most time and the number of output rows of each operator.
+
+    Which Spark UI page helps most?
+  answers:
+  - text: The Storage page
+    verdict: incorrect
+    justification: The Storage page shows cached data.
+  - text: The Environment page
+    verdict: incorrect
+    justification: The Environment page shows configuration.
+  - text: The SQL / DataFrame page with the query's DAG and operator metrics
+    verdict: correct
+    justification: The SQL / DataFrame page shows the query DAG with operator metrics, such as output rows and time.
+  - text: The Executors page's thread dumps
+    verdict: incorrect
+    justification: Thread dumps show thread states, not operator metrics.
+  source_url: https://spark.apache.org/docs/latest/web-ui.html
+- id: 4.3-031
+  category: troubleshooting_and_tuning
+  objective: '4.3'
+  question: |-
+    A Databricks job on classic compute keeps failing at night, and the team wants to download the driver's log files for the failed run.
+
+    Where can the driver log files be downloaded while the compute is available?
+  answers:
+  - text: From the Driver logs tab on the compute details page, by clicking the name of a log file
+    verdict: correct
+    justification: Driver log files can be downloaded by clicking them on the Driver logs tab of the compute details page.
+  - text: From the Storage tab of the Spark UI
+    verdict: incorrect
+    justification: The Storage tab shows cached data, not logs.
+  - text: From the notebook's revision history
+    verdict: incorrect
+    justification: Revision history tracks notebook versions, not logs.
+  - text: From the Unity Catalog explorer
+    verdict: incorrect
+    justification: Catalog Explorer manages data objects, not compute logs.
+  source_url: https://docs.databricks.com/aws/en/compute/clusters-manage

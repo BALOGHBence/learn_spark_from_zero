@@ -1,0 +1,592 @@
+# Objective 6.1: Describe the features of Spark Connect.
+- id: 6.1-001
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer explains Spark Connect to a colleague.
+
+    Which description is correct?
+  answers:
+  - text: A decoupled client-server architecture that allows remote connectivity to Spark clusters using the DataFrame API and unresolved logical plans as the protocol
+    verdict: correct
+    justification: The Spark docs describe Spark Connect as a decoupled client-server architecture that uses the DataFrame API and unresolved logical plans as the protocol.
+  - text: A cluster manager that replaces YARN and Kubernetes
+    verdict: incorrect
+    justification: Spark Connect is a client protocol, not a cluster manager.
+  - text: A Python library that runs Spark locally inside the client process
+    verdict: incorrect
+    justification: The client is thin; the Spark work runs on a remote server, not inside the client process.
+  - text: A JDBC driver that sends SQL strings to a Spark Thrift server
+    verdict: incorrect
+    justification: Spark Connect sends logical plans over gRPC, not SQL strings over JDBC to a Thrift server.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-002
+  category: using_spark_connect
+  objective: '6.1'
+  question: In which Apache Spark version was Spark Connect introduced?
+  answers:
+  - text: Spark 2.4
+    verdict: incorrect
+    justification: Spark 2.4 predates Spark Connect.
+  - text: Spark 3.0
+    verdict: incorrect
+    justification: Spark 3.0 predates Spark Connect.
+  - text: Spark 3.4
+    verdict: correct
+    justification: Spark Connect was introduced in Spark 3.4.
+  - text: Spark 4.0
+    verdict: incorrect
+    justification: Spark Connect existed before Spark 4.0.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-003
+  category: using_spark_connect
+  objective: '6.1'
+  question: How does a Spark Connect client send DataFrame operations to the server?
+  answers:
+  - text: As SQL strings sent over JDBC
+    verdict: incorrect
+    justification: Plans are sent, not SQL strings over JDBC.
+  - text: As unresolved logical plans encoded with protocol buffers and sent over gRPC
+    verdict: correct
+    justification: The client encodes unresolved logical plans as protocol buffers and sends them over gRPC.
+  - text: As Python bytecode sent over HTTP
+    verdict: incorrect
+    justification: The client sends plans, not Python bytecode, and uses gRPC, not plain HTTP.
+  - text: As serialized RDDs sent over Py4J
+    verdict: incorrect
+    justification: Spark Connect does not support RDDs and does not use Py4J.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-004
+  category: using_spark_connect
+  objective: '6.1'
+  question: How are results returned from the Spark Connect server to the client?
+  answers:
+  - text: Copied into the client's JVM through Py4J
+    verdict: incorrect
+    justification: The client has no JVM link to the server; Py4J is not used.
+  - text: Written to a shared file system that the client reads
+    verdict: incorrect
+    justification: Results do not go through a shared file system.
+  - text: Sent as JSON documents over REST
+    verdict: incorrect
+    justification: Results are Arrow batches, not JSON over REST.
+  - text: Streamed back over gRPC as Apache Arrow-encoded row batches
+    verdict: correct
+    justification: Results are streamed back over gRPC as Arrow-encoded row batches.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-005
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer uses `df._jdf` in PySpark code that now runs against a Spark Connect server.
+
+    Why does this fail?
+  answers:
+  - text: '`_jdf` is only available after calling `cache()`.'
+    verdict: incorrect
+    justification: Caching does not provide JVM access.
+  - text: The Spark Connect client does not run in the driver process and does not use Py4J, so JVM objects of DataFrames are not accessible.
+    verdict: correct
+    justification: The Spark Connect client runs outside the driver and does not use Py4J, so private JVM fields such as `df._jdf` are not accessible.
+  - text: Spark Connect requires Scala for this attribute.
+    verdict: incorrect
+    justification: The limitation exists in every language because the client is separate from the driver JVM.
+  - text: '`_jdf` was renamed to `_jvm_df` in Spark Connect.'
+    verdict: incorrect
+    justification: '`_jdf` was not renamed; JVM access does not exist in Spark Connect.'
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-006
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which execution API is not supported by the Spark Connect protocol?
+  answers:
+  - text: RDDs
+    verdict: correct
+    justification: The Spark docs state that the Spark Connect protocol does not support all execution APIs, most importantly RDDs.
+  - text: Structured Streaming DataFrame queries
+    verdict: incorrect
+    justification: Structured Streaming DataFrame queries are supported.
+  - text: DataFrames
+    verdict: incorrect
+    justification: DataFrames are the core of Spark Connect.
+  - text: Spark SQL queries
+    verdict: incorrect
+    justification: Spark SQL queries are supported.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-007
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which of the following can a Spark Connect client not access?
+  answers:
+  - text: Running SQL queries with `spark.sql`
+    verdict: incorrect
+    justification: '`spark.sql` is supported.'
+  - text: DataFrame transformations
+    verdict: incorrect
+    justification: DataFrame transformations are fully supported.
+  - text: Reading tables into DataFrames
+    verdict: incorrect
+    justification: Reading tables is supported.
+  - text: The SparkContext and the static Spark configuration of the cluster
+    verdict: correct
+    justification: Spark Connect clients cannot access the SparkContext or the cluster's static Spark configuration.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-008
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which operational benefit of Spark Connect relates to memory usage of client applications?
+  answers:
+  - text: Applications can use unlimited memory on the driver.
+    verdict: incorrect
+    justification: Clients do not get unlimited driver memory.
+  - text: Memory errors are automatically retried on another cluster.
+    verdict: incorrect
+    justification: Spark Connect does not retry memory errors on other clusters.
+  - text: 'Stability: an application that uses too much memory only affects its own process, not the Spark driver shared by others.'
+    verdict: correct
+    justification: With Spark Connect, an application using too much memory only affects its own process, not the shared driver.
+  - text: Client memory is pooled with the executors.
+    verdict: incorrect
+    justification: Client memory is not pooled with executors.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-009
+  category: using_spark_connect
+  objective: '6.1'
+  question: How does Spark Connect improve upgradability?
+  answers:
+  - text: Spark Connect prevents any server upgrades.
+    verdict: incorrect
+    justification: Spark Connect makes server upgrades easier, not impossible.
+  - text: Clients must always be upgraded together with the server.
+    verdict: incorrect
+    justification: Clients and server are decoupled, so they need not be upgraded together.
+  - text: Upgrades are applied by restarting each client.
+    verdict: incorrect
+    justification: Server upgrades are not applied by restarting clients.
+  - text: The Spark server can be upgraded independently of client applications, as long as the RPC definitions stay backwards compatible.
+    verdict: correct
+    justification: The server can be upgraded independently of clients, as long as the RPC definitions stay backwards compatible.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-010
+  category: using_spark_connect
+  objective: '6.1'
+  question: How does Spark Connect help debuggability and observability?
+  answers:
+  - text: Developers can debug interactively from their IDE and monitor applications with their framework's native metrics and logging.
+    verdict: correct
+    justification: Developers can debug from their IDE and use their framework's native metrics and logging.
+  - text: It disables logs on the server to speed up execution.
+    verdict: incorrect
+    justification: Server logs are not disabled.
+  - text: It requires debugging only through the Spark UI.
+    verdict: incorrect
+    justification: Debugging is not limited to the Spark UI.
+  - text: It copies all executor logs to the client.
+    verdict: incorrect
+    justification: Executor logs are not copied to the client.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-011
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer creates a Spark Connect session to a local Spark Connect server in Python.
+
+    Which code does this?
+  answers:
+  - text: '`SparkSession.builder.master("local[*]").getOrCreate()`'
+    verdict: true_but_irrelevant
+    justification: '`master("local[*]")` is valid, but it creates a classic local session, not a Spark Connect session.'
+  - text: '`SparkSession.builder.connect("http://localhost:4040").getOrCreate()`'
+    verdict: incorrect
+    justification: The builder has no `connect` method, and 4040 is the Spark UI port.
+  - text: '`SparkSession.builder.remote("sc://localhost").getOrCreate()`'
+    verdict: correct
+    justification: '`builder.remote("sc://localhost")` creates a Spark Connect session to a local server.'
+  - text: '`SparkContext("sc://localhost")`'
+    verdict: incorrect
+    justification: SparkContext is not a Spark Connect entry point and does not accept an `sc://` URL like this.
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.builder.remote.html
+- id: 6.1-012
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer wants an existing PySpark script to use Spark Connect without code changes.
+
+    Which approach works?
+  answers:
+  - text: Add `--deploy-mode connect` to the script.
+    verdict: incorrect
+    justification: There is no `connect` deploy mode.
+  - text: Set the `SPARK_REMOTE` environment variable, for example to `sc://localhost`, before creating the SparkSession.
+    verdict: correct
+    justification: The Spark docs explain that setting `SPARK_REMOTE` makes a new SparkSession a Spark Connect session with no code change.
+  - text: Set `SPARK_HOME` to the server address.
+    verdict: incorrect
+    justification: '`SPARK_HOME` points to the Spark installation, not the server address.'
+  - text: Rename the script to use the `.connect.py` extension.
+    verdict: incorrect
+    justification: File names do not affect Spark Connect.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-013
+  category: using_spark_connect
+  objective: '6.1'
+  question: On which port does a Spark Connect client connect by default?
+  answers:
+  - text: '8080'
+    verdict: true_but_irrelevant
+    justification: 8080 is the standalone master's web UI port.
+  - text: '15002'
+    verdict: correct
+    justification: The Spark docs state that the client connects to port 15002 by default.
+  - text: '7077'
+    verdict: true_but_irrelevant
+    justification: 7077 is the default port of the standalone cluster master.
+  - text: '4040'
+    verdict: true_but_irrelevant
+    justification: 4040 is the default port of the Spark UI.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-014
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which script starts a Spark server with Spark Connect enabled in an Apache Spark distribution?
+  answers:
+  - text: '`./bin/spark-submit --connect`'
+    verdict: incorrect
+    justification: '`spark-submit` has no `--connect` flag.'
+  - text: '`./bin/pyspark --remote`'
+    verdict: incorrect
+    justification: '`pyspark --remote` starts a client shell; it does not start the server.'
+  - text: '`./sbin/start-connect-server.sh`'
+    verdict: correct
+    justification: '`./sbin/start-connect-server.sh` starts a Spark server with Spark Connect.'
+  - text: '`./sbin/start-history-server.sh`'
+    verdict: true_but_irrelevant
+    justification: This script is real, but it starts the history server, not a Spark Connect server.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-015
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A Python developer needs a lightweight client package that only contains the Spark Connect client.
+
+    Which package does the Spark documentation mention?
+  answers:
+  - text: '`databricks-sql-connector`'
+    verdict: true_but_irrelevant
+    justification: '`databricks-sql-connector` is real, but it runs SQL on Databricks SQL; it is not a Spark Connect client.'
+  - text: '`spark-connect-py`'
+    verdict: incorrect
+    justification: There is no `spark-connect-py` package for this.
+  - text: '`pyspark-lite`'
+    verdict: incorrect
+    justification: There is no `pyspark-lite` package for this.
+  - text: '`pyspark-client`'
+    verdict: correct
+    justification: The Spark docs mention installing the `pyspark-client` package for a pure Spark Connect client.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-016
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A developer wants to run and debug PySpark code from VS Code against Databricks compute.
+
+    Which tool does Databricks provide for this?
+  answers:
+  - text: Databricks Connect
+    verdict: correct
+    justification: Databricks Connect lets you run and debug PySpark code from IDEs such as VS Code against Databricks compute.
+  - text: The Databricks SQL Connector for Python only
+    verdict: true_but_irrelevant
+    justification: The SQL Connector runs SQL queries; it does not run and debug PySpark DataFrame code.
+  - text: A JDBC connection to the cluster driver
+    verdict: incorrect
+    justification: Databricks does not offer direct JDBC connections to the cluster driver for running PySpark.
+  - text: The Spark history server
+    verdict: true_but_irrelevant
+    justification: The history server shows past applications; it does not run code.
+  source_url: https://docs.databricks.com/aws/en/dev-tools/databricks-connect/
+- id: 6.1-017
+  category: using_spark_connect
+  objective: '6.1'
+  question: On which technology is Databricks Connect built?
+  answers:
+  - text: Open-source Spark Connect
+    verdict: correct
+    justification: Databricks documents that Databricks Connect is built on open-source Spark Connect.
+  - text: Py4J gateways to the cluster driver
+    verdict: incorrect
+    justification: Databricks Connect does not use Py4J gateways.
+  - text: The Databricks REST API only
+    verdict: incorrect
+    justification: It is not only REST API calls; it uses the Spark Connect protocol.
+  - text: ODBC drivers
+    verdict: incorrect
+    justification: It does not use ODBC drivers.
+  source_url: https://docs.databricks.com/aws/en/dev-tools/databricks-connect/
+- id: 6.1-018
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which Databricks compute types use Spark Connect?
+  answers:
+  - text: Only single node compute
+    verdict: incorrect
+    justification: Spark Connect is not limited to single node compute.
+  - text: Serverless compute, Databricks Connect, and Python notebooks on standard access mode compute with Databricks Runtime 14.3 and above
+    verdict: correct
+    justification: Databricks lists serverless compute, Databricks Connect and Python notebooks on standard access mode with Databricks Runtime 14.3+ as using Spark Connect.
+  - text: Only legacy compute without Unity Catalog
+    verdict: incorrect
+    justification: Legacy compute without Unity Catalog uses Spark Classic.
+  - text: Only SQL warehouses
+    verdict: incorrect
+    justification: SQL warehouses run SQL; they are not the Spark Connect contexts listed.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-019
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer moves code from Spark Classic to Spark Connect. In the code, `df.columns` is called inside a loop for each newly created DataFrame.
+
+    Why might this become slow?
+  answers:
+  - text: '`df.columns` caches the DataFrame each time.'
+    verdict: incorrect
+    justification: '`df.columns` does not cache anything.'
+  - text: '`df.columns` is not supported in Spark Connect.'
+    verdict: incorrect
+    justification: '`df.columns` is supported.'
+  - text: In Spark Connect, schema access on a new DataFrame triggers an analysis RPC to the server, so many such calls add latency.
+    verdict: correct
+    justification: In Spark Connect, schema access on a new DataFrame triggers an analysis RPC, so many calls add latency.
+  - text: '`df.columns` triggers a full Spark job each time.'
+    verdict: incorrect
+    justification: Schema access triggers analysis, not a full job.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-020
+  category: using_spark_connect
+  objective: '6.1'
+  question: How can the code from the previous scenario be improved under Spark Connect?
+  answers:
+  - text: Replace `df.columns` with `df.collect()`.
+    verdict: incorrect
+    justification: '`collect()` runs a full job and returns data, which is far more expensive.'
+  - text: Call `df.cache()` before each `df.columns`.
+    verdict: incorrect
+    justification: Caching does not avoid the analysis RPC.
+  - text: Use `spark.sparkContext` to read the columns.
+    verdict: incorrect
+    justification: SparkContext is not available in Spark Connect.
+  - text: Track column names in a local Python set instead of calling `df.columns` on every new DataFrame.
+    verdict: correct
+    justification: Databricks recommends tracking column names locally instead of calling `df.columns` on each new DataFrame.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-021
+  category: using_spark_connect
+  objective: '6.1'
+  question: In Spark Connect, where is the analysis of transformations performed?
+  answers:
+  - text: On the client, eagerly when each transformation is defined
+    verdict: true_but_irrelevant
+    justification: Eager analysis on the client when each transformation is defined is Spark Classic behaviour; in Spark Classic it happens on the driver.
+  - text: On the cluster manager
+    verdict: incorrect
+    justification: The cluster manager does not analyze plans.
+  - text: On the server, when an operation that needs a resolved plan is executed
+    verdict: correct
+    justification: In Spark Connect, analysis happens on the server when an operation needs a resolved plan.
+  - text: Nowhere; Spark Connect skips analysis
+    verdict: incorrect
+    justification: Analysis still happens, only later.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-022
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A team runs many independent client applications against one shared Spark cluster.
+
+    Which Spark Connect characteristic reduces conflicts between their Python dependencies?
+  answers:
+  - text: Users define their own dependencies on the client, so they do not conflict with the Spark driver.
+    verdict: correct
+    justification: Clients define their own dependencies, so they don't conflict with the Spark driver or other clients.
+  - text: All clients must share one Python environment on the driver.
+    verdict: incorrect
+    justification: Clients have separate environments.
+  - text: Spark Connect forbids third-party libraries.
+    verdict: incorrect
+    justification: Third-party libraries are allowed.
+  - text: Dependencies are installed on the cluster manager.
+    verdict: incorrect
+    justification: The cluster manager does not install client dependencies.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-023
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which languages have Spark Connect client support in Apache Spark?
+  answers:
+  - text: Only Java
+    verdict: incorrect
+    justification: Python and Scala are supported, not only Java.
+  - text: Only SQL
+    verdict: incorrect
+    justification: Spark Connect is a DataFrame client protocol, not limited to SQL.
+  - text: Only R
+    verdict: incorrect
+    justification: Python and Scala are supported, not only R.
+  - text: Python (PySpark) and Scala, among others
+    verdict: correct
+    justification: The Spark docs state that Spark Connect supports PySpark and Scala applications.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-024
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which statement about using Spark Connect from notebooks and IDEs is correct?
+  answers:
+  - text: Spark Connect can only be used from the Spark shell on the driver.
+    verdict: incorrect
+    justification: Clients run anywhere, not only in the Spark shell on the driver.
+  - text: The thin client library can be embedded in application servers, IDEs, notebooks and other programming languages.
+    verdict: correct
+    justification: The thin client library can be embedded in application servers, IDEs, notebooks and other languages.
+  - text: Spark Connect clients must run on a worker node.
+    verdict: incorrect
+    justification: Clients do not need to run on worker nodes.
+  - text: Spark Connect requires the client and server to share a JVM.
+    verdict: incorrect
+    justification: Client and server run in separate processes.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-025
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A Spark Connect client application needs a local Python file to be available on the server for UDFs.
+
+    Which session method uploads it?
+  answers:
+  - text: '`spark.uploadFile("helpers.py")`'
+    verdict: incorrect
+    justification: SparkSession has no `uploadFile` method.
+  - text: '`spark.conf.set("spark.files", "helpers.py")`'
+    verdict: incorrect
+    justification: Setting `spark.files` at runtime does not upload the file in Spark Connect.
+  - text: '`spark.addArtifacts("helpers.py", pyfile=True)`'
+    verdict: correct
+    justification: '`spark.addArtifacts(..., pyfile=True)` uploads a Python file to the Spark Connect session.'
+  - text: '`spark.sparkContext.addPyFile("helpers.py")`'
+    verdict: true_but_irrelevant
+    justification: '`sparkContext.addPyFile` is the Spark Classic way, and SparkContext is unavailable in Spark Connect.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.addArtifacts.html
+- id: 6.1-026
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A Spark Connect user wants to cancel all operations currently running in their session.
+
+    Which method does this?
+  answers:
+  - text: '`spark.sparkContext.cancelAllJobs()`'
+    verdict: true_but_irrelevant
+    justification: '`sparkContext.cancelAllJobs()` is the Spark Classic way, and SparkContext is unavailable in Spark Connect.'
+  - text: '`spark.stop(force=True)`'
+    verdict: incorrect
+    justification: '`stop` has no `force` parameter, and stopping ends the session instead of cancelling operations.'
+  - text: '`spark.catalog.clearCache()`'
+    verdict: incorrect
+    justification: '`clearCache` removes cached data; it does not cancel operations.'
+  - text: '`spark.interruptAll()`'
+    verdict: correct
+    justification: '`spark.interruptAll()` interrupts all operations running in the session.'
+  source_url: https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.interruptAll.html
+- id: 6.1-027
+  category: using_spark_connect
+  objective: '6.1'
+  question: In Spark Connect, when is a Python UDF serialized and sent to the server?
+  answers:
+  - text: At execution time, when an action uses it
+    verdict: correct
+    justification: Databricks explains that in Spark Connect, Python UDFs are serialized lazily at execution time.
+  - text: When the SparkSession is created
+    verdict: incorrect
+    justification: UDFs are not serialized when the session is created.
+  - text: When the `@udf` decorator runs
+    verdict: true_but_irrelevant
+    justification: Serializing UDFs when they are created is Spark Classic behaviour.
+  - text: Never; UDFs run on the client
+    verdict: incorrect
+    justification: UDFs run on the server, not the client.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-028
+  category: using_spark_connect
+  objective: '6.1'
+  question: |-
+    A data engineer relies on Spark Classic raising an `AnalysisException` immediately for a typo in a column name inside a `try` block. Under Spark Connect, no exception is raised there.
+
+    How can they force eager error detection?
+  answers:
+  - text: Use `df.cache()` inside the `try` block.
+    verdict: incorrect
+    justification: '`cache` is lazy, so it does not reliably trigger analysis.'
+  - text: Trigger analysis inside the `try` block, for example with `df.columns` or `df.schema`.
+    verdict: correct
+    justification: Databricks suggests forcing analysis with `df.columns` or `df.schema` inside the `try` block.
+  - text: Use `spark.conf.set("spark.sql.analyzer.eager", True)`.
+    verdict: incorrect
+    justification: There is no such configuration.
+  - text: It is not possible to detect errors before an action in Spark Connect.
+    verdict: incorrect
+    justification: Schema access triggers analysis before any action.
+  source_url: https://docs.databricks.com/aws/en/spark/connect-vs-classic
+- id: 6.1-029
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which statement about Spark optimizations under Spark Connect is correct?
+  answers:
+  - text: Spark Connect queries run on the client with pandas.
+    verdict: incorrect
+    justification: Queries run on the server, not with pandas on the client.
+  - text: The server translates unresolved plans into Spark's logical plans and then uses the standard execution process, so all of Spark's optimizations still apply.
+    verdict: correct
+    justification: The server translates unresolved plans into Spark's logical plans and runs the normal execution, so all optimizations apply.
+  - text: Spark Connect queries bypass the Catalyst optimizer.
+    verdict: incorrect
+    justification: Catalyst still optimizes Spark Connect queries.
+  - text: Spark Connect disables adaptive query execution.
+    verdict: incorrect
+    justification: AQE still works.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
+- id: 6.1-030
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which Databricks Connect entry point creates a session in Python?
+  answers:
+  - text: '`databricks.sql.connect()`'
+    verdict: true_but_irrelevant
+    justification: '`databricks.sql.connect()` is valid, but it belongs to the Databricks SQL Connector, which runs SQL without a SparkSession.'
+  - text: '`SparkSession.builder.master("databricks").getOrCreate()`'
+    verdict: incorrect
+    justification: '`master("databricks")` is not valid.'
+  - text: '`SparkContext.getOrCreate()` from `pyspark`'
+    verdict: incorrect
+    justification: SparkContext is not the Databricks Connect entry point.
+  - text: '`DatabricksSession.builder.getOrCreate()` from `databricks.connect`'
+    verdict: correct
+    justification: Databricks Connect creates sessions with `DatabricksSession.builder.getOrCreate()` from `databricks.connect`.
+  source_url: https://docs.databricks.com/aws/en/dev-tools/databricks-connect/
+- id: 6.1-031
+  category: using_spark_connect
+  objective: '6.1'
+  question: Which multi-tenancy issue does Spark Connect address?
+  answers:
+  - text: One client's heavy workload or dependency conflict should not destabilize a shared driver used by other clients.
+    verdict: correct
+    justification: Spark Connect isolates clients, so one client's heavy workload or dependency conflict does not destabilize a shared driver.
+  - text: Executors cannot be shared by different stages.
+    verdict: incorrect
+    justification: Executors are shared by stages normally.
+  - text: Multiple clusters cannot read the same table.
+    verdict: incorrect
+    justification: Reading the same table from several clusters is not a multi-tenancy issue Spark Connect solves.
+  - text: The cluster manager cannot allocate resources fairly.
+    verdict: incorrect
+    justification: Resource allocation is the cluster manager's job, not what Spark Connect addresses.
+  source_url: https://spark.apache.org/docs/latest/spark-connect-overview.html
