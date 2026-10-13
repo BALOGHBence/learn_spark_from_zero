@@ -23,7 +23,7 @@ Find your weak spots with short exam-style quizzes on one section, objective or 
 :link: 00_getting_started/03_taking_a_mock_exam_with_claude_code
 :link-type: doc
 
-Sit a full 45-question practice exam that covers every objective, graded only after you submit.
+Sit a full 45-question practice exam that covers every objective, graded only after you submit. Take it with Claude Code or in the browser.
 :::
 ::::
 
@@ -39,6 +39,7 @@ The pages target Apache Spark 4.x as it runs on Databricks. Where Databricks beh
 - **Python 3.12, [uv](https://docs.astral.sh/uv/) and the Databricks CLI** on your machine, to run the notebooks locally through Databricks Connect. {doc}`Setting Up Databricks Connect <00_getting_started/01_setting_up_databricks_connect>` walks you through the setup.
 - **A copy of the [course repository](https://github.com/BALOGHBence/learn_spark_from_zero)**, which holds the notebooks, the question bank and the Claude Code skills.
 - **Optional: [Claude Code](https://claude.com/claude-code)**, to run the quizzes and the mock exam.
+- **Optional: [Node.js](https://nodejs.org/) 20 or later**, to run the mock exam app in your browser, as described in {doc}`Taking a Mock Exam in the Browser <00_getting_started/04_taking_a_mock_exam_in_the_browser>`.
 
 ## Course Map
 
@@ -49,7 +50,7 @@ The pages target Apache Spark 4.x as it runs on Databricks. Where Databricks beh
 :link: 00_getting_started/index
 :link-type: doc
 
-Set up Databricks Connect, and learn how to quiz yourself and take a mock exam with Claude Code.
+Set up Databricks Connect, learn how to quiz yourself with Claude Code, and take a mock exam with Claude Code or in the browser.
 :::
 
 :::{grid-item-card} 1. Introduction to Apache Spark
@@ -93,7 +94,7 @@ Hands-on tasks, each mapped to exam objectives, that you should be able to compl
 1. **Set up your environment** with {doc}`Setting Up Databricks Connect <00_getting_started/01_setting_up_databricks_connect>`, so you can run every notebook yourself.
 2. **Diagnose before you study.** Take a short quiz on an exam section first, as described in {doc}`Quizzing Yourself with Claude Code <00_getting_started/02_quizzing_yourself_with_claude_code>`, and spend your time on the objectives you miss.
 3. **Work through the chapters in order.** Each chapter builds on the previous one. Run the notebooks top to bottom rather than only reading them.
-4. **Check your readiness.** When you've finished the chapters, {doc}`take a mock exam <00_getting_started/03_taking_a_mock_exam_with_claude_code>` and complete the {doc}`hands-on tasks <05_exam_readiness/01_hands_on_tasks>` from memory.
+4. **Check your readiness.** When you've finished the chapters, take a mock exam {doc}`with Claude Code <00_getting_started/03_taking_a_mock_exam_with_claude_code>` or {doc}`in the browser <00_getting_started/04_taking_a_mock_exam_in_the_browser>` and complete the {doc}`hands-on tasks <05_exam_readiness/01_hands_on_tasks>` from memory.
 
 ## The Exam at a Glance
 

@@ -1,6 +1,6 @@
 ---
 name: mock-exam
-description: Run a full-length mock exam for the Databricks Certified Associate Developer for Apache Spark — 45 exam-style multiple-choice questions drawn from the course's question bank in fixtures/questions, the number of scored questions in the official exam guide, spread over every objective in proportion to the outline — and reveal no answer, hint or score until the user has submitted all responses, then grade with a per-section breakdown, the bank's justifications and cited sources. Use whenever the user asks for a mock exam, practice exam, full exam, full-length test, exam simulation or "the whole exam", even if they don't mention the question count or hidden answers. For shorter quizzes on one section, objective or topic use certification-quiz instead.
+description: Run a full-length mock exam for the Databricks Certified Associate Developer for Apache Spark — 45 exam-style multiple-choice questions drawn from the course's question bank in fixtures/questions, the number of scored questions in the official exam guide, spread over the sections by the official section weights with every objective covered — and reveal no answer, hint or score until the user has submitted all responses, then grade with a per-section breakdown, the bank's justifications and cited sources. Use whenever the user asks for a mock exam, practice exam, full exam, full-length test, exam simulation or "the whole exam", even if they don't mention the question count or hidden answers. For shorter quizzes on one section, objective or topic use certification-quiz instead.
 argument-hint: "[optional: 'timed', or a different exam guide path]"
 ---
 
@@ -36,39 +36,24 @@ Its outline, verbatim, is in
 (source: `resources/databricks-certified-associate-developer-apache-spark-exam-guide-oct-2025.pdf`).
 Read it before picking questions.
 
-The guide states **45 scored multiple-choice questions** and **90 minutes**.
-It does **not** publish section weights. The only proportion it implies is how
-many objectives each section lists, so the blueprint gives every objective an
-equal share of the 45 questions (45 / 32 ≈ 1.4 per objective), rounds the
-section totals with the largest-remainder method, and breaks the one tie
-(Sections 2 and 5) in favour of the earlier section:
+The guide states **45 scored multiple-choice questions** and **90 minutes**. The guide itself doesn't list section weights, but the certification page publishes an official weight for each section ([Databricks Certified Associate Developer for Apache Spark](https://www.databricks.com/learn/certification/apache-spark-developer-associate)). The blueprint applies those weights to the 45 questions, rounds the section totals with the largest-remainder method, and breaks the tie between Sections 3, 4 and 5 (13.5, 4.5 and 4.5) in favour of the earlier sections:
 
-| Section | Objectives | Questions | Share |
+| Section | Objectives | Official weight | Questions |
 |---|---:|---:|---:|
-| 1: Apache Spark Architecture and Components | 7 | 10 | 22% |
-| 2: Using Spark SQL | 4 | 6 | 13% |
-| 3: Developing Apache Spark™ DataFrame/DataSet API Applications | 10 | 14 | 31% |
-| 4: Troubleshooting and Tuning Apache Spark DataFrame API Applications | 3 | 4 | 9% |
-| 5: Structured Streaming | 4 | 5 | 11% |
-| 6: Using Spark Connect to deploy applications | 2 | 3 | 7% |
-| 7: Using Pandas API on Spark | 2 | 3 | 7% |
-| **Total** | **32** | **45** | **100%** |
+| 1: Apache Spark Architecture and Components | 7 | 20% | 9 |
+| 2: Using Spark SQL | 4 | 20% | 9 |
+| 3: Developing Apache Spark™ DataFrame/DataSet API Applications | 10 | 30% | 14 |
+| 4: Troubleshooting and Tuning Apache Spark DataFrame API Applications | 3 | 10% | 5 |
+| 5: Structured Streaming | 4 | 10% | 4 |
+| 6: Using Spark Connect to deploy applications | 2 | 5% | 2 |
+| 7: Using Pandas API on Spark | 2 | 5% | 2 |
+| **Total** | **32** | **100%** | **45** |
 
-Within a section, every objective gets one question, and the section's
-remaining questions go to different objectives, one extra each. The objectives
-that get the extra question are chosen at random on each run, so repeated mock
-exams don't all lean the same way. The picker script implements this table in
-`MOCK_BLUEPRINT`.
+Within a section, every objective gets one question, and the section's remaining questions are dealt out over its objectives one at a time in a random order, so they land on different objectives before any objective gets a third (Section 2 has 9 questions for 4 objectives). The order is random on each run, so repeated mock exams don't all lean the same way. The picker script implements this table in `MOCK_BLUEPRINT`, and the browser mock exam app in `apps/mock-exam/src/exam.js` uses the same table.
 
-Never tell the user this blueprint is Databricks' official weighting. If they
-ask, explain that it's derived from the objective count because the guide
-gives no weights.
+The weights are official; the rounding to whole questions is this course's. If the user asks, say that the real exam's per-section counts aren't published.
 
-**If the outline changes** (a newer guide in `resources/`, or a different
-exam): take the number of scored questions from the guide and recompute the
-table the same way. If the guide does publish section percentages, use those
-instead and say so. Either way, update `MOCK_BLUEPRINT` in the picker script to
-match. The question bank only covers this exam. If the user names a different
+**If the outline or the weights change** (a newer guide in `resources/`, new weights on the certification page, or a different exam): take the number of scored questions from the guide and the weights from the certification page, and recompute the table the same way. Update `MOCK_BLUEPRINT` in the picker script and `SECTIONS` in `apps/mock-exam/src/exam.js` to match. The question bank only covers this exam. If the user names a different
 certification, say there's no bank for it and ask for its exam guide (PDF path
 or pasted "Sections and Objectives") instead of guessing.
 

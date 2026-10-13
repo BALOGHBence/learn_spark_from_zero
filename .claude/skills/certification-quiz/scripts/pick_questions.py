@@ -27,10 +27,10 @@ from project.questions import OBJECTIVES, Category, Question, load_questions
 
 LETTERS = "ABCD"
 
-#: Questions per section in a mock exam. The exam guide publishes no section
-#: weights, so every objective gets an equal share of the 45 questions; see the
+#: Questions per section in a mock exam: the official section weights on the
+#: certification page (20/20/30/10/10/5/5%) applied to 45 questions; see the
 #: mock-exam skill for how the table is derived.
-MOCK_BLUEPRINT: dict[int, int] = {1: 10, 2: 6, 3: 14, 4: 4, 5: 5, 6: 3, 7: 3}
+MOCK_BLUEPRINT: dict[int, int] = {1: 9, 2: 9, 3: 14, 4: 5, 5: 4, 6: 2, 7: 2}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -119,14 +119,21 @@ def _spread(pool: list[Question], objectives: list[str], count: int,
 
 
 def _pick_mock(bank: list[Question], rng: random.Random) -> list[Question]:
-    """One question per objective, extras to randomly chosen distinct objectives."""
+    """One question per objective, extras dealt out over the objectives at random.
+
+    The extras go to the section's objectives one at a time in a random order,
+    so they land on different objectives before any objective gets a third.
+    """
     picked: list[Question] = []
     for section, total in MOCK_BLUEPRINT.items():
         objectives = [o.id for o in OBJECTIVES.values() if o.category.section == section]
-        extras = set(rng.sample(objectives, total - len(objectives)))
+        counts = dict.fromkeys(objectives, 1)
+        order = rng.sample(objectives, len(objectives))
+        for i in range(total - len(objectives)):
+            counts[order[i % len(objectives)]] += 1
         for objective in objectives:
             pool = [q for q in bank if q.objective == objective]
-            n = 2 if objective in extras else 1
+            n = counts[objective]
             if len(pool) < n:
                 sys.exit(f"Not enough questions left for objective {objective}.")
             picked.extend(rng.sample(pool, n))
