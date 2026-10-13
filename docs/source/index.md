@@ -2,7 +2,7 @@
 
 A hands-on course that takes you from no Apache Spark knowledge to ready for the **Databricks Certified Associate Developer for Apache Spark** exam. You write and run PySpark from your own editor against Databricks serverless compute, and you check what you've learned with a bank of 1,000 exam-style questions.
 
-::::{grid} 1 1 3 3
+::::{grid} 1 1 2 2
 :gutter: 3
 
 :::{grid-item-card} {octicon}`rocket;1.5em` Start here
@@ -19,11 +19,18 @@ Connect your local Python environment to Databricks serverless compute so every 
 Find your weak spots with short exam-style quizzes on one section, objective or topic.
 :::
 
-:::{grid-item-card} {octicon}`stopwatch;1.5em` Take a mock exam
+:::{grid-item-card} {octicon}`stopwatch;1.5em` Take a mock exam with Claude Code
 :link: 00_getting_started/03_taking_a_mock_exam_with_claude_code
 :link-type: doc
 
-Sit a full 45-question practice exam that covers every objective, graded only after you submit. Take it with Claude Code or in the browser.
+Sit a full 45-question practice exam in a chat that covers every objective, graded only after you submit.
+:::
+
+:::{grid-item-card} {octicon}`browser;1.5em` Take a mock exam in the browser
+:link: 00_getting_started/04_taking_a_mock_exam_in_the_browser
+:link-type: doc
+
+Run the mock exam app locally for a testing screen with a timer, review marks, and an export of your wrong answers.
 :::
 ::::
 
