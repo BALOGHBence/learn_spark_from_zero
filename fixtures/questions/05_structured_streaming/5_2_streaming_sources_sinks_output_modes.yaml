@@ -29,7 +29,6 @@
     Which code does this?
   answers:
   - text: |-
-      |
       ```python
       (df.writeStream
          .saveAsTable("main.silver.events")
@@ -38,7 +37,6 @@
     verdict: incorrect
     justification: '`DataStreamWriter` has no `saveAsTable`; use `toTable`, which also starts the query.'
   - text: |-
-      |
       ```python
       (df.writeStream
          .option("checkpointLocation", "/Volumes/main/silver/chk/events")
@@ -47,7 +45,6 @@
     verdict: correct
     justification: '`writeStream` with a `checkpointLocation` and `toTable(...)` starts a streaming write into the table.'
   - text: |-
-      |
       ```python
       (df.write
          .option("checkpointLocation", "/Volumes/main/silver/chk/events")
@@ -56,7 +53,6 @@
     verdict: incorrect
     justification: '`df.write` is for batch DataFrames; streaming DataFrames must use `writeStream`.'
   - text: |-
-      |
       ```python
       (df.writeStream
          .checkpoint("/Volumes/main/silver/chk/events")
@@ -293,14 +289,12 @@
     Which code does this?
   answers:
   - text: |-
-      |
       ```python
       df.writeStream.foreach(lambda row: row.write.saveAsTable("main.a.t1")).start()
       ```
     verdict: incorrect
     justification: '`foreach` receives rows, which have no `write` attribute.'
   - text: |-
-      |
       ```python
       (df.writeStream
          .format("multi")
@@ -310,7 +304,6 @@
     verdict: incorrect
     justification: There is no `multi` format.
   - text: |-
-      |
       ```python
       (df.writeStream
          .toTable("main.a.t1")
@@ -319,7 +312,6 @@
     verdict: incorrect
     justification: '`toTable` starts the query and returns a `StreamingQuery`, so it cannot be chained twice.'
   - text: |-
-      |
       ```python
       def write_both(batch_df, batch_id):
           batch_df.write.mode("append").saveAsTable("main.a.t1")

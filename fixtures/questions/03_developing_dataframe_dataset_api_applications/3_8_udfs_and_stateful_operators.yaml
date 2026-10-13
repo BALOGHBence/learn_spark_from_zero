@@ -8,7 +8,6 @@
     Which code is correct?
   answers:
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 
@@ -21,7 +20,6 @@
     verdict: incorrect
     justification: '`@udf` without a return type defaults to StringType, and UDFs have no `collect` method.'
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 
@@ -33,7 +31,6 @@
     verdict: incorrect
     justification: The function is not wrapped with `udf`, so calling it on a Column runs plain Python `len` on a Column object and fails.
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
       from pyspark.sql.types import IntegerType
@@ -47,7 +44,6 @@
     verdict: correct
     justification: '`@udf(returnType=IntegerType())` wraps the function as a UDF with an integer result, and it handles `None`; calling it with a column name applies it.'
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 

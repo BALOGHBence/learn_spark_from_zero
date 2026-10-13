@@ -89,14 +89,12 @@
     Which approach is deterministic?
   answers:
   - text: |-
-      |
       ```python
       latest = df.distinct().limit(1)
       ```
     verdict: incorrect
     justification: '`limit(1)` returns a single row for the whole DataFrame, not one per `order_id`.'
   - text: |-
-      |
       ```python
       w = Window.partitionBy("order_id").orderBy(col("updated_at").desc())
       latest = (df.withColumn("rn", row_number().over(w))
@@ -105,14 +103,12 @@
     verdict: correct
     justification: '`row_number()` over a window partitioned by `order_id` and ordered by `updated_at` descending deterministically marks the latest row as 1.'
   - text: |-
-      |
       ```python
       latest = df.orderBy(col("updated_at").desc()).dropDuplicates(["order_id"])
       ```
     verdict: incorrect
     justification: Spark does not guarantee that `dropDuplicates` keeps the first row of a prior sort.
   - text: |-
-      |
       ```python
       latest = df.groupBy("order_id").agg(first("updated_at"))
       ```
@@ -377,7 +373,6 @@
     Which code does this correctly, including rows where `amount` is null in the rejected set?
   answers:
   - text: |-
-      |
       ```python
       valid = df.filter(col("amount") >= 0)
       rejected = df.filter(~(col("amount") >= 0))
@@ -385,7 +380,6 @@
     verdict: partially_correct
     justification: It catches negative amounts, but `~(null)` is still null, so null amounts are lost from both sets.
   - text: |-
-      |
       ```python
       valid = df.filter(col("amount") >= 0)
       rejected = df.filter((col("amount") < 0) | col("amount").isNull())
@@ -393,14 +387,12 @@
     verdict: correct
     justification: A null `amount` makes `amount >= 0` null, so it is in neither filter; the rejected filter must include `isNull()` explicitly.
   - text: |-
-      |
       ```python
       valid, rejected = df.randomSplit([0.5, 0.5])
       ```
     verdict: incorrect
     justification: '`randomSplit` splits rows randomly; it does not validate anything.'
   - text: |-
-      |
       ```python
       valid = df.filter(col("amount") >= 0)
       rejected = df.subtract(valid).filter(col("amount") < 0)

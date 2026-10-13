@@ -1,6 +1,6 @@
 ---
 name: certification-quiz
-description: Quiz the user with multiple-choice questions written in the style of a real Databricks certification exam (default exam is the Databricks Certified Associate Developer for Apache Spark), withholding every answer until the user responds, then grading with explanations grounded in docs.databricks.com. Use whenever the user asks to be quizzed, tested, drilled or diagnosed on an exam section, objective or Spark topic — e.g. "quiz me on Section 3", "give me 10 practice questions on Structured Streaming", "test me on broadcast joins" — even if they don't mention the exam style or hiding the answers. For a full-length mock exam use the mock-exam skill instead.
+description: Quiz the user with multiple-choice questions drawn from the course's question bank in fixtures/questions (written in the style of the Databricks Certified Associate Developer for Apache Spark exam), withholding every answer until the user responds, then grading with the bank's justifications and cited sources. Use whenever the user asks to be quizzed, tested, drilled or diagnosed on an exam section, objective or Spark topic — e.g. "quiz me on Section 3", "give me 10 practice questions on Structured Streaming", "test me on broadcast joins" — even if they don't mention the exam style or hiding the answers. For a full-length mock exam use the mock-exam skill instead.
 ---
 
 # Certification Quiz
@@ -12,10 +12,18 @@ Guide (`resources/ai-prep-guide-any-databricks-certification.pdf`):
 > Quiz me with 10 multiple-choice questions on [SECTION], in the style of an
 > actual Databricks certification exam. Don't show answers until I respond.
 
+The questions come from the course's **question bank** in
+`fixtures/questions/` (about 30 per objective, one YAML file per objective,
+validated by `src/project/questions/schema.py`). Each question has exactly
+four options, one with verdict `correct`, and every option carries a
+`justification`. Each question also has a `source_url` on docs.databricks.com
+or spark.apache.org. Don't write your own questions while the bank covers the
+scope.
+
 Two rules hold **on every quiz, whether or not the user states them**:
 
-1. **Exam style, always.** Every question follows the format of the real exam
-   (see "Writing the questions").
+1. **Questions from the bank.** Pick them with the script below. Don't
+   paraphrase them or invent new ones.
 2. **No answers until the user responds.** Never reveal, hint at, or encode the
    correct option before the user has submitted their answers.
 
@@ -25,86 +33,98 @@ Databricks Academy, and say so explicitly when a claim can't be confirmed.
 
 ## 1. Resolve the scope
 
-Default exam: **Databricks Certified Associate Developer for Apache Spark**. Its
-outline, verbatim, is in
+The exam is the **Databricks Certified Associate Developer for Apache Spark**.
+Its outline, verbatim, is in
 [references/spark-developer-exam-outline.md](references/spark-developer-exam-outline.md)
 (source: `resources/databricks-certified-associate-developer-apache-spark-exam-guide-oct-2025.pdf`).
-Read it before writing questions.
+Objective ids are `<section>.<position in section>`. For example, `3.5` is the
+fifth objective of Section 3 (joins and unions).
 
-Map the user's `[SECTION]` to the outline:
+Map the user's `[SECTION]` to picker flags:
 
-- **A section number or name** ("Section 5", "Using Spark SQL") → spread the
-  questions across *all* objectives in that section, roughly evenly.
-- **A single objective** → every question targets that objective, from
-  different angles (concept, code, scenario, troubleshooting).
+- **A section number or name** ("Section 5", "Using Spark SQL") →
+  `--section 5`. The picker spreads the questions evenly over the section's
+  objectives.
+- **A single objective** → `--objective 3.2`.
 - **A free-form topic** ("watermarks", "AQE") → find the objective(s) that
-  cover it and quiz on those. If **no** objective covers it, tell the user the
-  topic isn't in the exam guide and ask whether they still want a quiz on it —
-  never present an off-outline topic as an exam objective.
+  cover it, then pass them with `--objective`, adding `--grep <keyword>` when
+  the topic is narrower than the objective (e.g. `--objective 5.4 --grep
+  watermark`). Pass several `--grep` values for synonyms. If **no** objective
+  covers the topic, tell the user the topic isn't in the exam guide and ask
+  whether they still want a quiz on it. Never present an off-outline topic as
+  an exam objective. See "When the bank can't cover the request" below.
 - **"Full mock exam"**, "practice exam" or "the whole exam" → hand off to the
-  `mock-exam` skill, which runs the full 45-question exam with its own
-  blueprint and submission rules.
-- **A different certification** → ask the user for that exam guide (PDF path
-  or pasted "Sections and Objectives") instead of guessing its outline.
+  `mock-exam` skill.
+- **A different certification** → the bank only covers the Spark Developer
+  exam. Ask the user for that exam guide (PDF path or pasted "Sections and
+  Objectives") and see "When the bank can't cover the request".
 
-Other defaults, overridable by the user: **10 questions**, all presented at
-once, Python (PySpark) for code.
+Other defaults, overridable by the user: **10 questions** (`--count`), all
+presented at once.
 
-## 2. Writing the questions
+## 2. Pick the questions
 
-Match the sample questions in the official exam guide:
+Run the picker from the repository root:
 
-- Number each question and put the targeted objective, **copied verbatim from
-  the outline**, in an italic line under the heading:
-  `*Objective: Perform data deduplication and validation operations on DataFrames.*`
-- Use a short, realistic **scenario stem** ("A data engineer needs to…",
-  "A developer notices…") that ends in one direct question ("Which code block
-  should the engineer use…?", "Why should the developer choose…?").
-- Exactly **four options, A–D, exactly one correct**. No "all/none of the
-  above", no multi-select.
-- Mix question kinds the way the real exam does: "which code block", "what is
-  the result/impact of", "why choose X over Y", and "how should the engineer
-  diagnose" questions. At least a third should involve reading code.
-- Put code options in fenced `python` (or `sql`) blocks so indentation and
-  method chains are readable.
-- **Distractors must be plausible.** Use the mistakes a real candidate makes:
-  wrong save mode, a parameter that doesn't exist (`descending=True`), swapped
-  argument order in `withColumnRenamed`, `na.drop("all")` vs `na.drop()`,
-  confusing transformations with actions, client vs cluster mode. Each
-  distractor should be wrong for a reason you can explain in one sentence.
-- Spread the correct letter across A–D; don't let a pattern emerge.
-- Target Apache Spark 4.x as shipped on Databricks. Use current Databricks
-  names (Lakeflow Spark Declarative Pipelines, Lakeflow Jobs, Unity Catalog
-  volumes, serverless compute) — never a retired name as if it were current.
-- Don't reuse the ten sample questions from the exam guide verbatim; the user
-  has likely seen them.
+```bash
+uv run python .claude/skills/certification-quiz/scripts/pick_questions.py --section 3 --count 10
+```
 
-### Verify before presenting
+Useful flags: `--objective` and `--section` (repeatable, combinable), `--grep`,
+`--count`, `--exclude <id>` (repeatable) and `--seed`. The script picks at
+random, shuffles the options and balances the correct letters over A–D.
 
-Before showing the quiz, check every correct answer — and that every distractor
-really is wrong — against official sources. If web tools are available, search
-docs.databricks.com (and the Apache Spark API reference for exact PySpark
-signatures) and note the URL you'll cite at grading time. If you can't confirm
-a question, replace it with one you can confirm. If you cannot browse at all,
-say so once at the top of the quiz and point to where in docs.databricks.com
-the user should verify.
+The output has two parts:
+
+- **QUESTIONS**: the quiz, already formatted with a heading per question, the
+  verbatim objective in italics, the stem, and options **A–D**.
+- **ANSWER KEY**: for each question, the bank id, the correct letter, every
+  option's verdict and justification, and the `source_url`. This is for you
+  only.
+
+**Follow-up quizzes**: pass every id already asked in this conversation with
+`--exclude`, so the user gets fresh questions.
+
+If the picker warns that fewer questions matched than requested (common with
+a narrow `--grep`), tell the user how many the bank has and offer either that
+smaller quiz or a broader scope.
+
+### Sanity check before presenting
+
+The bank is curated, but read each picked question and its key before showing
+it. If a stem or option is broken (garbled formatting, leftover YAML
+characters, a missing code block) or the keyed answer looks wrong to you:
+
+- swap it out by re-running the picker with that id in `--exclude`;
+- if you believe the answer is wrong, check it against the `source_url`. If
+  it is wrong, tell the user the bank id and what needs fixing, after the quiz
+  so you don't give anything away.
+
+### When the bank can't cover the request
+
+Only for a topic outside the exam guide that the user still wants to be
+quizzed on, or for a different certification, write the questions yourself in
+the bank's style: a short scenario stem ending in one direct question, exactly
+four options A–D with exactly one correct, plausible distractors that are each
+wrong for a reason you can explain in one sentence, PySpark in fenced code
+blocks, and current Databricks names. Verify every answer against
+docs.databricks.com (or the Apache Spark API reference for exact signatures)
+and keep the URL for grading. If you can't browse, say so once at the top of
+the quiz. Tell the user that these questions are not from the bank.
 
 ## 3. Presenting the quiz — answers stay hidden
 
-Output only the questions, then stop and wait. Do **not**:
+Show only the **QUESTIONS** part, then stop and wait. Do **not**:
 
-- print an answer key, "correct answer" marker, or explanations;
+- print or paraphrase anything from the answer key, including the bank ids;
 - bold, reorder, or otherwise style the correct option differently;
 - hide answers in a collapsed block, footnote, spoiler, or encoded text;
-- hint in the stem ("note that `na.drop()` defaults to `how='any'`…").
+- hint in the stem.
 
 End the message with a single instruction such as:
 
 > Reply with your answers (e.g. `1-B, 2-D, 3-A, …`). I'll grade them once you
 > respond.
-
-Keep track of the answer key yourself so grading is consistent with what you
-verified.
 
 **While the quiz is open:**
 
@@ -120,17 +140,18 @@ verified.
 
 ## 4. Grading
 
-Once the user responds:
+Grade against the answer key. Once the user responds:
 
 1. **Score** first: `7 / 10 (70%)`. For context, Databricks does not publish
    the passing score in the exam guide — don't invent one.
 2. A compact **results table**: question, your answer, correct answer, ✓/✗.
 3. For **each question** (wrong ones first, in more depth):
-   - why the correct option is right;
-   - for a wrong pick, the specific misconception behind it and why that
-     option fails;
-   - the doc URL that confirms it (docs.databricks.com preferred). If you
-     couldn't verify a point in official docs, say so instead of citing.
+   - why the correct option is right, based on its justification;
+   - for a wrong pick, the misconception behind it, based on that option's
+     verdict and justification. A `partially_correct` pick is right in part
+     but incomplete. A `true_but_irrelevant` pick states something true that
+     doesn't answer the question. Say which applies;
+   - the question's `source_url`.
 4. **Weak objectives**: list the objectives (verbatim) the user missed, and for
    each point to the matching course page — `grep -ril "<topic>" docs/source`
    and link the page you find. If none exists, say so.
@@ -141,4 +162,5 @@ Once the user responds:
      misconception, explain why the right answer is right, and give me a
      related question that tests the same concept differently."
 
-Offer to run a follow-up quiz focused on the missed objectives.
+Offer a follow-up quiz on the missed objectives (`--objective` for each,
+`--exclude` for the ids already asked).

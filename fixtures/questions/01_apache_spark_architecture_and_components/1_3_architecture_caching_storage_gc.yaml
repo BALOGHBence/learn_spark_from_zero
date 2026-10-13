@@ -218,7 +218,6 @@
     Which code achieves this?
   answers:
   - text: |-
-      |
       ```python
       from pyspark import StorageLevel
       df.persist(StorageLevel.DISK_ONLY)
@@ -226,21 +225,18 @@
     verdict: correct
     justification: '`persist(StorageLevel.DISK_ONLY)` keeps the partitions only on executor disks.'
   - text: |-
-      |
       ```python
       df.cache("DISK_ONLY")
       ```
     verdict: incorrect
     justification: '`cache()` takes no arguments and always uses the default storage level.'
   - text: |-
-      |
       ```python
       df.persist(storage="disk")
       ```
     verdict: incorrect
     justification: '`persist` takes a `StorageLevel` object, not a `storage="disk"` keyword.'
   - text: |-
-      |
       ```python
       df.persist().onDisk()
       ```

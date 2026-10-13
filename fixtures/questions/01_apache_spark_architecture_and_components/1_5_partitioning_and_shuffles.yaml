@@ -197,14 +197,12 @@
     Which code helps with this?
   answers:
   - text: |-
-      |
       ```python
       df.groupBy("partition").count().show()
       ```
     verdict: incorrect
     justification: The DataFrame has no `partition` column unless you create one.
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import spark_partition_id
       df.groupBy(spark_partition_id().alias("pid")).count().show()
@@ -212,14 +210,12 @@
     verdict: correct
     justification: '`spark_partition_id()` returns the partition id of each row, so grouping by it shows the row count per partition.'
   - text: |-
-      |
       ```python
       df.describe("partition_id").show()
       ```
     verdict: incorrect
     justification: '`describe` computes statistics of existing columns; there is no `partition_id` column.'
   - text: |-
-      |
       ```python
       df.partitions().count().show()
       ```

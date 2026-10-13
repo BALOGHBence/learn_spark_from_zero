@@ -389,7 +389,6 @@
     Which code is appropriate?
   answers:
   - text: |-
-      |
       ```python
       for row in df.collect():
           process(row)
@@ -397,14 +396,12 @@
     verdict: partially_correct
     justification: The loop works, but `collect()` loads all rows into driver memory at once, which is what must be avoided.
   - text: |-
-      |
       ```python
       df.foreachLocal(process)
       ```
     verdict: incorrect
     justification: DataFrames have no `foreachLocal` method.
   - text: |-
-      |
       ```python
       for row in df.toLocalIterator():
           process(row)
@@ -412,7 +409,6 @@
     verdict: correct
     justification: '`toLocalIterator()` streams the rows to the driver partition by partition.'
   - text: |-
-      |
       ```python
       for row in df:
           process(row)

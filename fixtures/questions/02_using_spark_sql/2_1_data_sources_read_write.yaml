@@ -29,7 +29,6 @@
     Which code is correct?
   answers:
   - text: |-
-      |
       ```python
       df = (spark.read.format("jdbc")
             .option("connection", "jdbc:postgresql://db:5432/shop")
@@ -39,21 +38,18 @@
     verdict: incorrect
     justification: The options are named `url` and `dbtable`; `connection` and `table` are not JDBC source options.
   - text: |-
-      |
       ```python
       df = spark.sql("SELECT * FROM jdbc:postgresql://db:5432/shop/public.customers")
       ```
     verdict: incorrect
     justification: Spark SQL cannot query a JDBC URL as a table name like this.
   - text: |-
-      |
       ```python
       df = spark.read.jdbc("public.customers").option("url", "jdbc:postgresql://db:5432/shop")
       ```
     verdict: incorrect
     justification: '`spark.read.jdbc` takes the URL and table as arguments and returns a DataFrame, so `.option(...)` cannot be chained after it.'
   - text: |-
-      |
       ```python
       df = (spark.read.format("jdbc")
             .option("url", "jdbc:postgresql://db:5432/shop")

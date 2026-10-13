@@ -425,7 +425,6 @@
     Which statement is valid?
   answers:
   - text: |-
-      |
       ```sql
       CREATE TABLE sales (id INT, amount DOUBLE, country STRING)
       PARTITION ON country
@@ -433,7 +432,6 @@
     verdict: incorrect
     justification: '`PARTITION ON` is not valid syntax.'
   - text: |-
-      |
       ```sql
       CREATE PARTITIONED TABLE sales BY country
       (id INT, amount DOUBLE)
@@ -441,7 +439,6 @@
     verdict: incorrect
     justification: '`CREATE PARTITIONED TABLE ... BY` is not valid syntax.'
   - text: |-
-      |
       ```sql
       CREATE TABLE sales PARTITIONED (country)
       (id INT, amount DOUBLE, country STRING)
@@ -449,7 +446,6 @@
     verdict: incorrect
     justification: The column list must come before `PARTITIONED BY`.
   - text: |-
-      |
       ```sql
       CREATE TABLE sales (id INT, amount DOUBLE, country STRING)
       PARTITIONED BY (country)
@@ -631,7 +627,6 @@
     Which code is valid on Databricks?
   answers:
   - text: |-
-      |
       ```python
       (spark.readStream.table("source_table")
          .writeStream
@@ -645,7 +640,6 @@
     verdict: incorrect
     justification: Databricks supports liquid clustering for streaming writes.
   - text: |-
-      |
       ```python
       (spark.readStream.table("source_table")
          .writeStream
@@ -655,7 +649,6 @@
     verdict: incorrect
     justification: '`DataStreamWriter` has no `bucketBy`, and no checkpoint location is set.'
   - text: |-
-      |
       ```python
       (spark.readStream.table("source_table")
          .writeStream

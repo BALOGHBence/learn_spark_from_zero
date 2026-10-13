@@ -8,14 +8,12 @@
     Which code does this?
   answers:
   - text: |-
-      |
       ```python
       spark.sql("SELECT country, sum(amount) FROM orders_df GROUP BY country").show()
       ```
     verdict: incorrect
     justification: A Python variable name is not visible to SQL; the DataFrame must be registered as a view (or passed as a parameter).
   - text: |-
-      |
       ```python
       orders_df.registerTable("orders")
       spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()
@@ -23,7 +21,6 @@
     verdict: incorrect
     justification: DataFrames have no `registerTable` method.
   - text: |-
-      |
       ```python
       orders_df.saveAsView("orders")
       spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()
@@ -31,7 +28,6 @@
     verdict: incorrect
     justification: DataFrames have no `saveAsView` method.
   - text: |-
-      |
       ```python
       orders_df.createOrReplaceTempView("orders")
       spark.sql("SELECT country, sum(amount) FROM orders GROUP BY country").show()

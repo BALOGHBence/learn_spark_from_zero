@@ -8,7 +8,6 @@
     Which code is correct?
   answers:
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 
@@ -21,7 +20,6 @@
     verdict: incorrect
     justification: '`udf` has no `pandas` parameter; pandas UDFs use `@pandas_udf`.'
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -35,7 +33,6 @@
     verdict: incorrect
     justification: No return type is given, and passing the whole DataFrame as an argument is not valid.
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -49,7 +46,6 @@
     verdict: incorrect
     justification: The type hints must be pandas types; with plain `int` hints Spark cannot infer the pandas UDF type.
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -237,7 +233,6 @@
   question: Which code is a correct iterator pandas UDF that adds 1 to every value?
   answers:
   - text: |-
-      |
       ```python
       from typing import Iterator
       import pandas as pd
@@ -251,7 +246,6 @@
     verdict: correct
     justification: An iterator UDF loops over the batches and yields one result Series per batch.
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -263,7 +257,6 @@
     verdict: incorrect
     justification: The input type hint must be `Iterator[pd.Series]` for an iterator UDF.
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 
@@ -275,7 +268,6 @@
     verdict: incorrect
     justification: A regular `@udf` processes rows, not batches.
   - text: |-
-      |
       ```python
       from typing import Iterator
       import pandas as pd
@@ -315,7 +307,6 @@
   question: Which code defines and uses a Series to scalar pandas UDF for the mean of `v` per `id`?
   answers:
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -329,7 +320,6 @@
     verdict: incorrect
     justification: '`GroupedData.apply` is for grouped-map functions, not scalar aggregates.'
   - text: |-
-      |
       ```python
       from pyspark.sql.functions import udf
 
@@ -342,7 +332,6 @@
     verdict: incorrect
     justification: A regular Python UDF cannot be used as an aggregate function.
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf
@@ -356,7 +345,6 @@
     verdict: incorrect
     justification: The hint `-> pd.Series` makes it a Series to Series UDF, which `agg` rejects.
   - text: |-
-      |
       ```python
       import pandas as pd
       from pyspark.sql.functions import pandas_udf

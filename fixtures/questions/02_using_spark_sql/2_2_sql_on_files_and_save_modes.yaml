@@ -374,7 +374,6 @@
     Which statement does this?
   answers:
   - text: |-
-      |
       ```sql
       CREATE CSV TABLE sales_raw
       PATH '/mnt/raw/sales' (header=true)
@@ -382,7 +381,6 @@
     verdict: incorrect
     justification: '`CREATE CSV TABLE ... PATH` is not valid syntax.'
   - text: |-
-      |
       ```sql
       CREATE TABLE sales_raw
       AS csv.`/mnt/raw/sales` HEADER
@@ -390,7 +388,6 @@
     verdict: incorrect
     justification: '`AS csv.`...` HEADER` is not valid; CTAS needs a `SELECT`, and options cannot be passed this way.'
   - text: |-
-      |
       ```sql
       CREATE TABLE sales_raw
       USING CSV
@@ -400,7 +397,6 @@
     verdict: correct
     justification: '`CREATE TABLE ... USING CSV OPTIONS (header "true") LOCATION ''...''` defines a table over CSV files with options.'
   - text: |-
-      |
       ```sql
       CREATE TABLE sales_raw
       FROM CSV '/mnt/raw/sales'

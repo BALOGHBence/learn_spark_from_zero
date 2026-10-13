@@ -105,6 +105,17 @@ def test_every_answer_is_justified(bank: list[Question]) -> None:
         assert all(a.justification for a in question.answers)
 
 
+def test_no_stray_yaml_block_indicators(bank: list[Question]) -> None:
+    # A `|` left on the first line of a `|-` block ends up in the rendered text.
+    stray = [
+        question.id
+        for question in bank
+        for text in [question.question, *(a.text for a in question.answers)]
+        if text.startswith("|")
+    ]
+    assert stray == []
+
+
 def test_question_helpers() -> None:
     question = Question.model_validate(_question())
     assert question.correct_index == 0

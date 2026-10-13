@@ -50,7 +50,6 @@
     Which code is correct?
   answers:
   - text: |-
-      |
       ```python
       from pyspark.sql.types import StructType, StructField, IntegerType, StringType
       schema = StructType([
@@ -62,7 +61,6 @@
     verdict: correct
     justification: A `StructType` built from `StructField(name, type, nullable)` is passed to `read.schema(...)`.
   - text: |-
-      |
       ```python
       schema = StructType(id=IntegerType(), name=StringType())
       df = spark.read.json(path).schema(schema)
@@ -70,7 +68,6 @@
     verdict: incorrect
     justification: '`StructType` does not take keyword arguments, and `DataFrame.schema` is a property, not a method that applies a schema.'
   - text: |-
-      |
       ```python
       from pyspark.sql.types import StructType, StructField
       schema = StructType({"id": "int", "name": "string"})
@@ -79,7 +76,6 @@
     verdict: incorrect
     justification: '`StructType` takes a list of `StructField` objects, not a dictionary.'
   - text: |-
-      |
       ```python
       from pyspark.sql.types import StructField
       schema = [StructField("id", int), StructField("name", str)]
