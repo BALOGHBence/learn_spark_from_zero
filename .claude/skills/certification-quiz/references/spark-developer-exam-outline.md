@@ -13,8 +13,7 @@ version, update this file from it.
 - Test aides: none, including API documentation
 - Code language: Python ("complete basic Spark DataFrame tasks using Python")
 - Exams may include unscored questions that are not identified on the form
-- Section weights: **not published** in the guide. The `mock-exam` skill
-  derives its blueprint from the number of objectives per section instead.
+- Section weights: not in the guide, but published on the [certification page](https://www.databricks.com/learn/certification/apache-spark-developer-associate): Section 1 20%, Section 2 20%, Section 3 30%, Section 4 10%, Section 5 10%, Section 6 5%, Section 7 5%. The `mock-exam` skill and the mock exam app build their blueprint from these.
 
 ## Section 1: Apache Spark Architecture and Components
 

@@ -12,6 +12,7 @@ The repository contains:
 - **A course** written as Sphinx documentation with runnable Jupyter notebooks ([`docs/source`](docs/source)).
 - **A question bank** of 1,000 multiple-choice questions covering every objective in the exam guide ([`fixtures/questions`](fixtures/questions)).
 - **Claude Code skills** that turn the question bank into quizzes and a full-length mock exam ([`.claude/skills`](.claude/skills)).
+- **A mock exam app** in React that runs a 45-question practice exam from the question bank in your browser ([`apps/mock-exam`](apps/mock-exam)).
 - **A Python package** that loads and validates the question bank and creates Spark sessions for the notebooks ([`src/project`](src/project)).
 
 > [!NOTE]
@@ -21,7 +22,7 @@ The repository contains:
 
 | Chapter | What it covers |
 | --- | --- |
-| [0. Getting Started](docs/source/00_getting_started/index.md) | Setting up Databricks Connect, quizzing yourself and taking a mock exam with Claude Code |
+| [0. Getting Started](docs/source/00_getting_started/index.md) | Setting up Databricks Connect, quizzing yourself and taking a mock exam with Claude Code or in the browser |
 | [1. Introduction to Apache Spark](docs/source/01_introduction_to_apache_spark/index.md) | Runtime architecture, DataFrames and Spark SQL, distributed programming fundamentals, ETL with the DataFrame API |
 | [2. Developing Applications with Apache Spark](docs/source/02_developing_applications_with_apache_spark/index.md) | DataFrame API basics, grouping and aggregation, joins and other relational operations, complex data types |
 | [3. Stream Processing and Analysis](docs/source/03_stream_processing_and_analysis/index.md) | Structured Streaming, windowed aggregations and watermarks, real-time mode |
@@ -93,6 +94,10 @@ Open Claude Code at the root of the repository and ask it to quiz you. The skill
 
 Answers stay hidden until you respond. After grading you get each question's explanation and the documentation page that supports it. More example prompts are in [Quizzing Yourself with Claude Code](docs/source/00_getting_started/02_quizzing_yourself_with_claude_code.md) and [Taking a Mock Exam with Claude Code](docs/source/00_getting_started/03_taking_a_mock_exam_with_claude_code.md).
 
+## Mock Exam App
+
+Prefer a testing screen to a chat? [`apps/mock-exam`](apps/mock-exam) is a small React app that runs a full 45-question mock exam from the question bank in your browser, lets you mark questions for review, and exports your wrong answers as an LLM prompt or JSON after you submit. See [Taking a Mock Exam in the Browser](docs/source/00_getting_started/04_taking_a_mock_exam_in_the_browser.md) for how to run it locally.
+
 ## The Question Bank
 
 The 1,000 questions are spread evenly over the 32 objectives of the exam guide, one YAML file per objective:
@@ -138,6 +143,7 @@ joins = load_questions(objective="3.5")
 ```text
 .
 ├── .claude/skills/       Claude Code skills: quizzes, mock exam, docs authoring and fact-checking
+├── apps/mock-exam/       React mock exam app that runs in the browser
 ├── docs/source/          Course content (Markdown pages and Jupyter notebooks)
 ├── fixtures/questions/   Question bank, one folder per exam section
 ├── resources/            Exam guide and Databricks AI Prep Guide (PDF)
