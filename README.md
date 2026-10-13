@@ -38,6 +38,7 @@ The exam guide this course follows is in [`resources/`](resources/databricks-cer
 - The [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install).
 - A Databricks workspace with Unity Catalog and serverless compute. [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) is enough.
 - Optional: [Claude Code](https://claude.com/claude-code) for the quizzes and the mock exam.
+- Optional: [Node.js](https://nodejs.org/) 20 or later for the mock exam app.
 
 ## Quick Start
 
@@ -96,7 +97,22 @@ Answers stay hidden until you respond. After grading you get each question's exp
 
 ## Mock Exam App
 
-Prefer a testing screen to a chat? [`apps/mock-exam`](apps/mock-exam) is a small React app that runs a full 45-question mock exam from the question bank in your browser, lets you mark questions for review, and exports your wrong answers as an LLM prompt or JSON after you submit. See [Taking a Mock Exam in the Browser](docs/source/00_getting_started/04_taking_a_mock_exam_in_the_browser.md) for how to run it locally.
+Prefer a testing screen to a chat? [`apps/mock-exam`](apps/mock-exam) is a small React app that runs a full 45-question mock exam from the question bank in your browser. It needs no Databricks connection and no Claude Code, only [Node.js](https://nodejs.org/) 20 or later.
+
+```shell
+cd apps/mock-exam
+npm install    # once
+npm run dev
+```
+
+Open the URL it prints (usually http://localhost:5173/) and select **Start exam**. Stop the server with `Ctrl+C`.
+
+- **Exam format:** 45 questions spread over the sections by the official section weights, with a 90-minute timer that doesn't stop you.
+- **While you answer:** move freely between questions, change any answer, and mark the ones you're unsure about. **Review all** lists your marked and unanswered questions so you can go back to them.
+- **After you submit:** you see your score, a breakdown by section and an explanation for every question, and nothing before that.
+- **Exports:** **Copy LLM prompt** puts your wrong answers on the clipboard as a ready-to-paste tutoring prompt for an LLM. **Download wrong answers (JSON)** saves them as structured data.
+
+The full guide is in [Taking a Mock Exam in the Browser](docs/source/00_getting_started/04_taking_a_mock_exam_in_the_browser.md).
 
 ## The Question Bank
 
