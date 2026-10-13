@@ -1,5 +1,10 @@
 # Learn Spark from Zero
 
+[![Read the course](https://img.shields.io/badge/Read%20the%20course-baloghbence.github.io-0969da?style=for-the-badge)](https://baloghbence.github.io/learn_spark_from_zero/)
+[![Deploy docs to Pages](https://github.com/BALOGHBence/learn_spark_from_zero/actions/workflows/docs.yml/badge.svg)](https://github.com/BALOGHBence/learn_spark_from_zero/actions/workflows/docs.yml)
+
+**📖 Read the course online: [baloghbence.github.io/learn_spark_from_zero](https://baloghbence.github.io/learn_spark_from_zero/)**
+
 A hands-on course that takes you from no Apache Spark knowledge to ready for the [Databricks Certified Associate Developer for Apache Spark](https://www.databricks.com/learn/certification/apache-spark-developer-associate) exam. You write and run PySpark from your own editor against Databricks serverless compute, and you test yourself with a bank of 1,000 exam-style questions.
 
 The repository contains:
@@ -66,6 +71,8 @@ The exam guide this course follows is in [`resources/`](resources/databricks-cer
 If the connection fails, see the Common Mistakes section of the setup notebook. The usual causes are a `pyspark` install next to `databricks-connect`, a profile name that `databricks auth profiles` doesn't list, or a Python version other than 3.12.
 
 ## Build the Docs
+
+The published course at [baloghbence.github.io/learn_spark_from_zero](https://baloghbence.github.io/learn_spark_from_zero/) is rebuilt by the [`docs.yml`](.github/workflows/docs.yml) workflow on every push to `main`. To build it locally:
 
 ```shell
 uv run make -C docs html

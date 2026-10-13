@@ -61,11 +61,30 @@ html_css_files = ['css/custom.css']
 html_theme_options = {
     "show_toc_level": 2,
     "secondary_sidebar_items": ["page-toc"],
-    # A short navbar brand so it doesn't collide with the top nav links;
-    # the full project name still appears in page titles.
     "logo": {
         "text": "Learn Spark from Zero",
     },
+    # A slim header: logo, search, theme switcher and GitHub link only. The
+    # chapter links are left out of the header because the long chapter titles
+    # wrapped it onto several rows; the left sidebar lists the whole course
+    # instead (see html_sidebars).
+    "navbar_center": [],
+    "navbar_persistent": [],
+    "navbar_end": ["search-button-field", "theme-switcher", "navbar-icon-links"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/BALOGHBence/learn_spark_from_zero",
+            "icon": "fa-brands fa-github",
+        },
+    ],
+}
+
+# Every page except the landing page shows the full course tree in the left
+# sidebar; the landing page has its own course map.
+html_sidebars = {
+    "**": ["sidebar-nav-full"],
+    "index": [],
 }
 
 # -- Options for myst_nb -------------------------------------------------
