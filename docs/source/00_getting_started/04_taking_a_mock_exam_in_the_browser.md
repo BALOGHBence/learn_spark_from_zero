@@ -15,6 +15,10 @@
 The questions are written by an AI model. They aren't official exam items and they aren't calibrated against the real exam's difficulty. Treat your score as a guide to where you're weak, not as a prediction of whether you'll pass.
 :::
 
+## Opening the Hosted App
+
+The app is published alongside this documentation at [https://baloghbence.github.io/learn_spark_from_zero/mock-exam/](https://baloghbence.github.io/learn_spark_from_zero/mock-exam/). It's rebuilt from the question bank on every push to `main`, so you don't need to install anything. Your answers are saved in your own browser only.
+
 ## Running the App Locally
 
 You need [Node.js](https://nodejs.org/) 20 or later, which includes `npm`. Check your version with `node --version`.
